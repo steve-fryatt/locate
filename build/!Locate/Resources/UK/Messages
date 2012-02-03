@@ -1,0 +1,286 @@
+# Messages for Locate
+#
+# (C) Stephen Fryatt, 2001
+#
+# UK Version
+
+TaskName:Locate
+Version:0.89b (8 Dec 2004)
+
+TaskSpr:!locate
+
+SupportURL:http://www.stevefryatt.org.uk/software/locate/
+
+ResWindTitle:Files found named '%0' (%1)
+SizeFlag:S
+DateFlag:D
+AgeFlag:A
+TypeFlag:T
+AttrFlag:O
+ContFlag:C
+
+Untyped:Untyped
+Dir:Directory
+App:Application
+
+FileName:Results
+ExptName:FileNames
+SrchName:Search
+SelectName:Selection
+
+DeftHistName:<untitled search>
+
+# Messages & Errors
+
+NoFiles:No matching objects were found
+NotHere:(The object is no longer in this location)
+NameTooLong:Filename too long
+
+Searching:Searching in %0
+Found:%0 object(s) found%1
+Errors:; %0 error(s) occurred
+
+NoHeapCode:The heap handling code was not found and loaded.
+NoCode:The assembled code was not found and loaded.
+BadRdrwHndl:The data for the window redraw can not be found.
+BadSave:To save, drag the icon to a directory viewer.
+RAMXferFail:The file was not received correctly by the other application.
+BadFile:This file is not compatible with the version of Locate currently running.
+FileError:There was an error while loading the file: the load has been aborted.
+NoLoadNow:Searching is in progress: load file once completed.
+AbrtSrch:The current search has been stopped.
+NotThere:The selected object is no longer in the specified location.
+NotThereDrag:Some of the selected items were no longer in the locations specified.
+PathBufFull:There was not enough space in the search path buffer to add the new path.
+NoPaths:There were no paths specified to search.
+TypeBufFull:There was not enough space in the filetype field to add the new type.
+URLFailed:Could not find an application to launch the given URL.
+
+# Size options window menus.
+
+SizeLogic0:not important
+SizeLogic1:equal to
+SizeLogic2:not equal to
+SizeLogic3:greater than
+SizeLogic4:less than
+SizeLogic5:between
+SizeLogic6:not between
+
+SizeUnits0:bytes
+SizeUnits1:Kb
+SizeUnits2:Mb
+
+# Date options window menus.
+
+DateLogic0:at any time
+DateLogic1:at
+DateLogic2:at any time but
+DateLogic3:after
+DateLogic4:before
+DateLogic5:between
+DateLogic6:not between
+
+# Months
+
+Month1:January
+Month2:February
+Month3:March
+Month4:April
+Month5:May
+Month6:June
+Month7:July
+Month8:August
+Month9:September
+Month10:October
+Month11:November
+Month12:December
+
+# Age options window menus.
+
+AgeLogic0:any age
+AgeLogic1:exactly
+AgeLogic2:any age but
+AgeLogic3:less than
+AgeLogic4:more than
+AgeLogic5:between
+AgeLogic6:not between
+
+AgeUnits0:minutes
+AgeUnits1:hours
+AgeUnits2:days
+AgeUnits3:weeks
+AgeUnits4:months
+AgeUnits5:years
+
+# Filetype options window.
+
+TypeLogic0:of any type
+TypeLogic1:of type
+TypeLogic2:not of type
+
+FileMenu:Filetypes
+
+# Contents options window.
+
+ContentLogic0:are not important
+ContentLogic1:include
+ContentLogic2:do not include
+
+# Menus
+
+HistoryMenu:History
+
+# Interactive help information.
+
+HelpH1:\TLocate application.|M\Ssearch for a file, application or directory.|M\A to re-use the last search parameters.|MDrag a file, directory or application here to search in that location.
+HelpH2:This \w displays information about Locate.
+HelpH3:\Sopen the Locate home page in your web browser, if one has been seen.
+
+HelpF1:\Tlist of files that were located.|MDouble click \s to load a file, run an application or open a directory.|MDouble click \a to open an object's parent directory.|M\Sselect an object, or \a to add or remove objects from a selection.
+
+HelpSW0:\Sclose the search window without carrying out a search.|M\Areset all the fields to their default values.
+HelpSW1:\Sclose the search window and look for the matching files.
+HelpSW2:Enter the filename to search for.|MWildcards can be used: to match any single character enter # and to match any zero or more characters enter *.|MLeave the field blank to match any name.
+HelpSW3:\Ssee the search options concerning the size of files.
+HelpSW4:\Ssee the search options concerning the date files were last modified or the age of files.
+HelpSW5:\Ssee the search options concerning the type of object (file, directory, or application).
+HelpSW6:\Ssee the search options concerning the object attributes (read and write access, locked).
+HelpSW7:\Ssee the search options concerning the file contents.
+HelpSW8:Drag \s to set the search directory.|MDouble click \s to open the search directory.
+HelpSW9:\Stoggle whether the case of filenames is ignored.
+HelpSW10:\Stoggle the display of the search options.
+HelpSW11:\Stoggle whether you can still use the computer while searches take place (that is, whether searches multitask).
+HelpSW12:\Stoggle whether the contents of Image Filing System directories are searched (eg. ArcFS, SparkFS).
+HelpSW13:\Stoggle whether errors from filing systems are reported in an error box or logged in the results window.
+HelpSW14:Enter the directories to search in, separated by commas.|MDrag a directory or application here to add it to the list.|MDrag a file here to add its parent directory to the list.|MShift-drag objects to replace the list.
+HelpSW15:\Stoggle if a full info display is used for the results of this search.
+
+HelpS00:\Sset the type of match to be used for the file size.
+HelpS01:\Ttype of match to be used for the file size.
+HelpS02:Enter a size here, depending on the type of match selected above.|MThe units are set on the right.
+HelpS03:\Sset the units used for the size on the left.
+HelpS04:\Tunit that is used for the size on the left.
+
+HelpS10:\Sset the modification date in terms of calendar dates.
+HelpS11:\Sset the modification date in terms of the age of the objects.
+HelpS12:\Ttype of match to be used for the modification date.
+HelpS13:\Sset the type of match to be used for the modification date.
+HelpS14/HelpS16:Enter a date here, depending on the type of match selected above.|MTo specify to the nearest day, enter in the form DD/MM/YYYY.|MTo specify to the nearest minute, enter in the form DD/MM/YYYY.HH:MM.
+HelpS15/HelpS17:\Sset the date on the left, using a dialogue box to enter the various components easily.
+HelpS18:\Ttype of match to be used for the object age.
+HelpS19:\Sset the type of match to be used for the object age.
+HelpS110/HelpS113:Enter an age here, depending on the type of match selected above.|MThe units are set on the right.
+HelpS111/HelpS114:\Tunit that is used for the age on the left.
+HelpS112/HelpS115:\Sset the units used for the age on the left.
+
+HelpS20:\Stoggle whether files will be matched.|MIf they are to be matched, the types of files to be included or ignored can be set on the right.
+HelpS21:\Stoggle whether directories will be matched.
+HelpS22:\Stoggle whether applications will be matched.
+HelpS23:\Ttype of match to be used for the filetype.
+HelpS24:\Sset the type of match to be used for the filetype.
+HelpS25:Enter the filetypes required for matched or ignored files here.|MTypes can be entered as names (such as 'Text') or as a numbers (such as 'FFF') or as a mixture of the two.|MUse commas to separate multiple filetypes.
+HelpS26:\Sselect a filetype from those currently recognised and add it to the list.|M\Asee the list in filetype order, not alphabetical.
+
+HelpS30:\Stoggle whether the 'locked' attribute is matched.|MThis attribute determines if an object can be deleted or not.
+HelpS31:\Smatch files that are protected from deletion.
+HelpS32:\Smatch files that can be deleted.
+HelpS33:\Stoggle whether the 'owner read' attribute is matched.|MThis attribute determines if an object can be loaded or run by the user who created it.
+HelpS34:\Smatch files that can be opened or run by the user who created them.
+HelpS35:\Smatch files that can not be opened or run by the user who created them.
+HelpS36:\Stoggle whether the 'owner write' attribute is matched.|MThis attribute determines if an object can be changed by the user who created it.
+HelpS37:\Smatch files that can be changed by the user who created them.
+HelpS38:\Smatch files that can not be changed by the user who created them.
+HelpS39:\Stoggle whether the 'public read' attribute is matched.|MThis attribute determines if an object can be loaded or run by any user on a network.
+HelpS310:\Smatch files that can be opened or run by anyone on a network.
+HelpS311:\Smatch files that can not be opened or run by anyone on a network.
+HelpS312:\Stoggle whether the 'public write' attribute is matched.|MThis attribute determines if an object can be changed by any user on a network.
+HelpS313:\Smatch files that can be changed by anyone on a network.
+HelpS314:\Smatch files that can not be changed by anyone on a network.
+
+HelpS40:\Ttype of match to be used for the file contents.
+HelpS41:\Sset the type of match to be used for the file contents.
+HelpS42:Enter the text to check for here.
+HelpS43:\Stoggle whether case is ignored or checked in the file contents search.
+HelpS44:\Stoggle whether control chars can be entered into the text field.
+
+HelpTM0:\Sclose the date and time \w and forget any changes made.|M\Aforget the changes made since the window was opened.
+HelpTM1:\Sclose the date and time \w and insert the date into the search \w.|M\A insert the date without closing the \w.
+HelpTM2:\Sset the month.
+HelpTM3:\Tmonth.
+HelpTM4:Enter the day of the month.
+HelpTM5:\Sdecrease the day by one.|M\Aincrease it instead.
+HelpTM6:\Sincrease the day by one.|M\Adecrease it instead.
+HelpTM7:Enter the year in full (four digits).
+HelpTM8:\Sdecrease the year by one.|M\Aincrease it instead.
+HelpTM9:\Sincrease the year by one.|M\Adecrease it instead.
+HelpTM10:\Stoggle if the time is to be specified as well.|MIf not, the date will be given accurate to one day.
+HelpTM11:Enter the hour, using the 24-hour clock.
+HelpTM12:Enter the minute.
+HelpTM13:\Sdecrease the hour by one.|M\Aincrease it instead.
+HelpTM14:\Sincrease the hour by one.|M\Adecrease it instead.
+HelpTM15:\Sdecrease the minute by one.|M\Aincrease it instead.
+HelpTM16:\Sincrease the minute by one.|M\Adecrease it instead.
+
+HelpCH0:\Sclose the choices \w and use the changes|M\Ause the changes.
+HelpCH1:\Sclose the choices \w, using the changes and saving them to disc.|M\Ause the changes and save them.
+HelpCH2:\Sclose the choices \w and forget any changes made.|M\Aforget the changes made since the window was opened.
+HelpCH3:Enter the directories to search in, separated by commas.|MDrag a directory or application here to add it to the list.|MDrag a file here to add its parent directory to the list.|MShift-drag objects to replace the list.
+HelpCH4:\Stoggle whether searches take place in the background by default.
+HelpCH5:\Stoggle whether the contents of Image Filing System directories are searched by default.
+HelpCH6:\Stoggle whether errors from filing systems are reported in an error box or logged in the results window by default.
+HelpCH7:Enter the number of searches to store in the history list.|MEnter '0' to disable the history.
+HelpCH8:\Stoggle whether the option is given to accept and name new history entries.
+HelpCH9:\Stoggle how Locate behaves when started as a Filer Action plugin.|MIf on, Locate will not place an icon on the icon bar and will quit as soon as all its windows have been closed.
+HelpCH10:\Stoggle if a search window is opened when a Filer Action search is started.|MIf not, the search begins immediately with default parameters, which can be changed using the results window menu.
+HelpCH11:\Stoggle whether the results window is scrolled to the end when new matches are added.
+HelpCH12:\Stoggle whether file icons are shown in the filetypes menu.
+HelpCH13:\Stoggle if a full info display is used by default for new searches.
+
+HelpSV00:\Ssave the results in a file with the name entered above.
+HelpSV01:\Ssave the filenames in a text file with the name entered above.
+HelpSV02:\Ssave the search parameters from this search in a file with the name entered above.
+HelpSV03:\Ssave the search parameters from the window in a file with the name entered above.
+HelpSV1?:\Scancel the save and close the window.
+HelpSV2?:Enter the name to give the file here.
+HelpSV30:Drag this icon to a directory window to save the results.
+HelpSV31:Drag this icon to a directory window to save the filenames.|MDrag it to another application to copy the names there directly.
+HelpSV32:Drag this icon to a directory window to save the search parameters used in this search.
+HelpSV33:Drag this icon to a directory window to save the current search parameters.
+HelpSV40/HelpSV41:\Stoggle whether to save all the results or just the selected entries.
+HelpSV42/HelpSV43:\This icon is not used as there can never be a selection of the search parameters.
+
+HelpOI1:This \w displays information about the currently selected object.
+
+MenuIB0:\Rsee information about Locate.|M\Sread the online help.
+MenuIB1:\Rto re-use a previous search from the history list.
+MenuIB2:\Schange the Locate options.
+MenuIB3:\Squit Locate.
+
+MenuHIS:\Sopen a search window based on this previous search.
+
+MenuSH0:\Rsave the current search options so they can be re-loaded into Locate.
+
+MenuRS0:\Rchange the display options.
+MenuRS1:\Rsave the results, path names or search parameters.
+MenuRS2:\Sselect all the objects in the window.
+MenuRS3:\Sclear the selected objects in the window.
+MenuRS4:\Rto see information about the selected object.
+MenuRS5:\Sopen the parent of the selected object.|MThis can also be done by an \a double-click on the object itself.
+MenuRS6:\Scopy the filenames (all or those currently selected) to the global clipboard.
+MenuRS7:\Sopen a new search window with the same search options.
+MenuRS8:\Sstop the current search, while keeping those results that have already been found.
+
+MenuDY0:\Sdisplay only the object paths.
+MenuDY1:\Sdisplay the object paths and file information.
+
+MenuSM0:\Rsave the results as a file that can be re-loaded into Locate.
+MenuSM1:\Rsave the filenames (all or those currently selected) as a text file.
+MenuSM2:\Rsave the search options so they can be re-loaded into Locate.
+
+MenuFT:\Sselect a filetype to match.
+MenuSL:\Schoose how the file size is used to match objects.
+MenuSU:\Schoose a unit for the file size.
+MenuDL:\Schoose how the modification date is used to match objects.
+MenuAL:\Schoose how the file age is used to match objects.
+MenuAU:\Schoose a unit for the file age.
+MenuMN:\Schoose a month.
