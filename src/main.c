@@ -9,6 +9,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* Acorn C header files */
+
+#include "flex.h"
+
 /* OSLib header files */
 
 #include "oslib/wimp.h"
@@ -162,6 +166,11 @@ static void main_initialise(void)
 
 	event_add_message_handler(message_QUIT, EVENT_MESSAGE_INCOMING, main_message_quit);
 	event_add_message_handler(message_PRE_QUIT, EVENT_MESSAGE_INCOMING, main_message_prequit);
+
+	/* Initialise the flex heap. */
+
+	flex_init(task_name, 0, 0);
+	heap_initialise();
 
 	/* Initialise the configuration. */
 

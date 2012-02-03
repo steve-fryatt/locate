@@ -13,12 +13,15 @@
 
 /* OSLib Header files. */
 
+#include "oslib/osbyte.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib Header files. */
 
 #include "sflib/config.h"
+#include "sflib/errors.h"
 #include "sflib/event.h"
+#include "sflib/heap.h"
 #include "sflib/icons.h"
 #include "sflib/windows.h"
 #include "sflib/debug.h"
@@ -71,7 +74,17 @@ static osbool	handle_choices_icon_drop(wimp_message *message);
 
 void choices_initialise(void)
 {
-	choices_window = templates_create_window("Choices");
+	wimp_window	*def = templates_load_window("Choices");
+	int		buf_size = config_int_read("PathBufSize");
+
+	if (def == NULL)
+		error_msgs_report_fatal("BadTemplate");
+
+	def->icons[CHOICE_ICON_SEARCH_PATH].data.indirected_text.text = heap_alloc(buf_size);
+	def->icons[CHOICE_ICON_SEARCH_PATH].data.indirected_text.size = buf_size;
+	choices_window = wimp_create_window(def);
+	icons_printf(choices_window, CHOICE_ICON_SEARCH_PATH, "");
+	free(def);
 	ihelp_add_window(choices_window, "Choices", NULL);
 
 	event_add_window_mouse_event(choices_window, choices_click_handler);
@@ -253,7 +266,7 @@ static osbool handle_choices_icon_drop(wimp_message *message)
 {
 	wimp_full_message_data_xfer	*datasave = (wimp_full_message_data_xfer *) message;
 
-	char				*extension, *leaf, path[256];
+	char				*insert, *end, path[256], *p;
 
 	/* If it isn't our window, don't claim the message as someone else
 	 * might want it.
@@ -269,15 +282,41 @@ static osbool handle_choices_icon_drop(wimp_message *message)
 	if (datasave->i != CHOICE_ICON_SEARCH_PATH)
 		return TRUE;
 
-	/* It's our window and the correct icon, so process the filename. */
+	/* It's our window and the correct icon, so start by copying the filename. */
 
 	strcpy(path, datasave->file_name);
 
-	extension = string_find_extension(path);
-	leaf = string_strip_extension(path);
-	string_find_pathname(path);
+	/* If it's a folder, take just the pathname. */
 
-	icons_printf(choices_window, CHOICE_ICON_SEARCH_PATH, "%s.%s/pdf", path, leaf);
+	if (datasave->file_type <= 0xfff)
+		string_find_pathname(path);
+
+	insert = icons_get_indirected_text_addr(datasave->w, datasave->i);
+	end = insert + icons_get_indirected_text_length(datasave->w, datasave->i) - 1;
+
+	/* Unless Shift is pressed, find the end of the current buffer. */
+
+	if (osbyte1(osbyte_IN_KEY, 0xfc, 0xff) == 0 && osbyte1(osbyte_IN_KEY, 0xf9, 0xff) == 0) {
+		while (*insert != '\0' && insert < end)
+			insert++;
+
+		if (insert < end)
+			*insert++ = ',';
+
+		*insert = '\0';
+	}
+
+	/* Copy the new path across. */
+
+	p = path;
+
+	while (*p != '\0' && insert < end)
+		*insert++ = *p++;
+
+	*insert = '\0';
+
+	if (*p != '\0')
+		error_msgs_report_error("PathBufFull");
 
 	icons_replace_caret_in_window(datasave->w);
 	wimp_set_icon_state(datasave->w, datasave->i, 0, 0);
