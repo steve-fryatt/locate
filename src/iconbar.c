@@ -26,7 +26,7 @@
 
 #include "iconbar.h"
 
-//#include "choices.h"
+#include "choices.h"
 #include "ihelp.h"
 #include "main.h"
 #include "templates.h"
@@ -149,7 +149,7 @@ static void iconbar_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 		break;
 
 	case ICONBAR_MENU_CHOICES:
-//		choices_open_window(&pointer);
+		choices_open_window(&pointer);
 		break;
 
 	case ICONBAR_MENU_QUIT:

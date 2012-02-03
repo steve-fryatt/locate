@@ -42,7 +42,7 @@
 
 #include "main.h"
 
-//#include "choices.h"
+#include "choices.h"
 #include "dataxfer.h"
 #include "iconbar.h"
 #include "ihelp.h"
@@ -121,7 +121,7 @@ static void main_poll_loop(void)
 static void main_initialise(void)
 {
 	static char		task_name[255];
-	char			resources[255], res_temp[255], filename[256];
+	char			resources[255], res_temp[255];
 	osspriteop_area		*sprites;
 
 	wimp_MESSAGE_LIST(13)	message_list;
@@ -167,7 +167,19 @@ static void main_initialise(void)
 
 	config_initialise(task_name, "Locate", "<Locate$Dir>");
 
-	//config_str_init("ScriptFile", "<Locate$Dir>.ScriptFile");
+	config_str_init("SearchPath", "ADFS::4.$");
+	config_int_init("PathBufSize", 4095);
+	config_opt_init("Multitask", TRUE);
+	config_opt_init("ImageFS", FALSE);
+	config_opt_init("SuppressErrors", TRUE);
+	config_int_init("HistorySize", 10);
+	config_opt_init("ConfirmHistoryAdd", TRUE);
+	config_opt_init("FileMenuSprites", FALSE);
+	config_opt_init("ScrollResults", TRUE);
+	config_int_init("OSGBPBReadSize", 1000);
+	config_opt_init("QuitAsPlugin", FALSE);
+	config_opt_init("SearchWindAsPlugin", FALSE);
+	config_opt_init("FullInfoDisplay", FALSE);
 
 	config_load();
 
@@ -189,7 +201,7 @@ static void main_initialise(void)
 
 	ihelp_initialise();
 	dataxfer_initialise();
-//	choices_initialise();
+	choices_initialise();
 	iconbar_initialise();
 	url_initialise();
 
