@@ -132,9 +132,9 @@ HistoryMenu:History
 
 # Interactive help information.
 
-HelpH1:\TLocate application.|M\Ssearch for a file, application or directory.|M\A to re-use the last search parameters.|MDrag a file, directory or application here to search in that location.
-HelpH2:This \w displays information about Locate.
-HelpH3:\Sopen the Locate home page in your web browser, if one has been seen.
+Help.IconBar:\TLocate application.|M\Ssearch for a file, application or directory.|M\A to re-use the last search parameters.|MDrag a file, directory or application here to search in that location.
+Help.ProgInfo:This \w displays information about Locate.
+Help.ProgInfo.Website:\Sopen the Locate home page in your web browser, if one has been seen.
 
 HelpF1:\Tlist of files that were located.|MDouble click \s to load a file, run an application or open a directory.|MDouble click \a to open an object's parent directory.|M\Sselect an object, or \a to add or remove objects from a selection.
 
@@ -221,20 +221,21 @@ HelpTM14:\Sincrease the hour by one.|M\Adecrease it instead.
 HelpTM15:\Sdecrease the minute by one.|M\Aincrease it instead.
 HelpTM16:\Sincrease the minute by one.|M\Adecrease it instead.
 
-HelpCH0:\Sclose the choices \w and use the changes|M\Ause the changes.
-HelpCH1:\Sclose the choices \w, using the changes and saving them to disc.|M\Ause the changes and save them.
-HelpCH2:\Sclose the choices \w and forget any changes made.|M\Aforget the changes made since the window was opened.
-HelpCH3:Enter the directories to search in, separated by commas.|MDrag a directory or application here to add it to the list.|MDrag a file here to add its parent directory to the list.|MShift-drag objects to replace the list.
-HelpCH4:\Stoggle whether searches take place in the background by default.
-HelpCH5:\Stoggle whether the contents of Image Filing System directories are searched by default.
-HelpCH6:\Stoggle whether errors from filing systems are reported in an error box or logged in the results window by default.
-HelpCH7:Enter the number of searches to store in the history list.|MEnter '0' to disable the history.
-HelpCH8:\Stoggle whether the option is given to accept and name new history entries.
-HelpCH9:\Stoggle how Locate behaves when started as a Filer Action plugin.|MIf on, Locate will not place an icon on the icon bar and will quit as soon as all its windows have been closed.
-HelpCH10:\Stoggle if a search window is opened when a Filer Action search is started.|MIf not, the search begins immediately with default parameters, which can be changed using the results window menu.
-HelpCH11:\Stoggle whether the results window is scrolled to the end when new matches are added.
-HelpCH12:\Stoggle whether file icons are shown in the filetypes menu.
-HelpCH13:\Stoggle if a full info display is used by default for new searches.
+Help.Choices:\Tchoices window for Locate.
+Help.Choices.Apply:\Sclose the choices \w and use the changes|M\Ause the changes.
+Help.Choices.Save:\Sclose the choices \w, using the changes and saving them to disc.|M\Ause the changes and save them.
+Help.Choices.Cancel:\Sclose the choices \w and forget any changes made.|M\Aforget the changes made since the window was opened.
+Help.Choices.Path:Enter the directories to search in, separated by commas.|MDrag a directory or application here to add it to the list.|MDrag a file here to add its parent directory to the list.|MShift-drag objects to replace the list.
+Help.Choices.Background:\Stoggle whether searches take place in the background by default.
+Help.Choices.ImageFS:\Stoggle whether the contents of Image Filing System directories are searched by default.
+Help.Choices.Suppress:\Stoggle whether errors from filing systems are reported in an error box or logged in the results window by default.
+Help.Choices.FullInfo:\Stoggle if a full info display is used by default for new searches.
+Help.Choices.HistSize:Enter the number of searches to store in the history list.|MEnter '0' to disable the history.
+Help.Choices.HistConf:\Stoggle whether the option is given to accept and name new history entries.
+Help.Choices.PlugQuit:\Stoggle how Locate behaves when started as a Filer Action plugin.|MIf on, Locate will not place an icon on the icon bar and will quit as soon as all its windows have been closed.
+Help.Choices.PlugOpen:\Stoggle if a search window is opened when a Filer Action search is started.|MIf not, the search begins immediately with default parameters, which can be changed using the results window menu.
+Help.Choices.Scroll:\Stoggle whether the results window is scrolled to the end when new matches are added.
+Help.Choices.FileIcons:\Stoggle whether file icons are shown in the filetypes menu.
 
 HelpSV00:\Ssave the results in a file with the name entered above.
 HelpSV01:\Ssave the filenames in a text file with the name entered above.
@@ -251,10 +252,11 @@ HelpSV42/HelpSV43:\This icon is not used as there can never be a selection of th
 
 HelpOI1:This \w displays information about the currently selected object.
 
-MenuIB0:\Rsee information about Locate.|M\Sread the online help.
-MenuIB1:\Rto re-use a previous search from the history list.
-MenuIB2:\Schange the Locate options.
-MenuIB3:\Squit Locate.
+Help.IconBarMenu.00:\Rsee information about Locate.
+Help.IconBarMenu.01:\Sread the online help.
+Help.IconBarMenu.02:\Rto re-use a previous search from the history list.
+Help.IconBarMenu.03:\Schange the Locate options.
+Help.IconBarMenu.04:\Squit Locate.
 
 MenuHIS:\Sopen a search window based on this previous search.
 
