@@ -1,0 +1,27 @@
+| >!Run
+|
+| Locate
+| (C) Stephen Fryatt, 2001
+|
+| Version 0.80
+| 22 September 2002
+
+Set Locate$Dir <Obey$Dir>
+Set Locate$Path <Locate$Dir>.
+
+Set Alias$@RunType_1A1 Run <Obey$Dir>.!Run -file %%*0
+Set File$Type_1A1 Locate
+
+| Comment out this line (and the corresponding one in !Boot) to prevent
+| Locate behaving as a Filer Plugin under Select.
+
+Set Alias$@FilerAction_Find Run <Obey$Dir>.!Run -plugin
+
+| ---
+
+Run <Locate$Dir>.FindSprs
+IconSprites <Locate$Sprites>.!Sprites
+
+WimpSlot -min 256k -max 256k
+
+Run Locate:!RunImage %*0
