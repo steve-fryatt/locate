@@ -1,32 +1,30 @@
 /* Menus for Locate
  *
- * (C) Stephen Fryatt, 2001
- *
- * Version 0.80
- * 22 September 2002
+ * (C) Stephen Fryatt, 2001-2012
  *
  * UK Version
  */
 
-menu (icon_bar_menu, "Locate")
-{
-  item ("Info...")
-  {
-    d_box(info_window);
-    dotted;
-  }
-  item ("History")
-  {
-    d_box(history_menu)
-    {
-      warning;
-    }
-  }
-  item ("Choices...")
-  {
-    dotted;
-  }
-  item ("Quit");
+/**
+ * Iconbar Menu
+ */
+
+menu(icon_bar_menu, "Locate") {
+	item("Info") {
+		d_box(ProgInfo);
+	}
+	item("Help...") {
+		dotted;
+	}
+	item("History") {
+		d_box(history_menu) {
+			warning;
+		}
+	}
+	item("Choices...") {
+		dotted;
+	}
+	item("Quit");
 }
 
 /* Search Window Menu */
