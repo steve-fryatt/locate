@@ -22,6 +22,15 @@ Set Alias$@FilerAction_Find Run <Obey$Dir>.!Run -plugin
 Run <Locate$Dir>.FindSprs
 IconSprites <Locate$Sprites>.!Sprites
 
+| Ensure the Nested Wimp is installed.
+
+RMEnsure WindowManager 3.98 Error Locate requires the Nested Window Manager.
+
+| Ensure that the Castle Shared C Library is present.
+
+RMEnsure SharedCLibrary 5.17 RMLoad System:Modules.CLib
+RMEnsure SharedCLibrary 5.34 Error Locate requires version 5.34 or later of the Shared C Library.
+
 WimpSlot -min 256k -max 256k
 
 Run Locate:!RunImage %*0
