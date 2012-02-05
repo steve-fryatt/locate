@@ -98,7 +98,7 @@ MANSPR := ManSprite
 READMEHDR := Header
 MENUSRC := menudef
 
-OBJS := choices.o dataxfer.o iconbar.o ihelp.o main.o templates.o
+OBJS := choices.o dataxfer.o file.o iconbar.o ihelp.o main.o results.o templates.o
 
 
 # Build everything, but don't package it for release.

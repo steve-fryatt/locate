@@ -50,6 +50,7 @@
 #include "dataxfer.h"
 #include "iconbar.h"
 #include "ihelp.h"
+#include "results.h"
 #include "templates.h"
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -211,6 +212,7 @@ static void main_initialise(void)
 	ihelp_initialise();
 	dataxfer_initialise();
 	choices_initialise();
+	results_initialise();
 	iconbar_initialise();
 	url_initialise();
 
