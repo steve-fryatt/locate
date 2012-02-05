@@ -32,6 +32,13 @@ DeftHistName:<untitled search>
 
 # Messages & Errors
 
+NoMemFileBlock:There was not enough free memory available to create the file descriptor block.
+NoMemResultsCreate:There was not enough free memory available to create the results window.
+
+
+
+
+
 NoFiles:No matching objects were found
 NotHere:(The object is no longer in this location)
 NameTooLong:Filename too long

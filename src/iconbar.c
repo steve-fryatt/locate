@@ -27,6 +27,7 @@
 #include "iconbar.h"
 
 #include "choices.h"
+#include "file.h"
 #include "ihelp.h"
 #include "main.h"
 #include "templates.h"
@@ -105,7 +106,7 @@ static void iconbar_click_handler(wimp_pointer *pointer)
 
 	switch (pointer->buttons) {
 	case wimp_CLICK_SELECT:
-//		bookmark_create_new_window();
+		file_create_results(); // \TODO -- Something more sensible!
 		break;
 
 	case wimp_CLICK_ADJUST:

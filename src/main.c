@@ -48,6 +48,7 @@
 
 #include "choices.h"
 #include "dataxfer.h"
+#include "file.h"
 #include "iconbar.h"
 #include "ihelp.h"
 #include "results.h"
@@ -79,6 +80,8 @@ int main(int argc, char *argv[])
 	main_initialise();
 
 	main_poll_loop();
+
+	file_destroy_all();
 
 	msgs_terminate();
 	wimp_close_down(main_task_handle);
