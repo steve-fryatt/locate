@@ -40,8 +40,6 @@ Searching:Searching in %0
 Found:%0 object(s) found%1
 Errors:; %0 error(s) occurred
 
-NoHeapCode:The heap handling code was not found and loaded.
-NoCode:The assembled code was not found and loaded.
 BadRdrwHndl:The data for the window redraw can not be found.
 BadSave:To save, drag the icon to a directory viewer.
 RAMXferFail:The file was not received correctly by the other application.
@@ -138,28 +136,28 @@ Help.ProgInfo.Website:\Sopen the Locate home page in your web browser, if one ha
 
 HelpF1:\Tlist of files that were located.|MDouble click \s to load a file, run an application or open a directory.|MDouble click \a to open an object's parent directory.|M\Sselect an object, or \a to add or remove objects from a selection.
 
-HelpSW0:\Sclose the search window without carrying out a search.|M\Areset all the fields to their default values.
-HelpSW1:\Sclose the search window and look for the matching files.
-HelpSW2:Enter the filename to search for.|MWildcards can be used: to match any single character enter # and to match any zero or more characters enter *.|MLeave the field blank to match any name.
-HelpSW3:\Ssee the search options concerning the size of files.
-HelpSW4:\Ssee the search options concerning the date files were last modified or the age of files.
-HelpSW5:\Ssee the search options concerning the type of object (file, directory, or application).
-HelpSW6:\Ssee the search options concerning the object attributes (read and write access, locked).
-HelpSW7:\Ssee the search options concerning the file contents.
-HelpSW8:Drag \s to set the search directory.|MDouble click \s to open the search directory.
-HelpSW9:\Stoggle whether the case of filenames is ignored.
-HelpSW10:\Stoggle the display of the search options.
-HelpSW11:\Stoggle whether you can still use the computer while searches take place (that is, whether searches multitask).
-HelpSW12:\Stoggle whether the contents of Image Filing System directories are searched (eg. ArcFS, SparkFS).
-HelpSW13:\Stoggle whether errors from filing systems are reported in an error box or logged in the results window.
-HelpSW14:Enter the directories to search in, separated by commas.|MDrag a directory or application here to add it to the list.|MDrag a file here to add its parent directory to the list.|MShift-drag objects to replace the list.
-HelpSW15:\Stoggle if a full info display is used for the results of this search.
+Help.Search.Cancel:\Sclose the search window without carrying out a search.|M\Areset all the fields to their default values.
+Help.Search.Search:\Sclose the search window and look for the matching files.
+Help.Search.Name:Enter the filename to search for.|MWildcards can be used: to match any single character enter # and to match any zero or more characters enter *.|MLeave the field blank to match any name.
+Help.Search.Size:\Ssee the search options concerning the size of files.
+Help.Search.Date:\Ssee the search options concerning the date files were last modified or the age of files.
+Help.Search.Type:\Ssee the search options concerning the type of object (file, directory, or application).
+Help.Search.Attributes:\Ssee the search options concerning the object attributes (read and write access, locked).
+Help.Search.Contents:\Ssee the search options concerning the file contents.
+Help.Search.11:Drag \s to set the search directory.|MDouble click \s to open the search directory.
+Help.Search.Case:\Stoggle whether the case of filenames is ignored.
+Help.Search.Options:\Stoggle the display of the search options.
+Help.Search.Background:\Stoggle whether you can still use the computer while searches take place (that is, whether searches multitask).
+Help.Search.ImageFS:\Stoggle whether the contents of Image Filing System directories are searched (eg. ArcFS, SparkFS).
+Help.Search.Suppress:\Stoggle whether errors from filing systems are reported in an error box or logged in the results window.
+Help.Search.Path:Enter the directories to search in, separated by commas.|MDrag a directory or application here to add it to the list.|MDrag a file here to add its parent directory to the list.|MShift-drag objects to replace the list.
+Help.Search.FullInfo:\Stoggle if a full info display is used for the results of this search.
 
-HelpS00:\Sset the type of match to be used for the file size.
-HelpS01:\Ttype of match to be used for the file size.
-HelpS02:Enter a size here, depending on the type of match selected above.|MThe units are set on the right.
-HelpS03:\Sset the units used for the size on the left.
-HelpS04:\Tunit that is used for the size on the left.
+Help.Size.ModeM:\Sset the type of match to be used for the file size.
+Help.Size.Mode:\Ttype of match to be used for the file size.
+Help.Size.Size?:Enter a size here, depending on the type of match selected above.|MThe units are set on the right.
+Help.Size.UnitM?:\Sset the units used for the size on the left.
+Help.Size.Unit?:\Tunit that is used for the size on the left.
 
 HelpS10:\Sset the modification date in terms of calendar dates.
 HelpS11:\Sset the modification date in terms of the age of the objects.
