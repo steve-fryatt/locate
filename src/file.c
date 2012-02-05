@@ -115,8 +115,6 @@ void file_destroy(struct file_block *block)
 {
 	struct file_block	*previous;
 
-	debug_printf("\\RDestrying block 0x%x", block);
-
 	/* Find and delink the block from the file list. */
 
 	if (file_files == block) {

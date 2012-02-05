@@ -163,8 +163,6 @@ void results_destroy(struct results_window *handle)
 	if (handle == NULL)
 		return;
 
-	debug_printf("Destroying results block 0x%x", handle);
-
 	ihelp_remove_window(handle->window);
 	event_delete_window(handle->window);
 	wimp_delete_window(handle->window);
@@ -175,3 +173,4 @@ void results_destroy(struct results_window *handle)
 
 	heap_free(handle);
 }
+
