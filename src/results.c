@@ -1,5 +1,7 @@
 /* Locate - results.c
  * (c) Stephen Fryatt, 2012
+ *
+ * Search result and status display.
  */
 
 /* ANSI C Header files. */
@@ -36,8 +38,12 @@
 #include "templates.h"
 
 
+#define STATUS_LENGTH 128
+
+
 /* Results window icons. */
 
+#define RESULT_ICON_STATUS 1
 
 
 /* Data structures. */
@@ -59,9 +65,6 @@ static wimp_window	*results_status_def = NULL;				/**< Definition for the result
 /* Local function prototypes. */
 
 static void	results_close_handler(wimp_close *close);
-
-//static void	choices_click_handler(wimp_pointer *pointer);
-//static osbool	choices_keypress_handler(wimp_key *key);
 
 
 /**
@@ -86,19 +89,40 @@ void results_initialise(void)
  * Create and open a new results window.
  *
  * \param *file			The file block to which the window belongs.
+ * \param *title		The title to use for the window.
  * \return			The results window handle, or NULL on failure.
  */
 
-struct results_window *results_create(struct file_block *file)
+struct results_window *results_create(struct file_block *file, char *title)
 {
 	struct results_window	*new;
+	char			*title_block, *status_block;
 	int			status_height;
+
+	/* Allocate all the memory that we require. */
 
 	new = heap_alloc(sizeof(struct results_window));
 	if (new == NULL) {
 		error_msgs_report_error("NoMemResultsCreate");
 		return NULL;
 	}
+
+	title_block = heap_strdup(title);
+	if (title_block == NULL) {
+		error_msgs_report_error("NoMemResultsCreate");
+		heap_free(new);
+		return NULL;
+	}
+
+	status_block = heap_alloc(STATUS_LENGTH);
+	if (status_block == NULL) {
+		error_msgs_report_error("NoMemResultsCreate");
+		heap_free(title_block);
+		heap_free(new);
+		return NULL;
+	}
+
+	/* Populate the data in the block. */
 
 	new->file = file;
 
@@ -107,6 +131,13 @@ struct results_window *results_create(struct file_block *file)
 	status_height = results_status_def->visible.y1 - results_status_def->visible.y0;
 
 	windows_place_as_footer(results_window_def, results_status_def, status_height);
+
+	results_window_def->title_data.indirected_text.text = title_block;
+	results_window_def->title_data.indirected_text.size = strlen(title_block) + 1;
+
+	results_status_def->icons[RESULT_ICON_STATUS].data.indirected_text.text = status_block;
+	results_status_def->icons[RESULT_ICON_STATUS].data.indirected_text.size = STATUS_LENGTH;
+	*status_block = '\0';
 
 	new->window = wimp_create_window(results_window_def);
 	new->status = wimp_create_window(results_status_def);
@@ -118,11 +149,6 @@ struct results_window *results_create(struct file_block *file)
 	event_add_window_user_data(new->status, new);
 
 	event_add_window_close_event(new->window, results_close_handler);
-
-//	event_add_window_mouse_event(choices_window, choices_click_handler);
-//	event_add_window_key_event(choices_window, choices_keypress_handler);
-
-//	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, handle_choices_icon_drop);
 
 	windows_open(new->window);
 	windows_open_nested_as_footer(new->status, new->window, status_height);
@@ -160,8 +186,13 @@ static void results_close_handler(wimp_close *close)
 
 void results_destroy(struct results_window *handle)
 {
+	char	*title, *status;
+
 	if (handle == NULL)
 		return;
+
+	title = windows_get_indirected_title_addr(handle->window);
+	status = icons_get_indirected_text_addr(handle->status, RESULT_ICON_STATUS);
 
 	ihelp_remove_window(handle->window);
 	event_delete_window(handle->window);
@@ -171,6 +202,8 @@ void results_destroy(struct results_window *handle)
 	event_delete_window(handle->status);
 	wimp_delete_window(handle->status);
 
+	heap_free(title);
+	heap_free(status);
 	heap_free(handle);
 }
 

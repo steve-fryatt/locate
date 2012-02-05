@@ -90,12 +90,15 @@ struct file_block *file_create(void)
 void file_create_results(void)
 {
 	struct file_block *new;
+	char title[128]; // \TODO -- Remove
 
 	new = file_create();
 	if (new == NULL)
 		return;
 
-	new->results = results_create(new);
+	sprintf(title, "Results block 0x%x", (int) new); // \TODO -- Remove
+
+	new->results = results_create(new, title);
 	if (new->results == NULL) {
 		file_destroy(new);
 		return;
