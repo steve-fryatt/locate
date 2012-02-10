@@ -104,6 +104,11 @@ void file_create_results(void)
 		return;
 	}
 
+	results_add_text(new->results, "This is some text");
+	results_add_text(new->results, "This is some more text");
+	results_add_text(new->results, "A third text line");
+	results_add_text(new->results, "And a foruth to finish off with");
+
 	return;
 }
 
