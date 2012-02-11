@@ -47,6 +47,8 @@
 #define RESULTS_ICON_HEIGHT 52
 #define RESULTS_STATUS_HEIGHT 60
 
+#define RESULTS_MIN_LINES 10
+
 #define RESULTS_ALLOC_REDRAW 50
 #define RESULTS_ALLOC_TEXT 1024
 
@@ -111,6 +113,7 @@ static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
 static osbool	results_expand_redraw_lines(struct results_window *handle);
 static unsigned	results_store_text(struct results_window *handle, char *text);
+static void	results_update_window_extent(struct results_window *handle);
 
 
 /* Line position calculations. */
@@ -387,6 +390,35 @@ void results_add_text(struct results_window *handle, char *text)
 	handle->redraw[handle->redraw_lines].text = offset;
 
 	handle->redraw_lines++;
+
+	results_update_window_extent(handle);
+}
+
+
+/**
+ * Update the window extent to hold all of the defined lines.
+ *
+ * \param *handle		The handle of the results window to update.
+ */
+
+static void results_update_window_extent(struct results_window *handle)
+{
+	wimp_window_info	info;
+	unsigned		lines;
+	os_error		*error;
+
+	if (handle == NULL)
+		return;
+
+	info.w = handle->window;
+	error = xwimp_get_window_info_header_only(&info);
+	if (error != NULL)
+		return;
+
+	lines = (handle->redraw_lines > RESULTS_MIN_LINES) ? handle->redraw_lines : RESULTS_MIN_LINES;
+	info.extent.y0 = -((lines * RESULTS_LINE_HEIGHT) + RESULTS_TOOLBAR_HEIGHT + RESULTS_STATUS_HEIGHT);
+
+	error = xwimp_set_extent(handle->window, &(info.extent));
 }
 
 
