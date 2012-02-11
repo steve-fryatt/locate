@@ -91,6 +91,7 @@ void file_create_results(void)
 {
 	struct file_block *new;
 	char title[128]; // \TODO -- Remove
+	int i;	// \TODO -- Remove
 
 	new = file_create();
 	if (new == NULL)
@@ -108,6 +109,10 @@ void file_create_results(void)
 	results_add_text(new->results, "This is some more text");
 	results_add_text(new->results, "A third text line");
 	results_add_text(new->results, "And a foruth to finish off with");
+	for (i = 0; i < 1000; i++) {
+		sprintf(title, "Dummy line %d", i);
+		results_add_text(new->results, title);
+	}
 
 	return;
 }

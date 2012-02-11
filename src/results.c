@@ -50,6 +50,8 @@
 #define RESULTS_ALLOC_REDRAW 50
 #define RESULTS_ALLOC_TEXT 1024
 
+#define RESULTS_TEXT_NULL 0xffffffff
+
 /* Results window icons. */
 
 #define RESULTS_ICON_FILE 0
@@ -72,7 +74,7 @@ struct results_line {
 
 	unsigned		parent;						/**< The parent line for a group (points to itself for the parent).	*/
 
-	char			*text;						/**< Text pointer for text-based lines (NULL if not used).		*/
+	unsigned		text;						/**< Text offset for text-based lines (RESULTS_TEXT_NULL if not used).	*/
 };
 
 /** A data structure defining a results window. */
@@ -80,9 +82,17 @@ struct results_line {
 struct results_window {
 	struct file_block	*file;						/**< The file block to which the window belongs.			*/
 
+	/* Results Window line data. */
+
 	struct results_line	*redraw;					/**< The array of redraw data for the window.				*/
 	unsigned		redraw_lines;					/**< The number of lines in the window.					*/
 	unsigned		redraw_size;					/**< The number of redraw lines claimed.				*/
+
+	/* Generic text string storage. */
+
+	char			*text;						/**< The general text string dump.					*/
+	unsigned		text_free;					/**< Offset to the first free character in the text dump.		*/
+	unsigned		text_size;					/**< The current claimed size of the text dump.				*/
 
 	wimp_w			window;						/**< The window handle.							*/
 	wimp_w			status;						/**< The status bar handle.						*/
@@ -100,6 +110,7 @@ static wimp_window	*results_status_def = NULL;				/**< Definition for the result
 static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
 static osbool	results_expand_redraw_lines(struct results_window *handle);
+static unsigned	results_store_text(struct results_window *handle, char *text);
 
 
 /* Line position calculations. */
@@ -161,8 +172,12 @@ struct results_window *results_create(struct file_block *file, char *title)
 
 	if (mem_ok) {
 		new->redraw = NULL;
+		new->text = NULL;
 
 		if (flex_alloc((flex_ptr) &(new->redraw), RESULTS_ALLOC_REDRAW * sizeof(struct results_line)) == 0)
+			mem_ok = FALSE;
+
+		if (flex_alloc((flex_ptr) &(new->text), RESULTS_ALLOC_TEXT * sizeof(char)) == 0)
 			mem_ok = FALSE;
 	}
 
@@ -173,6 +188,8 @@ struct results_window *results_create(struct file_block *file, char *title)
 	if (!mem_ok) {
 		if (new != NULL && new->redraw != NULL)
 			flex_free((flex_ptr) &(new->redraw));
+		if (new != NULL && new->text != NULL)
+			flex_free((flex_ptr) &(new->text));
 
 		if (new != NULL)
 			heap_free(new);
@@ -191,8 +208,10 @@ struct results_window *results_create(struct file_block *file, char *title)
 	new->file = file;
 
 	new->redraw_size = RESULTS_ALLOC_REDRAW;
-
 	new->redraw_lines = 0;
+
+	new->text_size = RESULTS_ALLOC_TEXT;
+	new->text_free = 0;
 
 	/* Create the window and open it on screen. */
 
@@ -291,9 +310,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
-				sprintf(buf, "Results line %d", y);
-
-				icon[RESULTS_ICON_FILE].data.indirected_text.text = buf;
+				icon[RESULTS_ICON_FILE].data.indirected_text.text = res->text + line->text;
 
 				wimp_plot_icon(&(icon[RESULTS_ICON_FILE]));
 
@@ -335,6 +352,7 @@ void results_destroy(struct results_window *handle)
 	wimp_delete_window(handle->status);
 
 	flex_free((flex_ptr) &(handle->redraw));
+	flex_free((flex_ptr) &(handle->text));
 
 	heap_free(title);
 	heap_free(status);
@@ -351,6 +369,8 @@ void results_destroy(struct results_window *handle)
 
 void results_add_text(struct results_window *handle, char *text)
 {
+	unsigned offset;
+
 	if (handle == NULL)
 		return;
 
@@ -360,7 +380,11 @@ void results_add_text(struct results_window *handle, char *text)
 	if (handle->redraw_lines >= handle->redraw_size)
 		return;
 
-	handle->redraw[handle->redraw_lines].type = RESULTS_LINE_TEXT;
+	offset = results_store_text(handle, text);
+
+	handle->redraw[handle->redraw_lines].type = (offset == RESULTS_TEXT_NULL) ? RESULTS_LINE_NONE : RESULTS_LINE_TEXT;
+	handle->redraw[handle->redraw_lines].parent = handle->redraw_lines;
+	handle->redraw[handle->redraw_lines].text = offset;
 
 	handle->redraw_lines++;
 }
@@ -385,5 +409,42 @@ static osbool results_expand_redraw_lines(struct results_window *handle)
 	handle->redraw_size += RESULTS_ALLOC_REDRAW;
 
 	return TRUE;
+}
+
+
+/**
+ * Store a text string in the text dump, allocating new memory if required
+ * and returning the offset to the stored string.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param *text			The text to be stored.
+ * \return			Offset if successful; RESULTS_TEXT_NULL on failure.
+ */
+
+static unsigned results_store_text(struct results_window *handle, char *text)
+{
+	int		length, blocks;
+	unsigned	offset;
+
+	if (handle == NULL || text == NULL)
+		return RESULTS_TEXT_NULL;
+
+	length = strlen(text) + 1;
+
+	if ((handle->text_free + length) > handle->text_size) {
+		for (blocks = 1; (handle->text_free + length) > (handle->text_size + blocks * RESULTS_ALLOC_TEXT); blocks++);
+
+		if (flex_extend((flex_ptr) &(handle->text), (handle->text_size + blocks * RESULTS_ALLOC_TEXT) * sizeof(char)) == 0)
+			return RESULTS_TEXT_NULL;
+
+		handle->text_size += blocks * RESULTS_ALLOC_TEXT;
+	}
+
+	offset = handle->text_free;
+
+	strcpy(handle->text + handle->text_free, text);
+	handle->text_free += length;
+
+	return offset;
 }
 
