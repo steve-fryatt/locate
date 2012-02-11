@@ -38,21 +38,22 @@
 #include "templates.h"
 
 
-#define STATUS_LENGTH 128
+#define STATUS_LENGTH 128							/**< The maximum size of the status bar text field.			*/
 
-#define RESULTS_TOOLBAR_HEIGHT 0
-#define RESULTS_LINE_HEIGHT 56
+#define RESULTS_TOOLBAR_HEIGHT 0						/**< The height of the toolbar in OS units.				*/
+#define RESULTS_LINE_HEIGHT 56							/**< The height of a results line, in OS units.				*/
 #define RESULTS_WINDOW_MARGIN 4
 #define RESULTS_LINE_OFFSET 4
-#define RESULTS_ICON_HEIGHT 52
-#define RESULTS_STATUS_HEIGHT 60
+#define RESULTS_ICON_HEIGHT 52							/**< The height of an icon in the results window, in OS units.		*/
+#define RESULTS_STATUS_HEIGHT 60						/**< The height of the status bar in OS units.				*/
 
-#define RESULTS_MIN_LINES 10
+#define RESULTS_MIN_LINES 10							/**< The minimum number of lines to show in the results window.		*/
 
-#define RESULTS_ALLOC_REDRAW 50
-#define RESULTS_ALLOC_TEXT 1024
+#define RESULTS_ALLOC_REDRAW 50							/**< Number of window redraw blocks to allocate at a time.		*/
+#define RESULTS_ALLOC_FILES 50							/**< Number of file blocks to allocate at a time.			*/
+#define RESULTS_ALLOC_TEXT 1024							/**< Number of bytes of text storage to allocate at a time.		*/
 
-#define RESULTS_TEXT_NULL 0xffffffff
+#define RESULTS_NULL 0xffffffff							/**< 'NULL' value for use with the unsigned flex block offsets.		*/
 
 /* Results window icons. */
 
@@ -66,7 +67,17 @@
 
 enum results_line_type {
 	RESULTS_LINE_NONE = 0,							/**< A blank line (nothing plotted).					*/
-	RESULTS_LINE_TEXT							/**< A line containing unspecific text.					*/
+	RESULTS_LINE_TEXT,							/**< A line containing unspecific text.					*/
+	RESULTS_LINE_FILENAME,							/**< A line containing a filename.					*/
+	RESULTS_LINE_FILEINFO,							/**< A line containing file information.				*/
+	RESULTS_LINE_CONTENTS,							/**< A line containing a file contents match.				*/
+	RESULTS_LINE_ERROR							/**< A line containing an error message.				*/
+};
+
+/** A file information block. */
+
+struct results_file {
+	unsigned		filename;					/**< Text offset to the filename.					*/
 };
 
 /** A line definition for the results window. */
@@ -76,7 +87,10 @@ struct results_line {
 
 	unsigned		parent;						/**< The parent line for a group (points to itself for the parent).	*/
 
-	unsigned		text;						/**< Text offset for text-based lines (RESULTS_TEXT_NULL if not used).	*/
+	unsigned		text;						/**< Text offset for text-based lines (RESULTS_NULL if not used).	*/
+	unsigned		file;						/**< File offset for file-based lines.					*/
+
+	unsigned		index;						/**< Sort indirection index. UNCONNECTED TO REMAINING DATA.		*/
 };
 
 /** A data structure defining a results window. */
@@ -89,6 +103,16 @@ struct results_window {
 	struct results_line	*redraw;					/**< The array of redraw data for the window.				*/
 	unsigned		redraw_lines;					/**< The number of lines in the window.					*/
 	unsigned		redraw_size;					/**< The number of redraw lines claimed.				*/
+
+	unsigned		display_lines;					/**< The number of lines currently indexed into the window.		*/
+
+	osbool			full_info;					/**< TRUE if full info mode is on; else FALSE.				*/
+
+	/* File data storage. */
+
+	struct results_file	*files;						/**< The array of file data for the window.				*/
+	unsigned		files_count;					/**< The number of files stored for the window.				*/
+	unsigned		files_size;					/**< The number of file data blocks currently claimed.			*/
 
 	/* Generic text string storage. */
 
@@ -111,9 +135,10 @@ static wimp_window	*results_status_def = NULL;				/**< Definition for the result
 
 static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
-static osbool	results_expand_redraw_lines(struct results_window *handle);
-static unsigned	results_store_text(struct results_window *handle, char *text);
+static unsigned	results_add_line(struct results_window *handle, osbool show);
 static void	results_update_window_extent(struct results_window *handle);
+static unsigned	results_add_fileblock(struct results_window *handle);
+static unsigned	results_store_text(struct results_window *handle, char *text);
 
 
 /* Line position calculations. */
@@ -175,9 +200,13 @@ struct results_window *results_create(struct file_block *file, char *title)
 
 	if (mem_ok) {
 		new->redraw = NULL;
+		new->files = NULL;
 		new->text = NULL;
 
 		if (flex_alloc((flex_ptr) &(new->redraw), RESULTS_ALLOC_REDRAW * sizeof(struct results_line)) == 0)
+			mem_ok = FALSE;
+
+		if (flex_alloc((flex_ptr) &(new->files), RESULTS_ALLOC_FILES * sizeof(struct results_file)) == 0)
 			mem_ok = FALSE;
 
 		if (flex_alloc((flex_ptr) &(new->text), RESULTS_ALLOC_TEXT * sizeof(char)) == 0)
@@ -191,6 +220,8 @@ struct results_window *results_create(struct file_block *file, char *title)
 	if (!mem_ok) {
 		if (new != NULL && new->redraw != NULL)
 			flex_free((flex_ptr) &(new->redraw));
+		if (new != NULL && new->files != NULL)
+			flex_free((flex_ptr) &(new->files));
 		if (new != NULL && new->text != NULL)
 			flex_free((flex_ptr) &(new->text));
 
@@ -205,13 +236,19 @@ struct results_window *results_create(struct file_block *file, char *title)
 		return NULL;
 	}
 
-
 	/* Populate the data in the block. */
 
 	new->file = file;
 
 	new->redraw_size = RESULTS_ALLOC_REDRAW;
 	new->redraw_lines = 0;
+
+	new->display_lines = 0;
+
+	new->full_info = TRUE;
+
+	new->files_size = RESULTS_ALLOC_FILES;
+	new->files_count = 0;
 
 	new->text_size = RESULTS_ALLOC_TEXT;
 	new->text_free = 0;
@@ -306,7 +343,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 			bottom = res->redraw_lines;
 
 		for (y = top; y < bottom; y++) {
-			line = &(res->redraw[y]);
+			line = &(res->redraw[res->redraw[y].index]);
 
 			switch (line->type) {
 			case RESULTS_LINE_TEXT:
@@ -355,6 +392,7 @@ void results_destroy(struct results_window *handle)
 	wimp_delete_window(handle->status);
 
 	flex_free((flex_ptr) &(handle->redraw));
+	flex_free((flex_ptr) &(handle->files));
 	flex_free((flex_ptr) &(handle->text));
 
 	heap_free(title);
@@ -372,24 +410,65 @@ void results_destroy(struct results_window *handle)
 
 void results_add_text(struct results_window *handle, char *text)
 {
-	unsigned offset;
+	unsigned line, data;
 
 	if (handle == NULL)
 		return;
 
-	if (handle->redraw_lines >= handle->redraw_size)
-		results_expand_redraw_lines(handle);
-
-	if (handle->redraw_lines >= handle->redraw_size)
+	line = results_add_line(handle, TRUE);
+	if (line == RESULTS_NULL)
 		return;
 
-	offset = results_store_text(handle, text);
+	data = results_store_text(handle, text);
 
-	handle->redraw[handle->redraw_lines].type = (offset == RESULTS_TEXT_NULL) ? RESULTS_LINE_NONE : RESULTS_LINE_TEXT;
-	handle->redraw[handle->redraw_lines].parent = handle->redraw_lines;
-	handle->redraw[handle->redraw_lines].text = offset;
+	handle->redraw[line].type = (data == RESULTS_NULL) ? RESULTS_LINE_NONE : RESULTS_LINE_TEXT;
+	handle->redraw[line].parent = line;
+	handle->redraw[line].text = data;
+	handle->redraw[line].file = RESULTS_NULL;
 
-	handle->redraw_lines++;
+	results_update_window_extent(handle);
+}
+
+
+/**
+ * Add a file to the end of the results window.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param *text			The text to add.
+ */
+
+void results_add_file(struct results_window *handle, char *text)
+{
+	unsigned file, info, data, fileblock;
+
+	if (handle == NULL)
+		return;
+
+	fileblock = results_add_fileblock(handle);
+	if (fileblock == RESULTS_NULL)
+		return;
+
+	file = results_add_line(handle, TRUE);
+	if (file == RESULTS_NULL)
+		return;
+
+	data = results_store_text(handle, text);
+
+	handle->redraw[file].type = (data == RESULTS_NULL) ? RESULTS_LINE_NONE : RESULTS_LINE_FILENAME;
+	handle->redraw[file].parent = file;
+	handle->redraw[file].text = data;
+	handle->redraw[file].file = fileblock;
+
+	info = results_add_line(handle, TRUE);
+	if (info == RESULTS_NULL)
+		return;
+
+	data = results_store_text(handle, text);
+
+	handle->redraw[info].type = (data == RESULTS_NULL) ? RESULTS_LINE_NONE : RESULTS_LINE_FILEINFO;
+	handle->redraw[info].parent = file;
+	handle->redraw[info].text = RESULTS_NULL;
+	handle->redraw[info].file = fileblock;
 
 	results_update_window_extent(handle);
 }
@@ -415,7 +494,7 @@ static void results_update_window_extent(struct results_window *handle)
 	if (error != NULL)
 		return;
 
-	lines = (handle->redraw_lines > RESULTS_MIN_LINES) ? handle->redraw_lines : RESULTS_MIN_LINES;
+	lines = (handle->display_lines > RESULTS_MIN_LINES) ? handle->display_lines : RESULTS_MIN_LINES;
 	info.extent.y0 = -((lines * RESULTS_LINE_HEIGHT) + RESULTS_TOOLBAR_HEIGHT + RESULTS_STATUS_HEIGHT);
 
 	error = xwimp_set_extent(handle->window, &(info.extent));
@@ -423,34 +502,83 @@ static void results_update_window_extent(struct results_window *handle)
 
 
 /**
- * Expand the redraw block allocation for a results window by the standard
- * allocation block.
+ * Claim a new line from the redraw array, allocating more memory if required,
+ * set it up and return its offset.
  *
- * \param *handle		The handle of the results window to update.
- * \return			TRUE if successful; FALSE on failure.
+ * \param *handle		The handle of the results window.
+ * \param show			TRUE if the line is always visible; FALSE if
+ *				only to be shown on 'Full Info' display.
+ * \return			The offset of the new line, or RESULTS_NULL.
  */
 
-static osbool results_expand_redraw_lines(struct results_window *handle)
+static unsigned results_add_line(struct results_window *handle, osbool show)
 {
+	unsigned offset;
+
 	if (handle == NULL)
-		return FALSE;
+		return RESULTS_NULL;
 
-	if (flex_extend((flex_ptr) &(handle->redraw), (handle->redraw_size + RESULTS_ALLOC_REDRAW) * sizeof(struct results_line)) == 0)
-		return FALSE;
+	/* Make sure that there is enough space in the block to take the new
+	 * line, allocating more if required.
+	 */
 
-	handle->redraw_size += RESULTS_ALLOC_REDRAW;
+	if (handle->redraw_lines >= handle->redraw_size) {
+		if (flex_extend((flex_ptr) &(handle->redraw), (handle->redraw_size + RESULTS_ALLOC_REDRAW) * sizeof(struct results_line)) == 0)
+			return RESULTS_NULL;
 
-	return TRUE;
+		handle->redraw_size += RESULTS_ALLOC_REDRAW;
+	}
+
+	/* Get the new line. */
+
+	offset = handle->redraw_lines++;
+
+	/* If the line is for immediate display, add it to the index. */
+
+	if (show || handle->full_info)
+		handle->redraw[handle->display_lines++].index = offset;
+
+	return offset;
 }
 
 
 /**
- * Store a text string in the text dump, allocating new memory if required
+ * Claim a new line from the file array, allocating more memory if required,
+ * set it up and return its offset.
+ *
+ * \param *handle		The handle of the results window.
+ * \return			The offset of the new file, or RESULTS_NULL.
+ */
+
+static unsigned results_add_fileblock(struct results_window *handle)
+{
+	if (handle == NULL)
+		return RESULTS_NULL;
+
+	/* Make sure that there is enough space in the block to take the new
+	 * line, allocating more if required.
+	 */
+
+	if (handle->files_count >= handle->files_size) {
+		if (flex_extend((flex_ptr) &(handle->files), (handle->files_size + RESULTS_ALLOC_FILES) * sizeof(struct results_file)) == 0)
+			return RESULTS_NULL;
+
+		handle->files_size += RESULTS_ALLOC_FILES;
+	}
+
+	/* Get the new line. */
+
+	return handle->files_count++;
+}
+
+
+/**
+ * Store a text string in the text dump, allocating new memory if required,
  * and returning the offset to the stored string.
  *
  * \param *handle		The handle of the results window to update.
  * \param *text			The text to be stored.
- * \return			Offset if successful; RESULTS_TEXT_NULL on failure.
+ * \return			Offset if successful; RESULTS_NULL on failure.
  */
 
 static unsigned results_store_text(struct results_window *handle, char *text)
@@ -459,7 +587,7 @@ static unsigned results_store_text(struct results_window *handle, char *text)
 	unsigned	offset;
 
 	if (handle == NULL || text == NULL)
-		return RESULTS_TEXT_NULL;
+		return RESULTS_NULL;
 
 	length = strlen(text) + 1;
 
@@ -467,7 +595,7 @@ static unsigned results_store_text(struct results_window *handle, char *text)
 		for (blocks = 1; (handle->text_free + length) > (handle->text_size + blocks * RESULTS_ALLOC_TEXT); blocks++);
 
 		if (flex_extend((flex_ptr) &(handle->text), (handle->text_size + blocks * RESULTS_ALLOC_TEXT) * sizeof(char)) == 0)
-			return RESULTS_TEXT_NULL;
+			return RESULTS_NULL;
 
 		handle->text_size += blocks * RESULTS_ALLOC_TEXT;
 	}
