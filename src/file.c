@@ -105,14 +105,16 @@ void file_create_results(void)
 		return;
 	}
 
-	results_add_text(new->results, "This is some text");
-	results_add_text(new->results, "This is some more text");
-	results_add_text(new->results, "A third text line");
-	results_add_text(new->results, "And a foruth to finish off with");
+	results_add_text(new->results, "This is some text", "small_unf", FALSE, wimp_COLOUR_RED);
+	results_add_text(new->results, "This is some more text", "small_1ca", FALSE, wimp_COLOUR_BLACK);
+	results_add_text(new->results, "A third text line", "file_1ca", TRUE, wimp_COLOUR_BLACK);
+	results_add_text(new->results, "And a foruth to finish off with", "small_xxx", FALSE, wimp_COLOUR_BLACK);
 	for (i = 0; i < 1000; i++) {
 		sprintf(title, "Dummy line %d", i);
-		results_add_text(new->results, title);
+		results_add_text(new->results, title, "small_ffb", FALSE, wimp_COLOUR_DARK_BLUE);
 	}
+
+	results_update_extent(new->results);
 
 	return;
 }

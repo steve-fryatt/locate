@@ -70,8 +70,12 @@ enum results_line_type {
 	RESULTS_LINE_TEXT,							/**< A line containing unspecific text.					*/
 	RESULTS_LINE_FILENAME,							/**< A line containing a filename.					*/
 	RESULTS_LINE_FILEINFO,							/**< A line containing file information.				*/
-	RESULTS_LINE_CONTENTS,							/**< A line containing a file contents match.				*/
-	RESULTS_LINE_ERROR							/**< A line containing an error message.				*/
+	RESULTS_LINE_CONTENTS							/**< A line containing a file contents match.				*/
+};
+
+enum results_line_flags {
+	RESULTS_FLAG_NONE = 0,							/**< No flags set.							*/
+	RESULTS_FLAG_HALFSIZE = 1						/**< Sprite should be plotted at half-size.				*/
 };
 
 /** A file information block. */
@@ -85,10 +89,15 @@ struct results_file {
 struct results_line {
 	enum results_line_type	type;						/**< The type of line.							*/
 
+	enum results_line_flags	flags;						/**< Any flags relating to the line.					*/
+
 	unsigned		parent;						/**< The parent line for a group (points to itself for the parent).	*/
 
 	unsigned		text;						/**< Text offset for text-based lines (RESULTS_NULL if not used).	*/
 	unsigned		file;						/**< File offset for file-based lines.					*/
+	unsigned		validation;					/**< Text offset for the display icon's validation string.		*/
+
+	wimp_colour		colour;						/**< The foreground colour of the text.					*/
 
 	unsigned		index;						/**< Sort indirection index. UNCONNECTED TO REMAINING DATA.		*/
 };
@@ -136,7 +145,6 @@ static wimp_window	*results_status_def = NULL;				/**< Definition for the result
 static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
 static unsigned	results_add_line(struct results_window *handle, osbool show);
-static void	results_update_window_extent(struct results_window *handle);
 static unsigned	results_add_fileblock(struct results_window *handle);
 static unsigned	results_store_text(struct results_window *handle, char *text);
 
@@ -351,9 +359,15 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
 				icon[RESULTS_ICON_FILE].data.indirected_text.text = res->text + line->text;
+				icon[RESULTS_ICON_FILE].data.indirected_text.validation = res->text + line->validation;
+				icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_FG_COLOUR;
+				icon[RESULTS_ICON_FILE].flags |= line->colour << wimp_ICON_FG_COLOUR_SHIFT;
+				if (line->flags & RESULTS_FLAG_HALFSIZE)
+					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
+				else
+					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 
 				wimp_plot_icon(&(icon[RESULTS_ICON_FILE]));
-
 				break;
 
 			default:
@@ -404,13 +418,17 @@ void results_destroy(struct results_window *handle)
 /**
  * Add a line of unspecific text to the end of a results window.
  *
- * \param *handle		The handle of the results window to update.
+ * \param *handle		The handle to the results window to update.
  * \param *text			The text to add.
+ * \param *sprite		The name of the sprite to use.
+ * \param small			TRUE to plot the sprite half-size; else FALSE.
+ * \param colour		The colour to use for the text.
  */
 
-void results_add_text(struct results_window *handle, char *text)
+void results_add_text(struct results_window *handle, char *text, char *sprite, osbool small, wimp_colour colour)
 {
-	unsigned line, data;
+	unsigned	line, offt, offv;
+	char		validation[20];
 
 	if (handle == NULL)
 		return;
@@ -419,14 +437,19 @@ void results_add_text(struct results_window *handle, char *text)
 	if (line == RESULTS_NULL)
 		return;
 
-	data = results_store_text(handle, text);
+	snprintf(validation, sizeof(validation), "S%s", sprite);
 
-	handle->redraw[line].type = (data == RESULTS_NULL) ? RESULTS_LINE_NONE : RESULTS_LINE_TEXT;
+	offt = results_store_text(handle, text);
+	offv = results_store_text(handle, validation);
+
+	if (offt != RESULTS_NULL && offv != RESULTS_NULL)
+	handle->redraw[line].type = RESULTS_LINE_TEXT;
 	handle->redraw[line].parent = line;
-	handle->redraw[line].text = data;
-	handle->redraw[line].file = RESULTS_NULL;
-
-	results_update_window_extent(handle);
+	handle->redraw[line].text = offt;
+	handle->redraw[line].validation = offv;
+	handle->redraw[line].colour = colour;
+	if (small)
+		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
 }
 
 
@@ -469,8 +492,6 @@ void results_add_file(struct results_window *handle, char *text)
 	handle->redraw[info].parent = file;
 	handle->redraw[info].text = RESULTS_NULL;
 	handle->redraw[info].file = fileblock;
-
-	results_update_window_extent(handle);
 }
 
 
@@ -480,7 +501,7 @@ void results_add_file(struct results_window *handle, char *text)
  * \param *handle		The handle of the results window to update.
  */
 
-static void results_update_window_extent(struct results_window *handle)
+void results_update_extent(struct results_window *handle)
 {
 	wimp_window_info	info;
 	unsigned		lines;
@@ -529,9 +550,17 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 		handle->redraw_size += RESULTS_ALLOC_REDRAW;
 	}
 
-	/* Get the new line. */
+	/* Get the new line and initialise it. */
 
 	offset = handle->redraw_lines++;
+
+	handle->redraw[offset].type = RESULTS_LINE_NONE;
+	handle->redraw[offset].flags = RESULTS_FLAG_NONE;
+	handle->redraw[offset].parent = RESULTS_NULL;
+	handle->redraw[offset].text = RESULTS_NULL;
+	handle->redraw[offset].file = RESULTS_NULL;
+	handle->redraw[offset].validation = RESULTS_NULL;
+	handle->redraw[offset].colour = wimp_COLOUR_BLACK;
 
 	/* If the line is for immediate display, add it to the index. */
 

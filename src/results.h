@@ -41,9 +41,21 @@ void results_destroy(struct results_window *handle);
  *
  * \param *handle		The handle to the results window to update.
  * \param *text			The text to add.
+ * \param *sprite		The name of the sprite to use.
+ * \param small			TRUE to plot the sprite half-size; else FALSE.
+ * \param colour		The colour to use for the text.
  */
 
-void results_add_text(struct results_window *handle, char *text);
+void results_add_text(struct results_window *handle, char *text, char *sprite, osbool small, wimp_colour colour);
+
+
+/**
+ * Update the window extent to hold all of the defined lines.
+ *
+ * \param *handle		The handle of the results window to update.
+ */
+
+void results_update_extent(struct results_window *handle);
 
 #endif
 
