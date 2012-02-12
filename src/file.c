@@ -36,6 +36,7 @@
 
 #include "ihelp.h"
 #include "results.h"
+#include "search.h"
 #include "templates.h"
 
 
@@ -107,6 +108,12 @@ void file_create_results(void)
 		return;
 	}
 
+	new->search = search_create(new, new->results, "ADFS::4.$,ADFS::4.$.Transient,ADFS::4.$.Test");
+	if (new->search == NULL) {
+		file_destroy(new);
+		return;
+	}
+
 	results_add_text(new->results, "This is some text", "small_unf", FALSE, wimp_COLOUR_RED);
 	results_add_text(new->results, "This is some more text", "small_1ca", FALSE, wimp_COLOUR_BLACK);
 	results_add_text(new->results, "A third text line", "file_1ca", TRUE, wimp_COLOUR_BLACK);
@@ -152,6 +159,9 @@ void file_destroy(struct file_block *block)
 
 	if (block->results != NULL)
 		results_destroy(block->results);
+
+	if (block->search != NULL)
+		search_destroy(block->search);
 
 	/* Free the block. */
 

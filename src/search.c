@@ -16,8 +16,8 @@
 
 /* OSLib Header files. */
 
-#include "oslib/osbyte.h"
-#include "oslib/wimp.h"
+#include "oslib/os.h"
+#include "oslib/osgbpb.h"
 
 /* SF-Lib Header files. */
 
@@ -64,7 +64,7 @@ struct search_block {
 
 	int			path_count;					/**< The number of search paths remaining to use.			*/
 	char			*paths;						/**< Line containing the full set of search paths.			*/
-	char			*path[];					/**< Index to each of the search paths.					*/
+	char			**path;						/**< Index to each of the search paths.					*/
 
 	struct search_stack	*stack;						/**< The search stack.							*/
 	unsigned		stack_level;					/**< The current stack level.						*/
@@ -78,6 +78,7 @@ struct search_block {
 /* Local function prototypes. */
 
 static unsigned	search_add_stack(struct search_block *search);
+
 
 /**
  * Create a new search.
@@ -100,7 +101,7 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 	if (path == NULL)
 		return NULL;
 
-	paths = 0;
+	paths = 1;
 	for (i = 0; path[i] != '\0'; i++)
 		if (path[i] == ',')
 			paths++;
@@ -119,7 +120,7 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 		if ((new->paths = heap_strdup(path)) == NULL)
 			mem_ok = FALSE;
 
-		if ((new->paths = heap_alloc(paths * sizeof(char *))) == NULL)
+		if ((new->path = heap_alloc(paths * sizeof(char *))) == NULL)
 			mem_ok = FALSE;
 
 		if (flex_alloc((flex_ptr) &(new->stack), SEARCH_ALLOC_STACK * sizeof(struct search_stack)) == 0)
@@ -147,20 +148,22 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 		return NULL;
 	}
 
-
 	/* Initialise the search contents. */
 
 	new->file = file;
 	new->results = results;
 
-	new->active = FALSE
+	new->active = FALSE;
 
 	new->stack_size = SEARCH_ALLOC_STACK;
 	new->stack_level = 0;
 
 	new->path_count = paths;
 
-	/* Split the path list into separate paths. */
+	/* Split the path list into separate paths and link them into .path[]
+	 * in reverse order so that .path_count can be decremented during
+	 * the search.
+	 */
 
 	new->path[--paths] = new->paths;
 
@@ -187,8 +190,8 @@ void search_destroy(struct search_block *search)
 		return;
 
 	flex_free((flex_ptr) &(search->stack));
-	heap_free(new->path);
-	heap_free(new->paths);
+	heap_free(search->path);
+	heap_free(search->paths);
 
 	heap_free(search);
 }
@@ -198,15 +201,15 @@ void search_destroy(struct search_block *search)
 osbool search_poll(struct search_block *search, os_t end_time)
 {
 	os_error	*error;
-	osbool		done = FALSE
+	osbool		done = FALSE;
 	int		read, next;
-
-	while (!done && os_read_monotomic_time() < end_time) {
+/*
+	while (!done && os_read_monotonic_time() < end_time) {
 		error = xosgbpb_dir_entries_info(path, 1000, search->stack[search->stack_level].next,
 				SEARCH_BLOCK_SIZE, NULL, &read, &next);
 
-
 	}
+	*/
 }
 
 

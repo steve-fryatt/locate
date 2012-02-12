@@ -11,16 +11,19 @@
 
 struct search_block;
 
+
 /**
  * Create a new search.
  *
  * \param *file			The file block to which the search belongs.
  * \param *results		The results window to which output should be
  *				directed.
+ * \param *path			The path(s) to search, comma-separated.
  * \return			The search handle, or NULL on failure.
  */
 
-struct search_block *search_create(struct file_block *file, struct results_window *results);
+struct search_block *search_create(struct file_block *file, struct results_window *results, char *path);
+
 
 /**
  * Destroy a search.
