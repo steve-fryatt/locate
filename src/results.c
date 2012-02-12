@@ -417,7 +417,6 @@ static void results_redraw_handler(wimp_draw *redraw)
  * \param *handle		The handle of the results window to destroy.
  */
 
-
 void results_destroy(struct results_window *handle)
 {
 	char	*title, *status;

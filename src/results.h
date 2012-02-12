@@ -9,6 +9,8 @@
 
 #include "file.h"
 
+struct results_window;
+
 /**
  * Initialise the Results module.
  */
