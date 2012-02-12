@@ -197,12 +197,48 @@ void search_destroy(struct search_block *search)
 }
 
 
+/**
+ * Make a search active so that it will run on subsequent calls to search_poll().
+ *
+ * \param *search		The handle of the search to make active.
+ */
+
+void search_start(struct search_block *search)
+{
+	unsigned stack;
+
+	if (search == NULL)
+		return;
+
+	if ((stack = search_add_stack(search)) == SEARCH_NULL)
+		return;
+
+	search->active = TRUE;
+}
+
 
 osbool search_poll(struct search_block *search, os_t end_time)
 {
-	os_error	*error;
-	osbool		done = FALSE;
-	int		read, next;
+	os_error		*error;
+	osbool			done = FALSE;
+	int			read, next;
+	struct search_stack	*stack;
+
+	if (search == NULL || !search->active)
+		return;
+
+	stack = &(search->stack[search->stack_level-]);
+
+	if (stack->remaining == 0) {
+		error = xosgbpb_dir_entries_info("path", 1000,
+				stack->next, SEARCH_BLOCK_SIZE, NULL,
+				&(stack->remaining), &(stack->next));
+
+
+	}
+
+
+
 /*
 	while (!done && os_read_monotonic_time() < end_time) {
 		error = xosgbpb_dir_entries_info(path, 1000, search->stack[search->stack_level].next,

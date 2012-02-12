@@ -114,6 +114,7 @@ void file_create_results(void)
 		return;
 	}
 
+	/*
 	results_add_text(new->results, "This is some text", "small_unf", FALSE, wimp_COLOUR_RED);
 	results_add_text(new->results, "This is some more text", "small_1ca", FALSE, wimp_COLOUR_BLACK);
 	results_add_text(new->results, "A third text line", "file_1ca", TRUE, wimp_COLOUR_BLACK);
@@ -124,6 +125,7 @@ void file_create_results(void)
 	}
 
 	results_reformat(new->results, FALSE);
+	*/
 
 	return;
 }
