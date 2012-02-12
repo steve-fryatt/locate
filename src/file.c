@@ -114,7 +114,7 @@ void file_create_results(void)
 		results_add_text(new->results, title, "small_ffb", FALSE, wimp_COLOUR_DARK_BLUE);
 	}
 
-	results_update_extent(new->results);
+	results_reformat(new->results, FALSE);
 
 	return;
 }

@@ -46,6 +46,7 @@
 #define RESULTS_LINE_OFFSET 4
 #define RESULTS_ICON_HEIGHT 52							/**< The height of an icon in the results window, in OS units.		*/
 #define RESULTS_STATUS_HEIGHT 60						/**< The height of the status bar in OS units.				*/
+#define RESULTS_ICON_WIDTH 50							/**< The width of a small file icon in OS units.			*/
 
 #define RESULTS_MIN_LINES 10							/**< The minimum number of lines to show in the results window.		*/
 
@@ -75,7 +76,9 @@ enum results_line_type {
 
 enum results_line_flags {
 	RESULTS_FLAG_NONE = 0,							/**< No flags set.							*/
-	RESULTS_FLAG_HALFSIZE = 1						/**< Sprite should be plotted at half-size.				*/
+	RESULTS_FLAG_HALFSIZE = 1,						/**< Sprite should be plotted at half-size.				*/
+	RESULTS_FLAG_SELECTABLE = 2,						/**< The row can be selected by the user.				*/
+	RESULTS_FLAG_SELECTED = 4						/**< The row is currently selected.					*/
 };
 
 /** A file information block. */
@@ -95,8 +98,9 @@ struct results_line {
 
 	unsigned		text;						/**< Text offset for text-based lines (RESULTS_NULL if not used).	*/
 	unsigned		file;						/**< File offset for file-based lines.					*/
-	unsigned		validation;					/**< Text offset for the display icon's validation string.		*/
+	unsigned		sprite;						/**< Text offset for the display icon's sprite name.			*/
 
+	unsigned		truncate;					/**< Non-zero indicates first character of text to be displayed.	*/
 	wimp_colour		colour;						/**< The foreground colour of the text.					*/
 
 	unsigned		index;						/**< Sort indirection index. UNCONNECTED TO REMAINING DATA.		*/
@@ -107,11 +111,15 @@ struct results_line {
 struct results_window {
 	struct file_block	*file;						/**< The file block to which the window belongs.			*/
 
+	unsigned		format_width;					/**< The currently formatted window width.				*/
+
 	/* Results Window line data. */
 
 	struct results_line	*redraw;					/**< The array of redraw data for the window.				*/
 	unsigned		redraw_lines;					/**< The number of lines in the window.					*/
 	unsigned		redraw_size;					/**< The number of redraw lines claimed.				*/
+
+	unsigned		formatted_lines;				/**< The number of lines currently formatted;				*/
 
 	unsigned		display_lines;					/**< The number of lines currently indexed into the window.		*/
 
@@ -144,6 +152,7 @@ static wimp_window	*results_status_def = NULL;				/**< Definition for the result
 
 static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
+static void	results_update_extent(struct results_window *handle);
 static unsigned	results_add_line(struct results_window *handle, osbool show);
 static unsigned	results_add_fileblock(struct results_window *handle);
 static unsigned	results_store_text(struct results_window *handle, char *text);
@@ -251,6 +260,8 @@ struct results_window *results_create(struct file_block *file, char *title)
 	new->redraw_size = RESULTS_ALLOC_REDRAW;
 	new->redraw_lines = 0;
 
+	new->formatted_lines = 0;
+
 	new->display_lines = 0;
 
 	new->full_info = TRUE;
@@ -260,6 +271,8 @@ struct results_window *results_create(struct file_block *file, char *title)
 
 	new->text_size = RESULTS_ALLOC_TEXT;
 	new->text_free = 0;
+
+	new->format_width = results_window_def->visible.x1 - results_window_def->visible.x0;
 
 	/* Create the window and open it on screen. */
 
@@ -326,19 +339,31 @@ static void results_redraw_handler(wimp_draw *redraw)
 	struct results_window	*res;
 	struct results_line	*line;
 	wimp_icon		*icon;
-	char			buf[255];
+	char			validation[255];
+	char			truncation[1024]; // \TODO -- Allocate properly.
 
 	res = (struct results_window *) event_get_window_user_data(redraw->w);
 
 	if (res == NULL)
 		return;
 
+	icon = results_window_def->icons;
+
+	/* Set up the validation string buffer for text+sprite icons. */
+
+	*validation = 'S';
+	icon[RESULTS_ICON_FILE].data.indirected_text.validation = validation;
+
+	/* Set up the truncation line. */
+
+	strcpy(truncation, "...");
+
+	/* Redraw the window. */
+
 	more = wimp_redraw_window(redraw);
 
 	ox = redraw->box.x0 - redraw->xscroll;
 	oy = redraw->box.y1 - redraw->yscroll;
-
-	icon = results_window_def->icons;
 
 	while (more) {
 		top = (oy - redraw->clip.y1 - RESULTS_TOOLBAR_HEIGHT) / RESULTS_LINE_HEIGHT;
@@ -358,8 +383,14 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
-				icon[RESULTS_ICON_FILE].data.indirected_text.text = res->text + line->text;
-				icon[RESULTS_ICON_FILE].data.indirected_text.validation = res->text + line->validation;
+				strcpy(validation + 1, res->text + line->sprite);
+
+				if (line->truncate > 0) {
+					strcpy(truncation + 3, res->text + line->text + line->truncate);
+					icon[RESULTS_ICON_FILE].data.indirected_text.text = truncation;
+				} else {
+					icon[RESULTS_ICON_FILE].data.indirected_text.text = res->text + line->text;
+				}
 				icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_FG_COLOUR;
 				icon[RESULTS_ICON_FILE].flags |= line->colour << wimp_ICON_FG_COLOUR_SHIFT;
 				if (line->flags & RESULTS_FLAG_HALFSIZE)
@@ -428,7 +459,6 @@ void results_destroy(struct results_window *handle)
 void results_add_text(struct results_window *handle, char *text, char *sprite, osbool small, wimp_colour colour)
 {
 	unsigned	line, offt, offv;
-	char		validation[20];
 
 	if (handle == NULL)
 		return;
@@ -437,16 +467,14 @@ void results_add_text(struct results_window *handle, char *text, char *sprite, o
 	if (line == RESULTS_NULL)
 		return;
 
-	snprintf(validation, sizeof(validation), "S%s", sprite);
-
 	offt = results_store_text(handle, text);
-	offv = results_store_text(handle, validation);
+	offv = results_store_text(handle, sprite);
 
 	if (offt != RESULTS_NULL && offv != RESULTS_NULL)
 	handle->redraw[line].type = RESULTS_LINE_TEXT;
 	handle->redraw[line].parent = line;
 	handle->redraw[line].text = offt;
-	handle->redraw[line].validation = offv;
+	handle->redraw[line].sprite = offv;
 	handle->redraw[line].colour = colour;
 	if (small)
 		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
@@ -496,29 +524,79 @@ void results_add_file(struct results_window *handle, char *text)
 
 
 /**
+ * Reformat lines in the results window to take into account the current
+ * display width.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param all			TRUE to format all lines; FALSE to format
+ *				only those added since the last update.
+ */
+
+void results_reformat(struct results_window *handle, osbool all)
+{
+	int			line, width, length, pos;
+	char			truncate[1024]; // \TODO -- Allocate properly.
+
+	if (handle == NULL)
+		return;
+
+	strcpy(truncate, "...");
+
+	width = handle->format_width - (2 * RESULTS_WINDOW_MARGIN) - RESULTS_ICON_WIDTH;
+
+	for (line = (all) ? 0 : handle->formatted_lines; line < handle->redraw_lines; line++) {
+		switch (handle->redraw[line].type) {
+		case RESULTS_LINE_TEXT:
+			if (wimptextop_string_width(handle->text + handle->redraw[line].text, 0) <= width)
+				break;
+
+			strcpy(truncate + 3, handle->text + handle->redraw[line].text);
+			length = strlen(truncate) - 3;
+			pos = 0;
+
+			while (pos < length &&
+					wimptextop_string_width(truncate + pos, 0) > width) {
+					*(truncate + pos + 3) = '.';
+					pos++;
+			}
+
+			if (pos > 0)
+				handle->redraw[line].truncate = pos;
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	handle->formatted_lines = handle->redraw_lines;
+
+	results_update_extent(handle);
+}
+
+
+/**
  * Update the window extent to hold all of the defined lines.
  *
  * \param *handle		The handle of the results window to update.
  */
 
-void results_update_extent(struct results_window *handle)
+static void results_update_extent(struct results_window *handle)
 {
 	wimp_window_info	info;
 	unsigned		lines;
-	os_error		*error;
 
 	if (handle == NULL)
 		return;
 
 	info.w = handle->window;
-	error = xwimp_get_window_info_header_only(&info);
-	if (error != NULL)
+	if (xwimp_get_window_info_header_only(&info) != NULL)
 		return;
 
 	lines = (handle->display_lines > RESULTS_MIN_LINES) ? handle->display_lines : RESULTS_MIN_LINES;
 	info.extent.y0 = -((lines * RESULTS_LINE_HEIGHT) + RESULTS_TOOLBAR_HEIGHT + RESULTS_STATUS_HEIGHT);
 
-	error = xwimp_set_extent(handle->window, &(info.extent));
+	xwimp_set_extent(handle->window, &(info.extent));
 }
 
 
@@ -559,7 +637,8 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 	handle->redraw[offset].parent = RESULTS_NULL;
 	handle->redraw[offset].text = RESULTS_NULL;
 	handle->redraw[offset].file = RESULTS_NULL;
-	handle->redraw[offset].validation = RESULTS_NULL;
+	handle->redraw[offset].sprite = RESULTS_NULL;
+	handle->redraw[offset].truncate = 0;
 	handle->redraw[offset].colour = wimp_COLOUR_BLACK;
 
 	/* If the line is for immediate display, add it to the index. */

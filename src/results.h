@@ -50,12 +50,15 @@ void results_add_text(struct results_window *handle, char *text, char *sprite, o
 
 
 /**
- * Update the window extent to hold all of the defined lines.
+ * Reformat lines in the results window to take into account the current
+ * display width.
  *
  * \param *handle		The handle of the results window to update.
+ * \param all			TRUE to format all lines; FALSE to format
+ *				only those added since the last update.
  */
 
-void results_update_extent(struct results_window *handle);
+void results_reformat(struct results_window *handle, osbool all);
 
 #endif
 
