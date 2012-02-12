@@ -199,19 +199,16 @@ struct results_window *results_create(struct file_block *file, char *title)
 
 	/* Allocate all the memory that we require. */
 
-	new = heap_alloc(sizeof(struct results_window));
-	if (new == NULL)
+	if ((new = heap_alloc(sizeof(struct results_window))) == NULL)
 		mem_ok = FALSE;
 
 	if (mem_ok) {
-		title_block = heap_strdup(title);
-		if (title_block == NULL)
+		if ((title_block = heap_strdup(title)) == NULL)
 			mem_ok = FALSE;
 	}
 
 	if (mem_ok) {
-		status_block = heap_alloc(STATUS_LENGTH);
-		if (status_block == NULL)
+		if ((status_block = heap_alloc(STATUS_LENGTH)) == NULL)
 			mem_ok = FALSE;
 	}
 
