@@ -43,6 +43,7 @@
 
 
 struct file_block {
+	struct search_block		*search;
 	struct results_window		*results;
 
 	struct file_block		*next;
@@ -77,6 +78,7 @@ struct file_block *file_create(void)
 
 	/* Initialise the block contents. */
 
+	new->search = NULL;
 	new->results = NULL;
 
 	return new;
