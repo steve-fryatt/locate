@@ -102,6 +102,9 @@ void choices_initialise(void)
 
 void choices_open_window(wimp_pointer *pointer)
 {
+	if (windows_get_open(choices_window))
+		return;
+
 	choices_set_window();
 
 	windows_open_centred_at_pointer(choices_window, pointer);
