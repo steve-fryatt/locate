@@ -225,9 +225,9 @@ osbool search_poll(struct search_block *search, os_t end_time)
 	struct search_stack	*stack;
 
 	if (search == NULL || !search->active)
-		return;
-
-	stack = &(search->stack[search->stack_level-]);
+		return TRUE;
+/*
+	stack = &(search->stack[search->stack_level]);
 
 	if (stack->remaining == 0) {
 		error = xosgbpb_dir_entries_info("path", 1000,
@@ -236,7 +236,7 @@ osbool search_poll(struct search_block *search, os_t end_time)
 
 
 	}
-
+*/
 
 
 /*
