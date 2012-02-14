@@ -55,6 +55,7 @@
 #define DIALOGUE_ICON_TYPE 8
 #define DIALOGUE_ICON_ATTRIBUTES 9
 #define DIALOGUE_ICON_CONTENTS 10
+#define DIALOGUE_ICON_SHOW_OPTS 13
 #define DIALOGUE_ICON_SEARCH_PATH 20
 //#define CHOICE_ICON_BACKGROUND_SEARCH 7
 //#define CHOICE_ICON_IMAGE_FS 7
@@ -79,6 +80,7 @@ static wimp_w			dialogue_panes[DIALOGUE_PANES];			/**< The handles of the search
 
 static void	dialogue_close_window(void);
 static void	dialogue_change_pane(unsigned pane);
+static void	dialogue_toggle_size(bool expand);
 static void	dialogue_set_window(void);
 static void	dialogue_read_window(void);
 static void	dialogue_redraw_window(void);
@@ -249,6 +251,39 @@ static void dialogue_change_pane(unsigned pane)
 
 
 /**
+ * Toggle the Search Dialogue to show or hide the search options at the
+ * bottom.  The expansion and contraction sizes come from the minimum
+ * y extent and the maximum y extent as saved in the Templates file.
+ *
+ * \param expand		TRUE to expand the window; FALSE to contract.
+ */
+
+static void dialogue_toggle_size(bool expand)
+{
+	wimp_window_info	info;
+	int			height;
+
+	if (!windows_get_open(dialogue_window))
+		return;
+
+	info.w = dialogue_window;
+	if (xwimp_get_window_info_header_only(&info) != NULL)
+		return;
+
+	height = (expand) ? (info.extent.y1 - info.extent.y0) : info.ymin;
+
+	info.visible.y0 = info.visible.y1 - height;
+
+	if (info.visible.y0 < sf_ICONBAR_HEIGHT) {
+		info.visible.y0 = sf_ICONBAR_HEIGHT;
+		info.visible.y1 = info.visible.y0 + height;
+
+	}
+
+	xwimp_open_window((wimp_open *) &info);
+}
+
+/**
  * Set the contents of the Search Dialogue window to reflect the current settings.
  */
 
@@ -351,6 +386,10 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		dialogue_change_pane(icons_get_radio_group_selected(dialogue_window, DIALOGUE_PANES,
 			DIALOGUE_ICON_SIZE, DIALOGUE_ICON_DATE, DIALOGUE_ICON_TYPE,
 			DIALOGUE_ICON_ATTRIBUTES, DIALOGUE_ICON_CONTENTS));
+		break;
+
+	case DIALOGUE_ICON_SHOW_OPTS:
+		dialogue_toggle_size(icons_get_selected(dialogue_window, DIALOGUE_ICON_SHOW_OPTS));
 		break;
 	}
 }
