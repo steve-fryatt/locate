@@ -49,25 +49,21 @@
 
 #define DIALOGUE_ICON_SEARCH 1
 #define DIALOGUE_ICON_CANCEL 0
+#define DIALOGUE_ICON_FILENAME 4
 #define DIALOGUE_ICON_PANE 5
 #define DIALOGUE_ICON_SIZE 6
 #define DIALOGUE_ICON_DATE 7
 #define DIALOGUE_ICON_TYPE 8
 #define DIALOGUE_ICON_ATTRIBUTES 9
 #define DIALOGUE_ICON_CONTENTS 10
+#define DIALOGUE_ICON_DRAG 11
+#define DIALOGUE_ICON_IGNORE_CASE 12
 #define DIALOGUE_ICON_SHOW_OPTS 13
 #define DIALOGUE_ICON_SEARCH_PATH 20
-//#define CHOICE_ICON_BACKGROUND_SEARCH 7
-//#define CHOICE_ICON_IMAGE_FS 7
-//#define CHOICE_ICON_SUPPRESS_ERRORS 8
-//#define CHOICE_ICON_FULL_INFO 10
-//#define CHOICE_ICON_HISTORY_SIZE 14
-//#define CHOICE_ICON_CONFIRM_HISTORY 16
-//#define CHOICE_ICON_PLUGIN_QUIT 19
-//#define CHOICE_ICON_PLUGIN_WINDOW 20
-//#define CHOICE_ICON_AUTOSCROLL 21
-//#define CHOICE_ICON_MENU_ICONS 22
-
+#define DIALOGUE_ICON_BACKGROUND_SEARCH 16
+#define DIALOGUE_ICON_IMAGE_FS 17
+#define DIALOGUE_ICON_SUPPRESS_ERRORS 18
+#define DIALOGUE_ICON_FULL_INFO 21
 
 
 /* Global variables */
@@ -86,8 +82,7 @@ static void	dialogue_read_window(void);
 static void	dialogue_redraw_window(void);
 static void	dialogue_click_handler(wimp_pointer *pointer);
 static osbool	dialogue_keypress_handler(wimp_key *key);
-
-//static osbool	handle_choices_icon_drop(wimp_message *message);
+static osbool	dialogue_icon_drop_handler(wimp_message *message);
 
 
 /**
@@ -141,8 +136,7 @@ void dialogue_initialise(void)
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_keypress_handler);
 
-
-//	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, handle_choices_icon_drop);
+	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, dialogue_icon_drop_handler);
 }
 
 
@@ -426,16 +420,16 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 	return TRUE;
 }
 
-#if 0
+
 /**
  * Check incoming Message_DataSave to see if it's a file being dropped into the
- * the PDF filename icon.
+ * the search path icon.
  *
  * \param *message		The incoming message block.
  * \return			TRUE if we claim the message as intended for us; else FALSE.
  */
 
-static osbool handle_choices_icon_drop(wimp_message *message)
+static osbool dialogue_icon_drop_handler(wimp_message *message)
 {
 	wimp_full_message_data_xfer	*datasave = (wimp_full_message_data_xfer *) message;
 
@@ -445,14 +439,14 @@ static osbool handle_choices_icon_drop(wimp_message *message)
 	 * might want it.
 	 */
 
-	if (datasave == NULL || datasave->w != choices_window)
+	if (datasave == NULL || datasave->w != dialogue_window)
 		return FALSE;
 
 	/* If it is our window, but not the icon we care about, claim
 	 * the message.
 	 */
 
-	if (datasave->i != CHOICE_ICON_SEARCH_PATH)
+	if (datasave->i != DIALOGUE_ICON_SEARCH_PATH)
 		return TRUE;
 
 	/* It's our window and the correct icon, so start by copying the filename. */
@@ -496,5 +490,4 @@ static osbool handle_choices_icon_drop(wimp_message *message)
 
 	return TRUE;
 }
-#endif
 
