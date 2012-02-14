@@ -48,6 +48,7 @@
 
 #include "choices.h"
 #include "dataxfer.h"
+#include "dialogue.h"
 #include "file.h"
 #include "iconbar.h"
 #include "ihelp.h"
@@ -215,6 +216,7 @@ static void main_initialise(void)
 	ihelp_initialise();
 	dataxfer_initialise();
 	choices_initialise();
+	dialogue_initialise();
 	results_initialise();
 	iconbar_initialise();
 	url_initialise();

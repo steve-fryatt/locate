@@ -27,6 +27,7 @@
 #include "iconbar.h"
 
 #include "choices.h"
+#include "dialogue.h"
 #include "file.h"
 #include "ihelp.h"
 #include "main.h"
@@ -106,7 +107,7 @@ static void iconbar_click_handler(wimp_pointer *pointer)
 
 	switch (pointer->buttons) {
 	case wimp_CLICK_SELECT:
-		file_create_results(); // \TODO -- Something more sensible!
+		dialogue_open_window(pointer);
 		break;
 
 	case wimp_CLICK_ADJUST:
