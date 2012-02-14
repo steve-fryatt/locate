@@ -259,7 +259,7 @@ static osbool choices_keypress_handler(wimp_key *key)
 
 /**
  * Check incoming Message_DataSave to see if it's a file being dropped into the
- * the PDF filename icon.
+ * the search path icon.
  *
  * \param *message		The incoming message block.
  * \return			TRUE if we claim the message as intended for us; else FALSE.
