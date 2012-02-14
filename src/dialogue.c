@@ -50,7 +50,11 @@
 #define DIALOGUE_ICON_SEARCH 1
 #define DIALOGUE_ICON_CANCEL 0
 #define DIALOGUE_ICON_PANE 5
-#define DIALOGUE_ICON_SELECT 6
+#define DIALOGUE_ICON_SIZE 6
+#define DIALOGUE_ICON_DATE 7
+#define DIALOGUE_ICON_TYPE 8
+#define DIALOGUE_ICON_ATTRIBUTES 9
+#define DIALOGUE_ICON_CONTENTS 10
 #define DIALOGUE_ICON_SEARCH_PATH 20
 //#define CHOICE_ICON_BACKGROUND_SEARCH 7
 //#define CHOICE_ICON_IMAGE_FS 7
@@ -102,9 +106,13 @@ void dialogue_initialise(void)
 	icons_printf(dialogue_window, DIALOGUE_ICON_SEARCH_PATH, "");
 	free(def);
 	ihelp_add_window(dialogue_window, "Search", NULL);
-
 	event_add_window_mouse_event(dialogue_window, dialogue_click_handler);
 	event_add_window_key_event(dialogue_window, dialogue_keypress_handler);
+	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_SIZE, FALSE);
+	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_DATE, FALSE);
+	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_TYPE, FALSE);
+	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_ATTRIBUTES, FALSE);
+	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_CONTENTS, FALSE);
 
 	dialogue_panes[DIALOGUE_PANE_SIZE] = templates_create_window("SizePane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_SIZE], "Search.Size", NULL);
@@ -144,15 +152,14 @@ void dialogue_initialise(void)
 
 void dialogue_open_window(wimp_pointer *pointer)
 {
-	int	i;
-
 	if (windows_get_open(dialogue_window))
 		return;
 
 	dialogue_pane = DIALOGUE_PANE_SIZE;
 
-	for (i = 0; i < DIALOGUE_PANES; i++)
-		icons_set_selected(dialogue_window, DIALOGUE_ICON_SELECT + i, i == dialogue_pane);
+	icons_set_radio_group_selected(dialogue_window, dialogue_pane, DIALOGUE_PANES,
+			DIALOGUE_ICON_SIZE, DIALOGUE_ICON_DATE, DIALOGUE_ICON_TYPE,
+			DIALOGUE_ICON_ATTRIBUTES, DIALOGUE_ICON_CONTENTS);
 
 	dialogue_set_window();
 
@@ -181,7 +188,7 @@ static void dialogue_close_window(void)
 
 static void dialogue_change_pane(unsigned pane)
 {
-	int		i, old_pane;
+	unsigned	old_pane;
 	wimp_caret	caret;
 
 	if (pane >= DIALOGUE_PANES || !windows_get_open(dialogue_window) || pane == dialogue_pane)
@@ -192,8 +199,9 @@ static void dialogue_change_pane(unsigned pane)
 	old_pane = dialogue_pane;
 	dialogue_pane = pane;
 
-	for (i = 0; i < DIALOGUE_PANES; i++)
-		icons_set_selected(dialogue_window, DIALOGUE_ICON_SELECT + i, i == dialogue_pane);
+	icons_set_radio_group_selected(dialogue_window, dialogue_pane, DIALOGUE_PANES,
+			DIALOGUE_ICON_SIZE, DIALOGUE_ICON_DATE, DIALOGUE_ICON_TYPE,
+			DIALOGUE_ICON_ATTRIBUTES, DIALOGUE_ICON_CONTENTS);
 
 	windows_open_pane_centred_in_icon(dialogue_window, dialogue_panes[pane], DIALOGUE_ICON_PANE, 0,
 			dialogue_panes[old_pane]);
@@ -333,6 +341,16 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 			dialogue_set_window();
 			dialogue_redraw_window();
 		}
+		break;
+
+	case DIALOGUE_ICON_SIZE:
+	case DIALOGUE_ICON_DATE:
+	case DIALOGUE_ICON_TYPE:
+	case DIALOGUE_ICON_ATTRIBUTES:
+	case DIALOGUE_ICON_CONTENTS:
+		dialogue_change_pane(icons_get_radio_group_selected(dialogue_window, DIALOGUE_PANES,
+			DIALOGUE_ICON_SIZE, DIALOGUE_ICON_DATE, DIALOGUE_ICON_TYPE,
+			DIALOGUE_ICON_ATTRIBUTES, DIALOGUE_ICON_CONTENTS));
 		break;
 	}
 }
