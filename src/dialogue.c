@@ -65,6 +65,30 @@
 #define DIALOGUE_ICON_SUPPRESS_ERRORS 18
 #define DIALOGUE_ICON_FULL_INFO 21
 
+/* Date Pane Icons */
+
+#define DIALOGUE_DATE_ICON_DATE 0
+#define DIALOGUE_DATE_ICON_AGE 1
+
+/* Attributes Pane Icons */
+
+#define DIALOGUE_ATTRIBUTES_ICON_LOCKED 0
+#define DIALOGUE_ATTRIBUTES_ICON_LOCKED_YES 1
+#define DIALOGUE_ATTRIBUTES_ICON_LOCKED_NO 2
+#define DIALOGUE_ATTRIBUTES_ICON_OWN_READ 3
+#define DIALOGUE_ATTRIBUTES_ICON_OWN_READ_YES 4
+#define DIALOGUE_ATTRIBUTES_ICON_OWN_READ_NO 5
+#define DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE 6
+#define DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE_YES 7
+#define DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE_NO 8
+#define DIALOGUE_ATTRIBUTES_ICON_PUB_READ 9
+#define DIALOGUE_ATTRIBUTES_ICON_PUB_READ_YES 10
+#define DIALOGUE_ATTRIBUTES_ICON_PUB_READ_NO 11
+#define DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE 12
+#define DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_YES 13
+#define DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_NO 14
+
+
 
 /* Global variables */
 
@@ -120,6 +144,8 @@ void dialogue_initialise(void)
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_DATE], "Search.Date", NULL);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_keypress_handler);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE, TRUE);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE, TRUE);
 
 	dialogue_panes[DIALOGUE_PANE_TYPE] = templates_create_window("TypePane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_TYPE], "Search.Type", NULL);
@@ -130,6 +156,16 @@ void dialogue_initialise(void)
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], "Search.Attributes", NULL);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_keypress_handler);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED_YES, TRUE);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED_NO, TRUE);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_READ_YES, TRUE);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_READ_NO, TRUE);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE_YES, TRUE);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE_NO, TRUE);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_READ_YES, TRUE);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_READ_NO, TRUE);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_YES, TRUE);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_NO, TRUE);
 
 	dialogue_panes[DIALOGUE_PANE_CONTENTS] = templates_create_window("ContentPane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], "Search.Contents", NULL);
@@ -353,38 +389,42 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 	if (pointer == NULL)
 		return;
 
-	switch ((int) pointer->i) {
-	case DIALOGUE_ICON_SEARCH:
-		if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
-			dialogue_read_window();
+	if (pointer->w == dialogue_window) {
+		switch ((int) pointer->i) {
+		case DIALOGUE_ICON_SEARCH:
+			if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
+				dialogue_read_window();
 
-			if (pointer->buttons == wimp_CLICK_SELECT)
+				if (pointer->buttons == wimp_CLICK_SELECT)
+					dialogue_close_window();
+			}
+			break;
+
+		case DIALOGUE_ICON_CANCEL:
+			if (pointer->buttons == wimp_CLICK_SELECT) {
 				dialogue_close_window();
+			} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+				dialogue_set_window();
+				dialogue_redraw_window();
+			}
+			break;
+
+		case DIALOGUE_ICON_SIZE:
+		case DIALOGUE_ICON_DATE:
+		case DIALOGUE_ICON_TYPE:
+		case DIALOGUE_ICON_ATTRIBUTES:
+		case DIALOGUE_ICON_CONTENTS:
+			dialogue_change_pane(icons_get_radio_group_selected(dialogue_window, DIALOGUE_PANES,
+				DIALOGUE_ICON_SIZE, DIALOGUE_ICON_DATE, DIALOGUE_ICON_TYPE,
+				DIALOGUE_ICON_ATTRIBUTES, DIALOGUE_ICON_CONTENTS));
+			break;
+
+		case DIALOGUE_ICON_SHOW_OPTS:
+			dialogue_toggle_size(icons_get_selected(dialogue_window, DIALOGUE_ICON_SHOW_OPTS));
+			break;
 		}
-		break;
+	} else if (pointer->w == dialogue_panes[DIALOGUE_PANE_DATE]) {
 
-	case DIALOGUE_ICON_CANCEL:
-		if (pointer->buttons == wimp_CLICK_SELECT) {
-			dialogue_close_window();
-		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			dialogue_set_window();
-			dialogue_redraw_window();
-		}
-		break;
-
-	case DIALOGUE_ICON_SIZE:
-	case DIALOGUE_ICON_DATE:
-	case DIALOGUE_ICON_TYPE:
-	case DIALOGUE_ICON_ATTRIBUTES:
-	case DIALOGUE_ICON_CONTENTS:
-		dialogue_change_pane(icons_get_radio_group_selected(dialogue_window, DIALOGUE_PANES,
-			DIALOGUE_ICON_SIZE, DIALOGUE_ICON_DATE, DIALOGUE_ICON_TYPE,
-			DIALOGUE_ICON_ATTRIBUTES, DIALOGUE_ICON_CONTENTS));
-		break;
-
-	case DIALOGUE_ICON_SHOW_OPTS:
-		dialogue_toggle_size(icons_get_selected(dialogue_window, DIALOGUE_ICON_SHOW_OPTS));
-		break;
 	}
 }
 
