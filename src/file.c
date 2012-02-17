@@ -34,6 +34,7 @@
 
 #include "file.h"
 
+#include "dialogue.h"
 #include "ihelp.h"
 #include "results.h"
 #include "search.h"
@@ -44,8 +45,9 @@
 
 
 struct file_block {
-	struct search_block		*search;
-	struct results_window		*results;
+	struct dialogue_block		*dialogue;				/**< The dialogue settings related to the file.		*/
+	struct search_block		*search;				/**< The search operation related to the file.		*/
+	struct results_window		*results;				/**< The results window related to the file.		*/
 
 	struct file_block		*next;
 };
@@ -79,10 +81,35 @@ struct file_block *file_create(void)
 
 	/* Initialise the block contents. */
 
+	new->dialogue = NULL;
 	new->search = NULL;
 	new->results = NULL;
 
 	return new;
+}
+
+
+/**
+ * Create a new file block by opening a search window.
+ *
+ * \param *pointer		The pointer position to open the dialogue at.
+ */
+
+void file_create_dialogue(wimp_pointer *pointer)
+{
+	struct file_block *new;
+
+	new = file_create();
+	if (new == NULL)
+		return;
+
+	new->dialogue = dialogue_create(new);
+	if (new->dialogue == NULL) {
+		file_destroy(new);
+		return;
+	}
+
+	dialogue_open_window(new->dialogue, pointer);
 }
 
 
@@ -164,6 +191,9 @@ void file_destroy(struct file_block *block)
 
 	if (block->search != NULL)
 		search_destroy(block->search);
+
+	if (block->dialogue != NULL)
+		dialogue_destroy(block->dialogue);
 
 	/* Free the block. */
 

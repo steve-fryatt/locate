@@ -89,8 +89,26 @@
 #define DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_NO 14
 
 
+/* Settings block for a search dialogue window. */
+
+struct dialogue_block {
+	struct file_block		*file;					/**< The file to which the dialogue data belongs.	*/
+
+	unsigned			pane;					/**< The pane which is visible.				*/
+
+	/* The Search Options. */
+
+	osbool				background;				/**< Search in the background.				*/
+	osbool				ignore_imagefs;				/**< Ignore the contents of image filing systems.	*/
+	osbool				suppress_errors;			/**< Suppress errors during the search.			*/
+	osbool				full_info;				/**< Use a full-info display by default.		*/
+
+};
+
 
 /* Global variables */
+
+struct dialogue_block		*dialogue_data = NULL;				/**< The data block relating to the open dialogue.	*/
 
 unsigned			dialogue_pane = 0;				/**< The currently displayed searh dialogue pane.	*/
 
@@ -177,26 +195,81 @@ void dialogue_initialise(void)
 
 
 /**
+ * Create a new set of dialogue data with the default values.
+ *
+ * \param *file			The file to which the dialogue belongs.
+ * \return			Pointer to the new block, or NULL on failure.
+ */
+
+struct dialogue_block *dialogue_create(struct file_block *file)
+{
+	struct dialogue_block *new;
+
+	if (file == NULL)
+		return NULL;
+
+	new = heap_alloc(sizeof(struct dialogue_block));
+
+	if (new == NULL)
+		return NULL;
+
+	/* Initialise the data in the block. */
+
+	new->file = file;
+
+	new->pane = DIALOGUE_PANE_SIZE;
+
+	new->background = TRUE;
+	new->ignore_imagefs = FALSE;
+	new->suppress_errors = TRUE;
+	new->full_info = FALSE;
+
+	return new;
+}
+
+
+/**
+ * Destroy a dialogue and its data.
+ *
+ * \param *dialogue		The dialogue to be destroyed.
+ */
+
+void dialogue_destroy(struct dialogue_block *dialogue)
+{
+	if (dialogue == NULL)
+		return;
+
+	heap_free(dialogue);
+}
+
+
+/**
  * Open the Search Dialogue window at the mouse pointer.
  *
+ * \param *dialogue		The dialogue details to use to open the window.
  * \param *pointer		The details of the pointer to open the window at.
  */
 
-void dialogue_open_window(wimp_pointer *pointer)
+void dialogue_open_window(struct dialogue_block *dialogue, wimp_pointer *pointer)
 {
-	if (windows_get_open(dialogue_window))
+	if (dialogue == NULL || windows_get_open(dialogue_window))
 		return;
 
-	dialogue_pane = DIALOGUE_PANE_SIZE;
+	dialogue_data = dialogue;
+
+	dialogue_pane = dialogue->pane;
 
 	icons_set_radio_group_selected(dialogue_window, dialogue_pane, DIALOGUE_PANES,
 			DIALOGUE_ICON_SIZE, DIALOGUE_ICON_DATE, DIALOGUE_ICON_TYPE,
 			DIALOGUE_ICON_ATTRIBUTES, DIALOGUE_ICON_CONTENTS);
 
+	icons_set_selected(dialogue_window, DIALOGUE_ICON_SHOW_OPTS, FALSE);
+
 	dialogue_set_window();
 
 	windows_open_with_pane_centred_at_pointer(dialogue_window, dialogue_panes[dialogue_pane],
 			DIALOGUE_ICON_PANE, 0, pointer);
+	dialogue_toggle_size(FALSE);
 
 	icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
 }
@@ -209,6 +282,11 @@ void dialogue_open_window(wimp_pointer *pointer)
 static void dialogue_close_window(void)
 {
 	wimp_close_window(dialogue_window);
+
+	if (dialogue_data != NULL)
+		file_destroy(dialogue_data->file);
+
+	dialogue_data = NULL;
 }
 
 
@@ -302,7 +380,10 @@ static void dialogue_toggle_size(bool expand)
 
 	height = (expand) ? (info.extent.y1 - info.extent.y0) : info.ymin;
 
-	info.visible.y0 = info.visible.y1 - height;
+	if (info.visible.y0 == sf_ICONBAR_HEIGHT)
+		info.visible.y1 = info.visible.y0 + height;
+	else
+		info.visible.y0 = info.visible.y1 - height;
 
 	if (info.visible.y0 < sf_ICONBAR_HEIGHT) {
 		info.visible.y0 = sf_ICONBAR_HEIGHT;
@@ -319,18 +400,13 @@ static void dialogue_toggle_size(bool expand)
 
 static void dialogue_set_window(void)
 {
+	icons_set_selected(dialogue_window, DIALOGUE_ICON_BACKGROUND_SEARCH, dialogue_data->background);
+	icons_set_selected(dialogue_window, DIALOGUE_ICON_IMAGE_FS, dialogue_data->ignore_imagefs);
+	icons_set_selected(dialogue_window, DIALOGUE_ICON_SUPPRESS_ERRORS, dialogue_data->suppress_errors);
+	icons_set_selected(dialogue_window, DIALOGUE_ICON_FULL_INFO, dialogue_data->full_info);
+
 	/*
 	icons_printf(choices_window, CHOICE_ICON_SEARCH_PATH, "%s", config_str_read("SearchPath"));
-
-	icons_set_selected(choices_window, CHOICE_ICON_BACKGROUND_SEARCH, config_opt_read("Multitask"));
-	icons_set_selected(choices_window, CHOICE_ICON_IMAGE_FS, config_opt_read("ImageFS"));
-	icons_set_selected(choices_window, CHOICE_ICON_SUPPRESS_ERRORS, config_opt_read("SuppressErrors"));
-	icons_set_selected(choices_window, CHOICE_ICON_FULL_INFO, config_opt_read("FullInfoDisplay"));
-	icons_set_selected(choices_window, CHOICE_ICON_CONFIRM_HISTORY, config_opt_read("ConfirmHistoryAdd"));
-	icons_set_selected(choices_window, CHOICE_ICON_PLUGIN_QUIT, config_opt_read("QuitAsPlugin"));
-	icons_set_selected(choices_window, CHOICE_ICON_PLUGIN_WINDOW, config_opt_read("SearchWindAsPlugin"));
-	icons_set_selected(choices_window, CHOICE_ICON_AUTOSCROLL, config_opt_read("ScrollResults"));
-	icons_set_selected(choices_window, CHOICE_ICON_MENU_ICONS, config_opt_read("FileMenuSprites"));
 
 	icons_printf(choices_window, CHOICE_ICON_HISTORY_SIZE, "%d", config_int_read("HistorySize"));
 	*/

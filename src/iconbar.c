@@ -107,7 +107,7 @@ static void iconbar_click_handler(wimp_pointer *pointer)
 
 	switch (pointer->buttons) {
 	case wimp_CLICK_SELECT:
-		dialogue_open_window(pointer);
+		file_create_dialogue(pointer);
 		break;
 
 	case wimp_CLICK_ADJUST:

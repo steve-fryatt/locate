@@ -19,6 +19,15 @@ struct file_block *file_create(void);
 
 
 /**
+ * Create a new file block by opening a search window.
+ *
+ * \param *pointer		The pointer position to open the dialogue at.
+ */
+
+void file_create_dialogue(wimp_pointer *pointer);
+
+
+/**
  * Create a new file block by loading in pre-saved results.
  */
 
