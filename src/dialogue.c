@@ -105,6 +105,47 @@ enum dialogue_size_unit {
 	DIALOGUE_SIZE_MBYTES
 };
 
+enum dialogue_date {
+	DIALOGUE_DATE_AT_ANY_TIME = 0,
+	DIALOGUE_DATE_AT,
+	DIALOGUE_DATE_AT_ANY_TIME_BUT,
+	DIALOGUE_DATE_AFTER,
+	DIALOGUE_DATE_BEFORE,
+	DIALOGUE_DATE_BETWEEN,
+	DIALOGUE_DATE_NOT_BETWEEN
+};
+
+enum dialogue_age {
+	DIALOGUE_AGE_ANY_AGE = 0,
+	DIALOGUE_AGE_EXACTLY,
+	DIALOGUE_AGE_ANY_AGE_BUT,
+	DIALOGUE_AGE_LESS_THAN,
+	DIALOGUE_AGE_MORE_THAN,
+	DIALOGUE_AGE_BETWEEN,
+	DIALOGUE_AGE_NOT_BETWEEN
+};
+
+enum dialogue_age_units {
+	DIALOGUE_AGE_MINUTES,
+	DIALOGUE_AGE_HOURS,
+	DIALOGUE_AGE_DAYS,
+	DIALOGUE_AGE_WEEKS,
+	DIALOGUE_AGE_MONTHS,
+	DIALOGUE_AGE_YEARS
+};
+
+enum dialogue_type {
+	DIALOGUE_TYPE_OF_ANY = 0,
+	DIALOGUE_TYPE_OF_TYPE,
+	DIALOGUE_TYPE_NOT_OF_TYPE
+};
+
+enum dialogue_contents {
+	DIALOGUE_CONTENTS_ARE_NOT_IMPORTANT = 0,
+	DIALOGUE_CONTENTS_INCLUDE,
+	DIALOGUE_CONTENTS_DO_NOT_INCLUDE
+};
+
 /* Settings block for a search dialogue window. */
 
 struct dialogue_block {
@@ -128,6 +169,10 @@ struct dialogue_block {
 	enum dialogue_size_unit		size_min_unit;				/**< The unit of the minimum size.			*/
 	unsigned			size_max;				/**< The maximum size.					*/
 	enum dialogue_size_unit		size_max_unit;				/**< The unit of the maximum size.			*/
+
+	/* Date/Age. */
+
+	osbool				use_age;				/**< TRUE to set by age; FALSE to set by date.		*/
 
 	/* The Search Options. */
 
@@ -291,6 +336,10 @@ struct dialogue_block *dialogue_create(struct file_block *file)
 	new->size_min_unit = DIALOGUE_SIZE_BYTES;
 	new->size_max = 0;
 	new->size_max_unit = DIALOGUE_SIZE_BYTES;
+
+	/* Date and Age. */
+
+	new->use_age = FALSE;
 
 	/* Search Options */
 
