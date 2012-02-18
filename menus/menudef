@@ -27,165 +27,151 @@ menu(icon_bar_menu, "Locate") {
 	item("Quit");
 }
 
-/* Search Window Menu */
 
-menu (search_window_menu, "Locate")
-{
-  item ("Save search")
-  {
-    d_box(save_search_window)
-    {
-      warning;
-    }
-  }
+/**
+ * Search Window Menu
+ */
+
+menu(search_window_menu, "Locate") {
+	item("Save search") {
+		d_box(save_search_window) {
+			warning;
+		}
+	}
 }
 
-/* Results Window Menu */
 
-menu (results_window_menu, "Locate")
-{
-  item ("Display")
-  {
-    submenu (display_menu);
-  }
-  item ("Save")
-  {
-    submenu (save_menu)
-    {
-      always;
-    }
-    dotted;
-  }
-  item ("Select all");
-  item ("Clear selection");
-  item ("Object info")
-  {
-    d_box (object_info_window)
-    {
-      warning;
-    }
-  }
-  item ("Open parent");
-  item ("Copy names")
-  {
-    dotted;
-  }
-  item ("Modify search...");
-  item ("Stop search");
+/**
+ * Results Window Menu
+ */
+
+menu(results_window_menu, "Locate") {
+	item("Display") {
+		submenu(display_menu);
+	}
+	item("Save") {
+		submenu(save_menu) {
+			always;
+		}
+		dotted;
+	}
+	item("Select all");
+	item("Clear selection");
+	item("Object info") {
+		d_box(object_info_window) {
+			warning;
+		}
+	}
+	item("Open parent");
+	item("Copy names") {
+		dotted;
+	}
+	item("Modify search...");
+	item("Stop search");
 }
 
-menu (display_menu, "Display")
-{
-  item ("Path only");
-  item ("Full info");
+menu(display_menu, "Display") {
+	item("Path only");
+	item("Full info");
 }
 
-menu (save_menu, "Save")
-{
-  item ("Results")
-  {
-    d_box(save_window)
-    {
-      warning;
-    }
-  }
-  item ("Path names")
-  {
-    d_box(save_window)
-    {
-      warning;
-    }
-    dotted;
-  }
-  item ("Search options")
-  {
-    d_box(save_window)
-    {
-      warning;
-    }
-  }
+menu(save_menu, "Save") {
+	item("Results") {
+		d_box(save_window) {
+			warning;
+		}
+	}
+	item("Path names") {
+		d_box(save_window) {
+			warning;
+		}
+		dotted;
+	}
+	item("Search options") {
+		d_box(save_window) {
+			warning;
+		}
+	}
 }
 
-/* The follwing menus are all pop-ups in the Search dialogue box. */
 
-menu (size_logic, "Size")
-{
-  item ("Not important");
-  item ("Equal to");
-  item ("Not equal to");
-  item ("Greater than");
-  item ("Less than");
-  item ("Between");
-  item ("Not between");
+/**
+ * Search Dialogue PopUp Menus.
+ */
+
+menu(size_logic, "Size") {
+	item("Not important");
+	item("Equal to");
+	item("Not equal to");
+	item("Greater than");
+	item("Less than");
+	item("Between");
+	item("Not between");
 }
 
-menu (size_unit, "Size")
-{
-  item ("Bytes");
-  item ("Kb");
-  item ("Mb");
+menu(size_unit, "Size") {
+	item("Bytes");
+	item("Kb");
+	item("Mb");
 }
 
-menu (date_logic, "Date")
-{
-  item ("At any time");
-  item ("At");
-  item ("At any time but");
-  item ("After");
-  item ("Before");
-  item ("Between");
-  item ("Not between");
+menu(date_logic, "Date") {
+	item("At any time");
+	item("At");
+	item("At any time but");
+	item("After");
+	item("Before");
+	item("Between");
+	item("Not between");
 }
 
-menu (age_logic, "Age")
-{
-  item ("Any age");
-  item ("Exactly");
-  item ("Any age but");
-  item ("Less than");
-  item ("More than");
-  item ("Between");
-  item ("Not between");
+menu (age_logic, "Age") {
+	item("Any age");
+	item("Exactly");
+	item("Any age but");
+	item("Less than");
+	item("More than");
+	item("Between");
+	item("Not between");
 }
 
-menu (age_unit, "Age")
-{
-  item ("Minutes");
-  item ("Hours");
-  item ("Days");
-  item ("Weeks");
-  item ("Months");
-  item ("Years");
+menu (age_unit, "Age") {
+	item("Minutes");
+	item("Hours");
+	item("Days");
+	item("Weeks");
+	item("Months");
+	item("Years");
 }
 
-menu (type_logic, "Type")
-{
-  item ("Of any type");
-  item ("Of type");
-  item ("Not of type");
+menu (type_logic, "Type") {
+	item("Of any type");
+	item("Of type");
+	item("Not of type");
 }
 
-menu (content_logic, "Content")
-{
-  item ("Are not important");
-  item ("Include");
-  item ("Do not include");
+menu (content_logic, "Content") {
+	item("Are not important");
+	item("Include");
+	item("Do not include");
 }
 
-/* Date selector menus */
 
-menu (months, "Month")
-{
-  item ("January");
-  item ("February");
-  item ("March");
-  item ("April");
-  item ("May");
-  item ("June");
-  item ("July");
-  item ("August");
-  item ("September");
-  item ("October");
-  item ("November");
-  item ("December");
+/**
+ * Date Selector PopUp Menus
+ */
+
+menu (months, "Month") {
+	item("January");
+	item("February");
+	item("March");
+	item("April");
+	item("May");
+	item("June");
+	item("July");
+	item("August");
+	item("September");
+	item("October");
+	item("November");
+	item("December");
 }

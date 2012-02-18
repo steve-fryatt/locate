@@ -214,8 +214,26 @@ char *templates_get_current_menu_name(char *buffer)
 
 	if (menu_up == templates_menu_list[TEMPLATES_MENU_ICONBAR])
 		strcpy(buffer, "IconBarMenu");
-	else if (menu_up == templates_menu_list[TEMPLATES_MENU_SCRIPT_POPUP])
-		strcpy(buffer, "ScriptMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_SEARCH])
+		strcpy(buffer, "SearchMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_RESULTS])
+		strcpy(buffer, "ResultsMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_SIZE_MODE])
+		strcpy(buffer, "SizeModeMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_SIZE_UNIT])
+		strcpy(buffer, "SizeUnitMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_DATE_MODE])
+		strcpy(buffer, "DateModeMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_AGE_MODE])
+		strcpy(buffer, "AgeModeMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_AGE_UNIT])
+		strcpy(buffer, "AgeUnitMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_TYPE_MODE])
+		strcpy(buffer, "TypeModeMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_CONTENT_MODE])
+		strcpy(buffer, "ContentModeMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_MONTH])
+		strcpy(buffer, "MonthMenu");
 	else
 		strcpy(buffer, templates_menu_help_token);
 
