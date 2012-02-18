@@ -10,6 +10,7 @@
 
 /* Acorn C Header files. */
 
+#include "flex.h"
 
 /* OSLib Header files. */
 
@@ -88,6 +89,21 @@
 #define DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_YES 13
 #define DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_NO 14
 
+enum dialogue_size {
+	DIALOGUE_SIZE_NOT_IMPORTANT = 0,
+	DIALOGUE_SIZE_EQUAL_TO,
+	DIALOGUE_SIZE_NOT_EQUAL_TO,
+	GREATER_THAN,
+	LESS_THAN,
+	BETWEEN,
+	NOT_BETWEEN
+};
+
+enum dialogue_size_unit {
+	DIALOGUE_SIZE_BYTES,
+	DIALOGUE_SIZE_KBYTES,
+	DIALOGUE_SIZE_MBYTES
+};
 
 /* Settings block for a search dialogue window. */
 
@@ -95,6 +111,23 @@ struct dialogue_block {
 	struct file_block		*file;					/**< The file to which the dialogue data belongs.	*/
 
 	unsigned			pane;					/**< The pane which is visible.				*/
+
+	/* The Search Path. */
+
+	char				*path;					/**< The paths to be searched.				*/
+
+	/* The Filename. */
+
+	char				*filename;				/**< The filename string to be matched.			*/
+	osbool				ignore_case;				/**< Whether the search is case sensitive or not.	*/
+
+	/* The File Size. */
+
+	enum dialogue_size		size_mode;				/**< The size comparison mode.				*/
+	unsigned			size_min;				/**< The minimum size.					*/
+	enum dialogue_size_unit		size_min_unit;				/**< The unit of the minimum size.			*/
+	unsigned			size_max;				/**< The maximum size.					*/
+	enum dialogue_size_unit		size_max_unit;				/**< The unit of the maximum size.			*/
 
 	/* The Search Options. */
 
@@ -203,26 +236,68 @@ void dialogue_initialise(void)
 
 struct dialogue_block *dialogue_create(struct file_block *file)
 {
-	struct dialogue_block *new;
+	struct dialogue_block	*new;
+	osbool			mem_ok = TRUE;
 
 	if (file == NULL)
 		return NULL;
 
+	/* Allocate all of the memory that we require. */
+
 	new = heap_alloc(sizeof(struct dialogue_block));
-
 	if (new == NULL)
-		return NULL;
+		mem_ok = FALSE;
 
-	/* Initialise the data in the block. */
+	if (mem_ok) {
+		new->path = NULL;
+		new->filename = NULL;
+
+		if (flex_alloc((flex_ptr) &(new->path), strlen(config_str_read("SearchPath")) + 1) == 0)
+			mem_ok = FALSE;
+
+		if (flex_alloc((flex_ptr) &(new->filename), strlen("") + 1) == 0)
+			mem_ok = FALSE;
+	}
+
+	if (!mem_ok) {
+		if (new->path != NULL)
+			flex_free((flex_ptr) &(new->path));
+		if (new->filename != NULL)
+			flex_free((flex_ptr) &(new->filename));
+
+		if (new != NULL)
+			heap_free(new);
+
+		return NULL;
+	}
+
+	/* If the memory allocation succeeded, initialise the data in the block. */
 
 	new->file = file;
 
 	new->pane = DIALOGUE_PANE_SIZE;
 
-	new->background = TRUE;
-	new->ignore_imagefs = FALSE;
-	new->suppress_errors = TRUE;
-	new->full_info = FALSE;
+	strcpy(new->path, config_str_read("SearchPath"));
+
+	/* Filename Details */
+
+	strcpy(new->filename, "");
+	new->ignore_case = TRUE;
+
+	/* Size Details */
+
+	new->size_mode = DIALOGUE_SIZE_NOT_IMPORTANT;
+	new->size_min = 0;
+	new->size_min_unit = DIALOGUE_SIZE_BYTES;
+	new->size_max = 0;
+	new->size_max_unit = DIALOGUE_SIZE_BYTES;
+
+	/* Search Options */
+
+	new->background = config_opt_read("Multitask");
+	new->ignore_imagefs = config_opt_read("ImageFS");
+	new->suppress_errors = config_opt_read("SuppressErrors");
+	new->full_info = config_opt_read("FullInfoDisplay");
 
 	return new;
 }
@@ -238,6 +313,9 @@ void dialogue_destroy(struct dialogue_block *dialogue)
 {
 	if (dialogue == NULL)
 		return;
+
+	flex_free((flex_ptr) &(dialogue->path));
+	flex_free((flex_ptr) &(dialogue->filename));
 
 	heap_free(dialogue);
 }
@@ -400,6 +478,11 @@ static void dialogue_toggle_size(bool expand)
 
 static void dialogue_set_window(void)
 {
+	icons_printf(dialogue_window, DIALOGUE_ICON_SEARCH_PATH, "%s", dialogue_data->path);
+
+	icons_printf(dialogue_window, DIALOGUE_ICON_FILENAME, "%s", dialogue_data->filename);
+	icons_set_selected(dialogue_window, DIALOGUE_ICON_IGNORE_CASE, dialogue_data->ignore_case);
+
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_BACKGROUND_SEARCH, dialogue_data->background);
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_IMAGE_FS, dialogue_data->ignore_imagefs);
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_SUPPRESS_ERRORS, dialogue_data->suppress_errors);
