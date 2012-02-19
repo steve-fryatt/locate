@@ -68,20 +68,51 @@
 
 /* Size Pane Icons */
 
-#define DIALOGUE_SIZE_MODE_MENU 1
-#define DIALOGUE_SIZE_MODE 2
-#define DIALOGUE_SIZE_MIN 3
-#define DIALOGUE_SIZE_MIN_UNIT_MENU 4
-#define DIALOGUE_SIZE_MIN_UNIT 5
-#define DIALOGUE_SIZE_AND 6
-#define DIALOGUE_SIZE_MAX 7
-#define DIALOGUE_SIZE_MAX_UNIT_MENU 8
-#define DIALOGUE_SIZE_MAX_UNIT 9
+#define DIALOGUE_SIZE_ICON_MODE_MENU 1
+#define DIALOGUE_SIZE_ICON_MODE 2
+#define DIALOGUE_SIZE_ICON_MIN 3
+#define DIALOGUE_SIZE_ICON_MIN_UNIT_MENU 4
+#define DIALOGUE_SIZE_ICON_MIN_UNIT 5
+#define DIALOGUE_SIZE_ICON_AND 6
+#define DIALOGUE_SIZE_ICON_MAX 7
+#define DIALOGUE_SIZE_ICON_MAX_UNIT_MENU 8
+#define DIALOGUE_SIZE_ICON_MAX_UNIT 9
 
 /* Date Pane Icons */
 
 #define DIALOGUE_DATE_ICON_DATE 0
 #define DIALOGUE_DATE_ICON_AGE 1
+#define DIALOGUE_DATE_ICON_DATE_LABEL 2
+#define DIALOGUE_DATE_ICON_DATE_MODE 3
+#define DIALOGUE_DATE_ICON_DATE_MODE_MENU 4
+#define DIALOGUE_DATE_ICON_DATE_FROM 5
+#define DIALOGUE_DATE_ICON_DATE_FROM_SET 6
+#define DIALOGUE_DATE_ICON_DATE_AND 7
+#define DIALOGUE_DATE_ICON_DATE_TO 8
+#define DIALOGUE_DATE_ICON_DATE_TO_SET 9
+#define DIALOGUE_DATE_ICON_AGE_LABEL 10
+#define DIALOGUE_DATE_ICON_AGE_MODE 11
+#define DIALOGUE_DATE_ICON_AGE_MODE_MENU 12
+#define DIALOGUE_DATE_ICON_AGE_FROM 13
+#define DIALOGUE_DATE_ICON_AGE_FROM_UNIT 14
+#define DIALOGUE_DATE_ICON_AGE_FROM_UNIT_MENU 15
+#define DIALOGUE_DATE_ICON_AGE_FROM_UNIT_OLD 16
+#define DIALOGUE_DATE_ICON_AGE_AND 17
+#define DIALOGUE_DATE_ICON_AGE_TO 18
+#define DIALOGUE_DATE_ICON_AGE_TO_UNIT 19
+#define DIALOGUE_DATE_ICON_AGE_TO_UNIT_MENU 20
+#define DIALOGUE_DATE_ICON_AGE_TO_UNIT_OLD 21
+
+
+/* Type Pane Icons */
+
+#define DIALOGUE_TYPE_ICON_FILE 0
+#define DIALOGUE_TYPE_ICON_DIRECTORY 1
+#define DIALOGUE_TYPE_ICON_APPLICATION 2
+#define DIALOGUE_TYPE_ICON_MODE 3
+#define DIALOGUE_TYPE_ICON_MODE_MENU 4
+#define DIALOGUE_TYPE_ICON_TYPE 5
+#define DIALOGUE_TYPE_ICON_TYPE_MENU 6
 
 /* Attributes Pane Icons */
 
@@ -100,6 +131,14 @@
 #define DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE 12
 #define DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_YES 13
 #define DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_NO 14
+
+/* Contents Pane Icons */
+
+#define DIALOGUE_CONTENTS_ICON_MODE 1
+#define DIALOGUE_CONTENTS_ICON_MODE_MENU 2
+#define DIALOGUE_CONTENTS_ICON_TEXT 3
+#define DIALOGUE_CONTENTS_ICON_IGNORE_CASE 4
+#define DIALOGUE_CONTENTS_ICON_CTRL_CHARS 5
 
 enum dialogue_size {
 	DIALOGUE_SIZE_NOT_IMPORTANT = 0,
@@ -208,6 +247,11 @@ static wimp_w			dialogue_panes[DIALOGUE_PANES];			/**< The handles of the search
 static wimp_menu		*dialogue_menu = NULL;				/**< The main search window menu.			*/
 static wimp_menu		*dialogue_size_mode_menu = NULL;		/**< The Size Mode popup menu.				*/
 static wimp_menu		*dialogue_size_unit_menu = NULL;		/**< The Size Unit popup menu.				*/
+static wimp_menu		*dialogue_date_mode_menu = NULL;		/**< The Date Mode popup menu.				*/
+static wimp_menu		*dialogue_age_mode_menu = NULL;			/**< The Age Mode popup menu.				*/
+static wimp_menu		*dialogue_age_unit_menu = NULL;			/**< The Age Unit popup menu.				*/
+static wimp_menu		*dialogue_type_mode_menu = NULL;		/**< The Type Mode popup menu.				*/
+static wimp_menu		*dialogue_contents_mode_menu = NULL;		/**< The Contents Mode popup menu.			*/
 
 
 static void	dialogue_close_window(void);
@@ -215,6 +259,10 @@ static void	dialogue_change_pane(unsigned pane);
 static void	dialogue_toggle_size(bool expand);
 static void	dialogue_set_window(void);
 static void	dialogue_shade_size_pane(void);
+static void	dialogue_shade_date_pane(void);
+static void	dialogue_shade_type_pane(void);
+static void	dialogue_shade_attributes_pane(void);
+static void	dialogue_shade_contents_pane(void);
 static void	dialogue_read_window(void);
 static void	dialogue_redraw_window(void);
 static void	dialogue_click_handler(wimp_pointer *pointer);
@@ -240,6 +288,11 @@ void dialogue_initialise(void)
 	dialogue_menu = templates_get_menu(TEMPLATES_MENU_SEARCH);
 	dialogue_size_mode_menu = templates_get_menu(TEMPLATES_MENU_SIZE_MODE);
 	dialogue_size_unit_menu = templates_get_menu(TEMPLATES_MENU_SIZE_UNIT);
+	dialogue_date_mode_menu = templates_get_menu(TEMPLATES_MENU_DATE_MODE);
+	dialogue_age_mode_menu = templates_get_menu(TEMPLATES_MENU_AGE_MODE);
+	dialogue_age_unit_menu = templates_get_menu(TEMPLATES_MENU_AGE_UNIT);
+	dialogue_type_mode_menu = templates_get_menu(TEMPLATES_MENU_TYPE_MODE);
+	dialogue_contents_mode_menu = templates_get_menu(TEMPLATES_MENU_CONTENTS_MODE);
 
 	/* Initialise the main window. */
 
@@ -265,12 +318,12 @@ void dialogue_initialise(void)
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_keypress_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_selection_handler);
-	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MODE_MENU,
-			dialogue_size_mode_menu, DIALOGUE_SIZE_MODE, "SizeMode");
-	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MIN_UNIT_MENU,
-			dialogue_size_unit_menu, DIALOGUE_SIZE_MIN_UNIT, "SizeUnit");
-	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MAX_UNIT_MENU,
-			dialogue_size_unit_menu, DIALOGUE_SIZE_MAX_UNIT, "SizeUnit");
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MODE_MENU,
+			dialogue_size_mode_menu, DIALOGUE_SIZE_ICON_MODE, "SizeMode");
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN_UNIT_MENU,
+			dialogue_size_unit_menu, DIALOGUE_SIZE_ICON_MIN_UNIT, "SizeUnit");
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX_UNIT_MENU,
+			dialogue_size_unit_menu, DIALOGUE_SIZE_ICON_MAX_UNIT, "SizeUnit");
 
 	/* Initialise the date pane. */
 
@@ -279,8 +332,16 @@ void dialogue_initialise(void)
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_keypress_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_menu_selection_handler);
-	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE, TRUE);
-	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE, TRUE);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE, FALSE);
+	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE, FALSE);
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_MODE_MENU,
+			dialogue_date_mode_menu, DIALOGUE_DATE_ICON_DATE_MODE, "DateMode");
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MODE_MENU,
+			dialogue_age_mode_menu, DIALOGUE_DATE_ICON_AGE_MODE, "AgeMode");
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_FROM_UNIT_MENU,
+			dialogue_age_unit_menu, DIALOGUE_DATE_ICON_AGE_FROM_UNIT, "AgeUnit");
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_TO_UNIT_MENU,
+			dialogue_age_unit_menu, DIALOGUE_DATE_ICON_AGE_TO_UNIT, "AgeUnit");
 
 	/* Initialise the type pane. */
 
@@ -289,6 +350,8 @@ void dialogue_initialise(void)
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_keypress_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_selection_handler);
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_MODE_MENU,
+			dialogue_type_mode_menu, DIALOGUE_TYPE_ICON_MODE, "TypeMode");
 
 	/* Initialise the attributes pane. */
 
@@ -315,6 +378,8 @@ void dialogue_initialise(void)
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_keypress_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_menu_selection_handler);
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_MODE_MENU,
+			dialogue_contents_mode_menu, DIALOGUE_CONTENTS_ICON_MODE, "ContentsMode");
 
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, dialogue_icon_drop_handler);
 }
@@ -580,9 +645,15 @@ static void dialogue_set_window(void)
 	icons_printf(dialogue_window, DIALOGUE_ICON_FILENAME, "%s", dialogue_data->filename);
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_IGNORE_CASE, dialogue_data->ignore_case);
 
-	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MODE_MENU, dialogue_data->size_mode);
-	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MIN_UNIT_MENU, dialogue_data->size_min_unit);
-	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MAX_UNIT_MENU, dialogue_data->size_max_unit);
+	/* Set the Size pane */
+
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MODE_MENU, dialogue_data->size_mode);
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN_UNIT_MENU, dialogue_data->size_min_unit);
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX_UNIT_MENU, dialogue_data->size_max_unit);
+	icons_printf(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN, "%d", dialogue_data->size_min);
+	icons_printf(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX, "%d", dialogue_data->size_max);
+
+	/* Set the search options. */
 
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_BACKGROUND_SEARCH, dialogue_data->background);
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_IMAGE_FS, dialogue_data->ignore_imagefs);
@@ -596,16 +667,112 @@ static void dialogue_set_window(void)
 	*/
 
 	dialogue_shade_size_pane();
+	dialogue_shade_date_pane();
+	dialogue_shade_type_pane();
+	dialogue_shade_attributes_pane();
+	dialogue_shade_contents_pane();
 }
+
+
+/**
+ * Update the icon shading in the size pane.
+ */
 
 static void dialogue_shade_size_pane(void)
 {
-	enum dialogue_size mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MODE_MENU);
+	enum dialogue_size	mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MODE_MENU);
 
 	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_SIZE], mode == DIALOGUE_SIZE_NOT_IMPORTANT, 3,
-			DIALOGUE_SIZE_MIN, DIALOGUE_SIZE_MIN_UNIT, DIALOGUE_SIZE_MIN_UNIT_MENU);
+			DIALOGUE_SIZE_ICON_MIN, DIALOGUE_SIZE_ICON_MIN_UNIT, DIALOGUE_SIZE_ICON_MIN_UNIT_MENU);
 	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_SIZE], mode != DIALOGUE_SIZE_BETWEEN && mode != DIALOGUE_SIZE_NOT_BETWEEN, 4,
-			DIALOGUE_SIZE_MAX, DIALOGUE_SIZE_MAX_UNIT, DIALOGUE_SIZE_MAX_UNIT_MENU, DIALOGUE_SIZE_AND);
+			DIALOGUE_SIZE_ICON_MAX, DIALOGUE_SIZE_ICON_MAX_UNIT, DIALOGUE_SIZE_ICON_MAX_UNIT_MENU, DIALOGUE_SIZE_ICON_AND);
+}
+
+
+/**
+ * Update the icon shading in the date pane.
+ */
+
+static void dialogue_shade_date_pane(void)
+{
+	enum dialogue_date	date_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_MODE_MENU);
+	enum dialogue_age	age_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MODE_MENU);
+
+
+	icons_set_group_deleted_when_off(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE, 8,
+			DIALOGUE_DATE_ICON_DATE_LABEL, DIALOGUE_DATE_ICON_DATE_MODE, DIALOGUE_DATE_ICON_DATE_MODE_MENU,
+			DIALOGUE_DATE_ICON_DATE_FROM, DIALOGUE_DATE_ICON_DATE_FROM_SET, DIALOGUE_DATE_ICON_DATE_AND,
+			DIALOGUE_DATE_ICON_DATE_TO, DIALOGUE_DATE_ICON_DATE_TO_SET);
+
+	icons_set_group_deleted_when_off(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE, 12,
+			DIALOGUE_DATE_ICON_AGE_LABEL, DIALOGUE_DATE_ICON_AGE_MODE, DIALOGUE_DATE_ICON_AGE_MODE_MENU,
+			DIALOGUE_DATE_ICON_AGE_FROM, DIALOGUE_DATE_ICON_AGE_FROM_UNIT, DIALOGUE_DATE_ICON_AGE_FROM_UNIT_MENU,
+			DIALOGUE_DATE_ICON_AGE_FROM_UNIT_OLD, DIALOGUE_DATE_ICON_AGE_AND, DIALOGUE_DATE_ICON_AGE_TO,
+			DIALOGUE_DATE_ICON_AGE_TO_UNIT, DIALOGUE_DATE_ICON_AGE_TO_UNIT_MENU, DIALOGUE_DATE_ICON_AGE_TO_UNIT_OLD);
+
+	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_DATE], date_mode == DIALOGUE_DATE_AT_ANY_TIME, 2,
+			DIALOGUE_DATE_ICON_DATE_FROM, DIALOGUE_DATE_ICON_DATE_FROM_SET);
+	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_DATE], date_mode != DIALOGUE_DATE_BETWEEN && date_mode != DIALOGUE_DATE_NOT_BETWEEN, 3,
+			DIALOGUE_DATE_ICON_DATE_AND, DIALOGUE_DATE_ICON_DATE_TO, DIALOGUE_DATE_ICON_DATE_TO_SET);
+
+	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_DATE], age_mode == DIALOGUE_AGE_ANY_AGE, 4,
+			DIALOGUE_DATE_ICON_AGE_FROM, DIALOGUE_DATE_ICON_AGE_FROM_UNIT,
+			DIALOGUE_DATE_ICON_AGE_FROM_UNIT_MENU, DIALOGUE_DATE_ICON_AGE_FROM_UNIT_OLD);
+	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_DATE], age_mode != DIALOGUE_AGE_BETWEEN && age_mode != DIALOGUE_AGE_NOT_BETWEEN, 5,
+			DIALOGUE_DATE_ICON_AGE_TO, DIALOGUE_DATE_ICON_AGE_TO_UNIT,
+			DIALOGUE_DATE_ICON_AGE_TO_UNIT_MENU, DIALOGUE_DATE_ICON_AGE_TO_UNIT_OLD, DIALOGUE_DATE_ICON_AGE_AND);
+
+
+
+	windows_redraw(dialogue_panes[DIALOGUE_PANE_DATE]);
+}
+
+
+/**
+ * Update the icon shading in the type pane.
+ */
+
+static void dialogue_shade_type_pane(void)
+{
+	enum dialogue_type	mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_MODE_MENU);
+	osbool			files = icons_get_selected(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_FILE);
+
+	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_TYPE], !files, 2,
+			DIALOGUE_TYPE_ICON_MODE, DIALOGUE_TYPE_ICON_MODE_MENU);
+	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_TYPE], !files || mode == DIALOGUE_TYPE_OF_ANY, 2,
+			DIALOGUE_TYPE_ICON_TYPE, DIALOGUE_TYPE_ICON_TYPE_MENU);
+}
+
+
+/**
+ * Update the icon shading in the attributes pane.
+ */
+
+static void dialogue_shade_attributes_pane(void)
+{
+	icons_set_group_shaded_when_off(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED, 2,
+			DIALOGUE_ATTRIBUTES_ICON_LOCKED_YES, DIALOGUE_ATTRIBUTES_ICON_LOCKED_NO);
+	icons_set_group_shaded_when_off(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_READ, 2,
+			DIALOGUE_ATTRIBUTES_ICON_OWN_READ_YES, DIALOGUE_ATTRIBUTES_ICON_OWN_READ_NO);
+	icons_set_group_shaded_when_off(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE, 2,
+			DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE_YES, DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE_NO);
+	icons_set_group_shaded_when_off(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_READ, 2,
+			DIALOGUE_ATTRIBUTES_ICON_PUB_READ_YES, DIALOGUE_ATTRIBUTES_ICON_PUB_READ_NO);
+	icons_set_group_shaded_when_off(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE, 2,
+			DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_YES, DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_NO);
+}
+
+
+/**
+ * Update the icon shading in the contents pane.
+ */
+
+static void dialogue_shade_contents_pane(void)
+{
+	enum dialogue_contents	mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_MODE_MENU);
+
+	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_CONTENTS], mode == DIALOGUE_CONTENTS_ARE_NOT_IMPORTANT, 3,
+			DIALOGUE_CONTENTS_ICON_TEXT, DIALOGUE_CONTENTS_ICON_IGNORE_CASE, DIALOGUE_CONTENTS_ICON_CTRL_CHARS);
 }
 
 
@@ -695,9 +862,12 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 			dialogue_toggle_size(icons_get_selected(dialogue_window, DIALOGUE_ICON_SHOW_OPTS));
 			break;
 		}
-	} else if (pointer->w == dialogue_panes[DIALOGUE_PANE_DATE]) {
-
-	}
+	} else if (pointer->w == dialogue_panes[DIALOGUE_PANE_DATE])
+		dialogue_shade_date_pane();
+	else if (pointer->w == dialogue_panes[DIALOGUE_PANE_TYPE])
+		dialogue_shade_type_pane();
+	else if (pointer->w == dialogue_panes[DIALOGUE_PANE_ATTRIBUTES])
+		dialogue_shade_attributes_pane();
 }
 
 
@@ -746,6 +916,12 @@ static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp
 {
 	if (menu == dialogue_size_mode_menu)
 		dialogue_shade_size_pane();
+	else if (menu == dialogue_date_mode_menu || menu == dialogue_age_mode_menu)
+		dialogue_shade_date_pane();
+	else if (menu == dialogue_type_mode_menu)
+		dialogue_shade_type_pane();
+	else if (menu == dialogue_contents_mode_menu)
+		dialogue_shade_contents_pane();
 }
 
 

@@ -23,7 +23,7 @@ enum templates_menus {
 	TEMPLATES_MENU_AGE_MODE,						/**< The Age Mode PopUp Menu.		*/
 	TEMPLATES_MENU_AGE_UNIT,						/**< The Age Unit PopUp Menu.		*/
 	TEMPLATES_MENU_TYPE_MODE,						/**< The Type Mode PopUp Menu.		*/
-	TEMPLATES_MENU_CONTENT_MODE,						/**< The Content Mode PopUp Menu.	*/
+	TEMPLATES_MENU_CONTENTS_MODE,						/**< The Content Mode PopUp Menu.	*/
 	TEMPLATES_MENU_MONTH,							/**< The Month PopUp Menu.		*/
 	TEMPLATES_MENU_MAX_EXTENT						/**< Determine the number of entries.	*/
 };

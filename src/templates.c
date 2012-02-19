@@ -230,7 +230,7 @@ char *templates_get_current_menu_name(char *buffer)
 		strcpy(buffer, "AgeUnitMenu");
 	else if (menu_up == templates_menu_list[TEMPLATES_MENU_TYPE_MODE])
 		strcpy(buffer, "TypeModeMenu");
-	else if (menu_up == templates_menu_list[TEMPLATES_MENU_CONTENT_MODE])
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_CONTENTS_MODE])
 		strcpy(buffer, "ContentModeMenu");
 	else if (menu_up == templates_menu_list[TEMPLATES_MENU_MONTH])
 		strcpy(buffer, "MonthMenu");

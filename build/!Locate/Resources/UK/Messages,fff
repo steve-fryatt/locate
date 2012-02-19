@@ -78,13 +78,13 @@ SizeUnit2:Mb
 
 # Date options window menus.
 
-DateLogic0:at any time
-DateLogic1:at
-DateLogic2:at any time but
-DateLogic3:after
-DateLogic4:before
-DateLogic5:between
-DateLogic6:not between
+DateMode0:at any time
+DateMode1:at
+DateMode2:at any time but
+DateMode3:after
+DateMode4:before
+DateMode5:between
+DateMode6:not between
 
 # Months
 
@@ -103,34 +103,34 @@ Month12:December
 
 # Age options window menus.
 
-AgeLogic0:any age
-AgeLogic1:exactly
-AgeLogic2:any age but
-AgeLogic3:less than
-AgeLogic4:more than
-AgeLogic5:between
-AgeLogic6:not between
+AgeMode0:any age
+AgeMode1:exactly
+AgeMode2:any age but
+AgeMode3:less than
+AgeMode4:more than
+AgeMode5:between
+AgeMode6:not between
 
-AgeUnits0:minutes
-AgeUnits1:hours
-AgeUnits2:days
-AgeUnits3:weeks
-AgeUnits4:months
-AgeUnits5:years
+AgeUnit0:minutes
+AgeUnit1:hours
+AgeUnit2:days
+AgeUnit3:weeks
+AgeUnit4:months
+AgeUnit5:years
 
 # Filetype options window.
 
-TypeLogic0:of any type
-TypeLogic1:of type
-TypeLogic2:not of type
+TypeMode0:of any type
+TypeMode1:of type
+TypeMode2:not of type
 
 FileMenu:Filetypes
 
 # Contents options window.
 
-ContentLogic0:are not important
-ContentLogic1:include
-ContentLogic2:do not include
+ContentsMode0:are not important
+ContentsMode1:include
+ContentsMode2:do not include
 
 # Menus
 
