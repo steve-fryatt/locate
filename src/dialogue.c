@@ -221,9 +221,37 @@ struct dialogue_block {
 	unsigned			size_max;				/**< The maximum size.					*/
 	enum dialogue_size_unit		size_max_unit;				/**< The unit of the maximum size.			*/
 
-	/* Date/Age. */
+	/* The File Date/Age. */
 
 	osbool				use_age;				/**< TRUE to set by age; FALSE to set by date.		*/
+
+	/* The File Type. */
+
+	osbool				type_files;				/**< TRUE to match applications; FALSE to not.		*/
+	osbool				type_directories;			/**< TRUE to match directories; FALSE to not.		*/
+	osbool				type_applications;			/**< TRUE to match files; FALSE to not.			*/
+	enum dialogue_type		type_mode;				/**< The file type comparison mode.			*/
+	unsigned			*type_types;				/**< 0xffffffffu terminated list of file types.		*/
+
+	/* The File Attributes. */
+
+	osbool				attributes_locked;			/**< TRUE to match Locked state; FALSE to not.		*/
+	osbool				attributes_locked_yes;			/**< TRUE to match Locked files; FALSE for unlocked.	*/
+	osbool				attributes_owner_read;			/**< TRUE to match Owner Read state; FALSE to not.	*/
+	osbool				attributes_owner_read_yes;		/**< TRUE to match Yes; FALSE to match No.		*/
+	osbool				attributes_owner_write;			/**< TRUE to match Owner Write state; FALSE to not.	*/
+	osbool				attributes_owner_write_yes;		/**< TRUE to match Yes; FALSE to match No.		*/
+	osbool				attributes_public_read;			/**< TRUE to match Public Read state; FALSE to not.	*/
+	osbool				attributes_public_read_yes;		/**< TRUE to match Yes; FALSE to match No.		*/
+	osbool				attributes_public_write;		/**< TRUE to match Public Write state; FALSE to not.	*/
+	osbool				attributes_public_write_yes;		/**< TRUE to match Yes; FALSE to match No.		*/
+
+	/* The File Contents. */
+
+	enum dialogue_contents		contents_mode;				/**< The file contents comparison mode.			*/
+	char				*contents_text;				/**< The text to match in a file.			*/
+	osbool				contents_ignore_case;			/**< TRUE to ignore case when matching; FALSE to not.	*/
+	osbool				contents_ctrl_chars;			/**< TRUE to allow control characters; FALSE to not.	*/
 
 	/* The Search Options. */
 
@@ -257,7 +285,7 @@ static wimp_menu		*dialogue_contents_mode_menu = NULL;		/**< The Contents Mode p
 static void	dialogue_close_window(void);
 static void	dialogue_change_pane(unsigned pane);
 static void	dialogue_toggle_size(bool expand);
-static void	dialogue_set_window(void);
+static void	dialogue_set_window(struct dialogue_block *dialogue);
 static void	dialogue_shade_size_pane(void);
 static void	dialogue_shade_date_pane(void);
 static void	dialogue_shade_type_pane(void);
@@ -409,12 +437,21 @@ struct dialogue_block *dialogue_create(struct file_block *file)
 	if (mem_ok) {
 		new->path = NULL;
 		new->filename = NULL;
+		new->type_types = NULL;
+		new->contents_text = NULL;
 
 		if (flex_alloc((flex_ptr) &(new->path), strlen(config_str_read("SearchPath")) + 1) == 0)
 			mem_ok = FALSE;
 
 		if (flex_alloc((flex_ptr) &(new->filename), strlen("") + 1) == 0)
 			mem_ok = FALSE;
+
+		if (flex_alloc((flex_ptr) &(new->type_types), sizeof(unsigned)) == 0)
+			mem_ok = FALSE;
+
+		if (flex_alloc((flex_ptr) &(new->contents_text), strlen("") + 1) == 0)
+			mem_ok = FALSE;
+
 	}
 
 	if (!mem_ok) {
@@ -422,6 +459,10 @@ struct dialogue_block *dialogue_create(struct file_block *file)
 			flex_free((flex_ptr) &(new->path));
 		if (new->filename != NULL)
 			flex_free((flex_ptr) &(new->filename));
+		if (new->type_types != NULL)
+			flex_free((flex_ptr) &(new->type_types));
+		if (new->contents_text != NULL)
+			flex_free((flex_ptr) &(new->contents_text));
 
 		if (new != NULL)
 			heap_free(new);
@@ -446,13 +487,41 @@ struct dialogue_block *dialogue_create(struct file_block *file)
 
 	new->size_mode = DIALOGUE_SIZE_NOT_IMPORTANT;
 	new->size_min = 0;
-	new->size_min_unit = DIALOGUE_SIZE_BYTES;
+	new->size_min_unit = DIALOGUE_SIZE_KBYTES;
 	new->size_max = 0;
-	new->size_max_unit = DIALOGUE_SIZE_BYTES;
+	new->size_max_unit = DIALOGUE_SIZE_KBYTES;
 
-	/* Date and Age. */
+	/* Date and Age Details. */
 
 	new->use_age = FALSE;
+
+	/* Type Details. */
+
+	new->type_files = TRUE;
+	new->type_directories = TRUE;
+	new->type_applications = TRUE;
+	new->type_mode = DIALOGUE_TYPE_OF_ANY;
+	new->type_types[0] = 0xffffffffu;
+
+	/* Attribute Details. */
+
+	new->attributes_locked = FALSE;
+	new->attributes_locked_yes = FALSE;
+	new->attributes_owner_read = FALSE;
+	new->attributes_owner_read_yes = TRUE;
+	new->attributes_owner_write = FALSE;
+	new->attributes_owner_write_yes = TRUE;
+	new->attributes_public_read = FALSE;
+	new->attributes_public_read_yes = TRUE;
+	new->attributes_public_write = FALSE;
+	new->attributes_public_write_yes = TRUE;
+
+	/* Contents Details. */
+
+	new->contents_mode = DIALOGUE_CONTENTS_ARE_NOT_IMPORTANT;
+	strcpy(new->contents_text, "");
+	new->contents_ignore_case = TRUE;
+	new->contents_ctrl_chars = FALSE;
 
 	/* Search Options */
 
@@ -478,6 +547,8 @@ void dialogue_destroy(struct dialogue_block *dialogue)
 
 	flex_free((flex_ptr) &(dialogue->path));
 	flex_free((flex_ptr) &(dialogue->filename));
+	flex_free((flex_ptr) &(dialogue->type_types));
+	flex_free((flex_ptr) &(dialogue->contents_text));
 
 	heap_free(dialogue);
 }
@@ -505,7 +576,7 @@ void dialogue_open_window(struct dialogue_block *dialogue, wimp_pointer *pointer
 
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_SHOW_OPTS, FALSE);
 
-	dialogue_set_window();
+	dialogue_set_window(dialogue_data);
 
 	windows_open_with_pane_centred_at_pointer(dialogue_window, dialogue_panes[dialogue_pane],
 			DIALOGUE_ICON_PANE, 0, pointer);
@@ -638,27 +709,59 @@ static void dialogue_toggle_size(bool expand)
  * Set the contents of the Search Dialogue window to reflect the current settings.
  */
 
-static void dialogue_set_window(void)
+static void dialogue_set_window(struct dialogue_block *dialogue)
 {
-	icons_printf(dialogue_window, DIALOGUE_ICON_SEARCH_PATH, "%s", dialogue_data->path);
+	icons_printf(dialogue_window, DIALOGUE_ICON_SEARCH_PATH, "%s", dialogue->path);
 
-	icons_printf(dialogue_window, DIALOGUE_ICON_FILENAME, "%s", dialogue_data->filename);
-	icons_set_selected(dialogue_window, DIALOGUE_ICON_IGNORE_CASE, dialogue_data->ignore_case);
+	icons_printf(dialogue_window, DIALOGUE_ICON_FILENAME, "%s", dialogue->filename);
+	icons_set_selected(dialogue_window, DIALOGUE_ICON_IGNORE_CASE, dialogue->ignore_case);
 
 	/* Set the Size pane */
 
-	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MODE_MENU, dialogue_data->size_mode);
-	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN_UNIT_MENU, dialogue_data->size_min_unit);
-	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX_UNIT_MENU, dialogue_data->size_max_unit);
-	icons_printf(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN, "%d", dialogue_data->size_min);
-	icons_printf(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX, "%d", dialogue_data->size_max);
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MODE_MENU, dialogue->size_mode);
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN_UNIT_MENU, dialogue->size_min_unit);
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX_UNIT_MENU, dialogue->size_max_unit);
+	icons_printf(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN, "%d", dialogue->size_min);
+	icons_printf(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX, "%d", dialogue->size_max);
+
+	/* Set the Type pane */
+
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_DIRECTORY, dialogue->type_directories);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_APPLICATION, dialogue->type_applications);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_FILE, dialogue->type_files);
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_MODE_MENU, dialogue->type_mode);
+
+	/* Set the Attributes pane. */
+
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED, dialogue->attributes_locked);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_READ, dialogue->attributes_owner_read);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE, dialogue->attributes_owner_write);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_READ, dialogue->attributes_public_read);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE, dialogue->attributes_public_write);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED_YES, dialogue->attributes_locked_yes);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_READ_YES, dialogue->attributes_owner_read_yes);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE_YES, dialogue->attributes_owner_write_yes);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_READ_YES, dialogue->attributes_public_read_yes);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_YES, dialogue->attributes_public_write_yes);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED_NO, !dialogue->attributes_locked_yes);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_READ_NO, !dialogue->attributes_owner_read_yes);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE_NO, !dialogue->attributes_owner_write_yes);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_READ_NO, !dialogue->attributes_public_read_yes);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_NO, !dialogue->attributes_public_write_yes);
+
+	/* Set the Contents pane. */
+
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_MODE_MENU, dialogue->contents_mode);
+	icons_printf(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT, "%s", dialogue->contents_text);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_IGNORE_CASE, dialogue->contents_ignore_case);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_CTRL_CHARS, dialogue->contents_ctrl_chars);
 
 	/* Set the search options. */
 
-	icons_set_selected(dialogue_window, DIALOGUE_ICON_BACKGROUND_SEARCH, dialogue_data->background);
-	icons_set_selected(dialogue_window, DIALOGUE_ICON_IMAGE_FS, dialogue_data->ignore_imagefs);
-	icons_set_selected(dialogue_window, DIALOGUE_ICON_SUPPRESS_ERRORS, dialogue_data->suppress_errors);
-	icons_set_selected(dialogue_window, DIALOGUE_ICON_FULL_INFO, dialogue_data->full_info);
+	icons_set_selected(dialogue_window, DIALOGUE_ICON_BACKGROUND_SEARCH, dialogue->background);
+	icons_set_selected(dialogue_window, DIALOGUE_ICON_IMAGE_FS, dialogue->ignore_imagefs);
+	icons_set_selected(dialogue_window, DIALOGUE_ICON_SUPPRESS_ERRORS, dialogue->suppress_errors);
+	icons_set_selected(dialogue_window, DIALOGUE_ICON_FULL_INFO, dialogue->full_info);
 
 	/*
 	icons_printf(choices_window, CHOICE_ICON_SEARCH_PATH, "%s", config_str_read("SearchPath"));
@@ -843,7 +946,7 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 			if (pointer->buttons == wimp_CLICK_SELECT) {
 				dialogue_close_window();
 			} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-				dialogue_set_window();
+				dialogue_set_window(dialogue_data);
 				dialogue_redraw_window();
 			}
 			break;
