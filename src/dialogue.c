@@ -73,7 +73,8 @@
 #define DIALOGUE_SIZE_MIN 3
 #define DIALOGUE_SIZE_MIN_UNIT_MENU 4
 #define DIALOGUE_SIZE_MIN_UNIT 5
-#define DISLOGUE_SIZE_MAX 7
+#define DIALOGUE_SIZE_AND 6
+#define DIALOGUE_SIZE_MAX 7
 #define DIALOGUE_SIZE_MAX_UNIT_MENU 8
 #define DIALOGUE_SIZE_MAX_UNIT 9
 
@@ -204,15 +205,21 @@ unsigned			dialogue_pane = 0;				/**< The currently displayed searh dialogue pan
 static wimp_w			dialogue_window = NULL;				/**< The handle of the main search dialogue window.	*/
 static wimp_w			dialogue_panes[DIALOGUE_PANES];			/**< The handles of the search dialogue panes.		*/
 
+static wimp_menu		*dialogue_menu = NULL;				/**< The main search window menu.			*/
+static wimp_menu		*dialogue_size_mode_menu = NULL;		/**< The Size Mode popup menu.				*/
+static wimp_menu		*dialogue_size_unit_menu = NULL;		/**< The Size Unit popup menu.				*/
+
 
 static void	dialogue_close_window(void);
 static void	dialogue_change_pane(unsigned pane);
 static void	dialogue_toggle_size(bool expand);
 static void	dialogue_set_window(void);
+static void	dialogue_shade_size_pane(void);
 static void	dialogue_read_window(void);
 static void	dialogue_redraw_window(void);
 static void	dialogue_click_handler(wimp_pointer *pointer);
 static osbool	dialogue_keypress_handler(wimp_key *key);
+static void	dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
 static osbool	dialogue_icon_drop_handler(wimp_message *message);
 
 
@@ -228,6 +235,14 @@ void dialogue_initialise(void)
 	if (def == NULL)
 		error_msgs_report_fatal("BadTemplate");
 
+	/* Initialise the menus used in the window. */
+
+	dialogue_menu = templates_get_menu(TEMPLATES_MENU_SEARCH);
+	dialogue_size_mode_menu = templates_get_menu(TEMPLATES_MENU_SIZE_MODE);
+	dialogue_size_unit_menu = templates_get_menu(TEMPLATES_MENU_SIZE_UNIT);
+
+	/* Initialise the main window. */
+
 	def->icons[DIALOGUE_ICON_SEARCH_PATH].data.indirected_text.text = heap_alloc(buf_size);
 	def->icons[DIALOGUE_ICON_SEARCH_PATH].data.indirected_text.size = buf_size;
 	dialogue_window = wimp_create_window(def);
@@ -236,39 +251,52 @@ void dialogue_initialise(void)
 	ihelp_add_window(dialogue_window, "Search", NULL);
 	event_add_window_mouse_event(dialogue_window, dialogue_click_handler);
 	event_add_window_key_event(dialogue_window, dialogue_keypress_handler);
+	event_add_window_menu_selection(dialogue_window, dialogue_menu_selection_handler);
 	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_SIZE, FALSE);
 	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_DATE, FALSE);
 	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_TYPE, FALSE);
 	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_ATTRIBUTES, FALSE);
 	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_CONTENTS, FALSE);
 
+	/* Initialise the size pane. */
+
 	dialogue_panes[DIALOGUE_PANE_SIZE] = templates_create_window("SizePane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_SIZE], "Search.Size", NULL);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_keypress_handler);
+	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_selection_handler);
 	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MODE_MENU,
-			templates_get_menu(TEMPLATES_MENU_SIZE_MODE), DIALOGUE_SIZE_MODE, "SizeMode");
+			dialogue_size_mode_menu, DIALOGUE_SIZE_MODE, "SizeMode");
 	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MIN_UNIT_MENU,
-			templates_get_menu(TEMPLATES_MENU_SIZE_UNIT), DIALOGUE_SIZE_MIN_UNIT, "SizeUnit");
+			dialogue_size_unit_menu, DIALOGUE_SIZE_MIN_UNIT, "SizeUnit");
 	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MAX_UNIT_MENU,
-			templates_get_menu(TEMPLATES_MENU_SIZE_UNIT), DIALOGUE_SIZE_MAX_UNIT, "SizeUnit");
+			dialogue_size_unit_menu, DIALOGUE_SIZE_MAX_UNIT, "SizeUnit");
+
+	/* Initialise the date pane. */
 
 	dialogue_panes[DIALOGUE_PANE_DATE] = templates_create_window("DatePane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_DATE], "Search.Date", NULL);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_keypress_handler);
+	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_menu_selection_handler);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE, TRUE);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE, TRUE);
+
+	/* Initialise the type pane. */
 
 	dialogue_panes[DIALOGUE_PANE_TYPE] = templates_create_window("TypePane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_TYPE], "Search.Type", NULL);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_keypress_handler);
+	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_selection_handler);
+
+	/* Initialise the attributes pane. */
 
 	dialogue_panes[DIALOGUE_PANE_ATTRIBUTES] = templates_create_window("AttribPane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], "Search.Attributes", NULL);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_keypress_handler);
+	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_menu_selection_handler);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED_YES, TRUE);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED_NO, TRUE);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_READ_YES, TRUE);
@@ -280,10 +308,13 @@ void dialogue_initialise(void)
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_YES, TRUE);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_NO, TRUE);
 
+	/* Initialise the content pane. */
+
 	dialogue_panes[DIALOGUE_PANE_CONTENTS] = templates_create_window("ContentPane");
-	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], "Search.Contents", NULL);
-	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_click_handler);
-	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_keypress_handler);
+	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_CONTENTS], "Search.Contents", NULL);
+	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_click_handler);
+	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_keypress_handler);
+	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_menu_selection_handler);
 
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, dialogue_icon_drop_handler);
 }
@@ -563,6 +594,18 @@ static void dialogue_set_window(void)
 
 	icons_printf(choices_window, CHOICE_ICON_HISTORY_SIZE, "%d", config_int_read("HistorySize"));
 	*/
+
+	dialogue_shade_size_pane();
+}
+
+static void dialogue_shade_size_pane(void)
+{
+	enum dialogue_size mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MODE_MENU);
+
+	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_SIZE], mode == DIALOGUE_SIZE_NOT_IMPORTANT, 3,
+			DIALOGUE_SIZE_MIN, DIALOGUE_SIZE_MIN_UNIT, DIALOGUE_SIZE_MIN_UNIT_MENU);
+	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_SIZE], mode != DIALOGUE_SIZE_BETWEEN && mode != DIALOGUE_SIZE_NOT_BETWEEN, 4,
+			DIALOGUE_SIZE_MAX, DIALOGUE_SIZE_MAX_UNIT, DIALOGUE_SIZE_MAX_UNIT_MENU, DIALOGUE_SIZE_AND);
 }
 
 
@@ -687,6 +730,22 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 	}
 
 	return TRUE;
+}
+
+
+
+/**
+ * Process menu selections in the Search window.
+ *
+ * \param window	The window to handle an event for.
+ * \param *menu		The menu from which the selection was made.
+ * \param *selection	The selection made.
+ */
+
+static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection)
+{
+	if (menu == dialogue_size_mode_menu)
+		dialogue_shade_size_pane();
 }
 
 
