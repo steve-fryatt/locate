@@ -64,17 +64,17 @@ URLFailed:Could not find an application to launch the given URL.
 
 # Size options window menus.
 
-SizeLogic0:not important
-SizeLogic1:equal to
-SizeLogic2:not equal to
-SizeLogic3:greater than
-SizeLogic4:less than
-SizeLogic5:between
-SizeLogic6:not between
+SizeMode0:not important
+SizeMode1:equal to
+SizeMode2:not equal to
+SizeMode3:greater than
+SizeMode4:less than
+SizeMode5:between
+SizeMode6:not between
 
-SizeUnits0:bytes
-SizeUnits1:Kb
-SizeUnits2:Mb
+SizeUnit0:bytes
+SizeUnit1:Kb
+SizeUnit2:Mb
 
 # Date options window menus.
 

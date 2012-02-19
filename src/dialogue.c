@@ -66,6 +66,17 @@
 #define DIALOGUE_ICON_SUPPRESS_ERRORS 18
 #define DIALOGUE_ICON_FULL_INFO 21
 
+/* Size Pane Icons */
+
+#define DIALOGUE_SIZE_MODE_MENU 1
+#define DIALOGUE_SIZE_MODE 2
+#define DIALOGUE_SIZE_MIN 3
+#define DIALOGUE_SIZE_MIN_UNIT_MENU 4
+#define DIALOGUE_SIZE_MIN_UNIT 5
+#define DISLOGUE_SIZE_MAX 7
+#define DIALOGUE_SIZE_MAX_UNIT_MENU 8
+#define DIALOGUE_SIZE_MAX_UNIT 9
+
 /* Date Pane Icons */
 
 #define DIALOGUE_DATE_ICON_DATE 0
@@ -93,10 +104,10 @@ enum dialogue_size {
 	DIALOGUE_SIZE_NOT_IMPORTANT = 0,
 	DIALOGUE_SIZE_EQUAL_TO,
 	DIALOGUE_SIZE_NOT_EQUAL_TO,
-	GREATER_THAN,
-	LESS_THAN,
-	BETWEEN,
-	NOT_BETWEEN
+	DIALOGUE_SIZE_GREATER_THAN,
+	DIALOGUE_SIZE_LESS_THAN,
+	DIALOGUE_SIZE_BETWEEN,
+	DIALOGUE_SIZE_NOT_BETWEEN
 };
 
 enum dialogue_size_unit {
@@ -235,6 +246,12 @@ void dialogue_initialise(void)
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_SIZE], "Search.Size", NULL);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_keypress_handler);
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MODE_MENU,
+			templates_get_menu(TEMPLATES_MENU_SIZE_MODE), DIALOGUE_SIZE_MODE, "SizeMode");
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MIN_UNIT_MENU,
+			templates_get_menu(TEMPLATES_MENU_SIZE_UNIT), DIALOGUE_SIZE_MIN_UNIT, "SizeUnit");
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MAX_UNIT_MENU,
+			templates_get_menu(TEMPLATES_MENU_SIZE_UNIT), DIALOGUE_SIZE_MAX_UNIT, "SizeUnit");
 
 	dialogue_panes[DIALOGUE_PANE_DATE] = templates_create_window("DatePane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_DATE], "Search.Date", NULL);
@@ -531,6 +548,10 @@ static void dialogue_set_window(void)
 
 	icons_printf(dialogue_window, DIALOGUE_ICON_FILENAME, "%s", dialogue_data->filename);
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_IGNORE_CASE, dialogue_data->ignore_case);
+
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MODE_MENU, dialogue_data->size_mode);
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MIN_UNIT_MENU, dialogue_data->size_min_unit);
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_MAX_UNIT_MENU, dialogue_data->size_max_unit);
 
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_BACKGROUND_SEARCH, dialogue_data->background);
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_IMAGE_FS, dialogue_data->ignore_imagefs);
