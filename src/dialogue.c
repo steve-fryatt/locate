@@ -4,6 +4,7 @@
 
 /* ANSI C Header files. */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,7 @@
 /* OSLib Header files. */
 
 #include "oslib/osbyte.h"
+#include "oslib/osfscontrol.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib Header files. */
@@ -291,12 +293,14 @@ static void	dialogue_shade_date_pane(void);
 static void	dialogue_shade_type_pane(void);
 static void	dialogue_shade_attributes_pane(void);
 static void	dialogue_shade_contents_pane(void);
+static void	dialogue_write_filetype_list(char *buffer, size_t length, unsigned types[]);
 static void	dialogue_read_window(void);
 static void	dialogue_redraw_window(void);
 static void	dialogue_click_handler(wimp_pointer *pointer);
 static osbool	dialogue_keypress_handler(wimp_key *key);
 static void	dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
 static osbool	dialogue_icon_drop_handler(wimp_message *message);
+
 
 
 /**
@@ -730,6 +734,9 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 	icons_set_selected(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_APPLICATION, dialogue->type_applications);
 	icons_set_selected(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_FILE, dialogue->type_files);
 	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_MODE_MENU, dialogue->type_mode);
+	dialogue_write_filetype_list(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE),
+			icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE),
+			dialogue->type_types);
 
 	/* Set the Attributes pane. */
 
@@ -876,6 +883,39 @@ static void dialogue_shade_contents_pane(void)
 
 	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_CONTENTS], mode == DIALOGUE_CONTENTS_ARE_NOT_IMPORTANT, 3,
 			DIALOGUE_CONTENTS_ICON_TEXT, DIALOGUE_CONTENTS_ICON_IGNORE_CASE, DIALOGUE_CONTENTS_ICON_CTRL_CHARS);
+}
+
+
+/**
+ * Create a comma separated list from the supplied array of filetype values,
+ * and insert it into the supplied buffer.
+ *
+ * \param *buffer		The buffer to take the list of names.
+ * \param length		The length of the buffer.
+ * \param types[]		The array of types to convert, 0xffffffffu terminated.
+ */
+
+static void dialogue_write_filetype_list(char *buffer, size_t length, unsigned types[])
+{
+	char	*insert, *end, name[9];
+	int	i, j;
+
+	insert = buffer;
+	end = insert + length - 1;
+	name[8] = '\0';
+
+	for (i = 0; types[i] != 0xffffffffu; i++) {
+		if (xosfscontrol_read_file_type(types[i], (bits *) &name[0], (bits *) &name[4]) != NULL)
+			continue;
+
+		if (insert != buffer && insert < end)
+			*insert++ = ',';
+
+		for (j = 0; j < 8 && !isspace(name[j]); j++)
+			*insert++ = name[j];
+	}
+
+	*insert = '\0';
 }
 
 
