@@ -15,6 +15,7 @@
 
 /* OSLib Header files. */
 
+#include "oslib/os.h"
 #include "oslib/osbyte.h"
 #include "oslib/osfscontrol.h"
 #include "oslib/wimp.h"
@@ -95,15 +96,15 @@
 #define DIALOGUE_DATE_ICON_AGE_LABEL 10
 #define DIALOGUE_DATE_ICON_AGE_MODE 11
 #define DIALOGUE_DATE_ICON_AGE_MODE_MENU 12
-#define DIALOGUE_DATE_ICON_AGE_FROM 13
-#define DIALOGUE_DATE_ICON_AGE_FROM_UNIT 14
-#define DIALOGUE_DATE_ICON_AGE_FROM_UNIT_MENU 15
-#define DIALOGUE_DATE_ICON_AGE_FROM_UNIT_OLD 16
+#define DIALOGUE_DATE_ICON_AGE_MIN 13
+#define DIALOGUE_DATE_ICON_AGE_MIN_UNIT 14
+#define DIALOGUE_DATE_ICON_AGE_MIN_UNIT_MENU 15
+#define DIALOGUE_DATE_ICON_AGE_MIN_UNIT_OLD 16
 #define DIALOGUE_DATE_ICON_AGE_AND 17
-#define DIALOGUE_DATE_ICON_AGE_TO 18
-#define DIALOGUE_DATE_ICON_AGE_TO_UNIT 19
-#define DIALOGUE_DATE_ICON_AGE_TO_UNIT_MENU 20
-#define DIALOGUE_DATE_ICON_AGE_TO_UNIT_OLD 21
+#define DIALOGUE_DATE_ICON_AGE_MAX 18
+#define DIALOGUE_DATE_ICON_AGE_MAX_UNIT 19
+#define DIALOGUE_DATE_ICON_AGE_MAX_UNIT_MENU 20
+#define DIALOGUE_DATE_ICON_AGE_MAX_UNIT_OLD 21
 
 
 /* Type Pane Icons */
@@ -178,7 +179,7 @@ enum dialogue_age {
 	DIALOGUE_AGE_NOT_BETWEEN
 };
 
-enum dialogue_age_units {
+enum dialogue_age_unit {
 	DIALOGUE_AGE_MINUTES,
 	DIALOGUE_AGE_HOURS,
 	DIALOGUE_AGE_DAYS,
@@ -226,6 +227,16 @@ struct dialogue_block {
 	/* The File Date/Age. */
 
 	osbool				use_age;				/**< TRUE to set by age; FALSE to set by date.		*/
+
+	enum dialogue_date		date_mode;				/**< The date comparison mode.				*/
+	os_date_and_time		date_min;				/**< The minimum date.					*/
+	os_date_and_time		date_max;				/**< The maximum date.					*/
+
+	enum dialogue_age		age_mode;				/**< The age comparison mode.				*/
+	unsigned			age_min;				/**< The minimum age.					*/
+	enum dialogue_age_unit		age_min_unit;				/**< The unit of the minimum age.			*/
+	unsigned			age_max;				/**< The maximum age.					*/
+	enum dialogue_age_unit		age_max_unit;				/**< The unit of the maximum age.			*/
 
 	/* The File Type. */
 
@@ -370,10 +381,10 @@ void dialogue_initialise(void)
 			dialogue_date_mode_menu, DIALOGUE_DATE_ICON_DATE_MODE, "DateMode");
 	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MODE_MENU,
 			dialogue_age_mode_menu, DIALOGUE_DATE_ICON_AGE_MODE, "AgeMode");
-	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_FROM_UNIT_MENU,
-			dialogue_age_unit_menu, DIALOGUE_DATE_ICON_AGE_FROM_UNIT, "AgeUnit");
-	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_TO_UNIT_MENU,
-			dialogue_age_unit_menu, DIALOGUE_DATE_ICON_AGE_TO_UNIT, "AgeUnit");
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN_UNIT_MENU,
+			dialogue_age_unit_menu, DIALOGUE_DATE_ICON_AGE_MIN_UNIT, "AgeUnit");
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX_UNIT_MENU,
+			dialogue_age_unit_menu, DIALOGUE_DATE_ICON_AGE_MAX_UNIT, "AgeUnit");
 
 	/* Initialise the type pane. */
 
@@ -428,6 +439,7 @@ struct dialogue_block *dialogue_create(struct file_block *file)
 {
 	struct dialogue_block	*new;
 	osbool			mem_ok = TRUE;
+	int			i;
 
 	if (file == NULL)
 		return NULL;
@@ -498,6 +510,19 @@ struct dialogue_block *dialogue_create(struct file_block *file)
 	/* Date and Age Details. */
 
 	new->use_age = FALSE;
+
+	new->date_mode = DIALOGUE_DATE_AT_ANY_TIME;
+	for (i = 0; i < 5; i++) {
+		new->date_min[i] = 0;
+		new->date_max[i] = 0;
+	}
+
+	new->age_mode = DIALOGUE_AGE_ANY_AGE;
+	new->age_min = 0;
+	new->age_min_unit = DIALOGUE_AGE_DAYS;
+	new->age_max = 0;
+	new->age_max_unit = DIALOGUE_AGE_DAYS;
+
 
 	/* Type Details. */
 
@@ -728,6 +753,20 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 	icons_printf(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN, "%d", dialogue->size_min);
 	icons_printf(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX, "%d", dialogue->size_max);
 
+	/* Set the Date / Age pane. */
+
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE, !dialogue->use_age);
+	icons_set_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE, dialogue->use_age);
+
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_MODE_MENU, dialogue->date_mode);
+
+
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MODE_MENU, dialogue->age_mode);
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN_UNIT_MENU, dialogue->age_min_unit);
+	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX_UNIT_MENU, dialogue->age_max_unit);
+	icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN, "%d", dialogue->size_min);
+	icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX, "%d", dialogue->size_max);
+
 	/* Set the Type pane */
 
 	icons_set_selected(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_DIRECTORY, dialogue->type_directories);
@@ -816,9 +855,9 @@ static void dialogue_shade_date_pane(void)
 
 	icons_set_group_deleted_when_off(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE, 12,
 			DIALOGUE_DATE_ICON_AGE_LABEL, DIALOGUE_DATE_ICON_AGE_MODE, DIALOGUE_DATE_ICON_AGE_MODE_MENU,
-			DIALOGUE_DATE_ICON_AGE_FROM, DIALOGUE_DATE_ICON_AGE_FROM_UNIT, DIALOGUE_DATE_ICON_AGE_FROM_UNIT_MENU,
-			DIALOGUE_DATE_ICON_AGE_FROM_UNIT_OLD, DIALOGUE_DATE_ICON_AGE_AND, DIALOGUE_DATE_ICON_AGE_TO,
-			DIALOGUE_DATE_ICON_AGE_TO_UNIT, DIALOGUE_DATE_ICON_AGE_TO_UNIT_MENU, DIALOGUE_DATE_ICON_AGE_TO_UNIT_OLD);
+			DIALOGUE_DATE_ICON_AGE_MIN, DIALOGUE_DATE_ICON_AGE_MIN_UNIT, DIALOGUE_DATE_ICON_AGE_MIN_UNIT_MENU,
+			DIALOGUE_DATE_ICON_AGE_MIN_UNIT_OLD, DIALOGUE_DATE_ICON_AGE_AND, DIALOGUE_DATE_ICON_AGE_MAX,
+			DIALOGUE_DATE_ICON_AGE_MAX_UNIT, DIALOGUE_DATE_ICON_AGE_MAX_UNIT_MENU, DIALOGUE_DATE_ICON_AGE_MAX_UNIT_OLD);
 
 	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_DATE], date_mode == DIALOGUE_DATE_AT_ANY_TIME, 2,
 			DIALOGUE_DATE_ICON_DATE_FROM, DIALOGUE_DATE_ICON_DATE_FROM_SET);
@@ -826,13 +865,11 @@ static void dialogue_shade_date_pane(void)
 			DIALOGUE_DATE_ICON_DATE_AND, DIALOGUE_DATE_ICON_DATE_TO, DIALOGUE_DATE_ICON_DATE_TO_SET);
 
 	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_DATE], age_mode == DIALOGUE_AGE_ANY_AGE, 4,
-			DIALOGUE_DATE_ICON_AGE_FROM, DIALOGUE_DATE_ICON_AGE_FROM_UNIT,
-			DIALOGUE_DATE_ICON_AGE_FROM_UNIT_MENU, DIALOGUE_DATE_ICON_AGE_FROM_UNIT_OLD);
+			DIALOGUE_DATE_ICON_AGE_MIN, DIALOGUE_DATE_ICON_AGE_MIN_UNIT,
+			DIALOGUE_DATE_ICON_AGE_MIN_UNIT_MENU, DIALOGUE_DATE_ICON_AGE_MIN_UNIT_OLD);
 	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_DATE], age_mode != DIALOGUE_AGE_BETWEEN && age_mode != DIALOGUE_AGE_NOT_BETWEEN, 5,
-			DIALOGUE_DATE_ICON_AGE_TO, DIALOGUE_DATE_ICON_AGE_TO_UNIT,
-			DIALOGUE_DATE_ICON_AGE_TO_UNIT_MENU, DIALOGUE_DATE_ICON_AGE_TO_UNIT_OLD, DIALOGUE_DATE_ICON_AGE_AND);
-
-
+			DIALOGUE_DATE_ICON_AGE_MAX, DIALOGUE_DATE_ICON_AGE_MAX_UNIT,
+			DIALOGUE_DATE_ICON_AGE_MAX_UNIT_MENU, DIALOGUE_DATE_ICON_AGE_MAX_UNIT_OLD, DIALOGUE_DATE_ICON_AGE_AND);
 
 	windows_redraw(dialogue_panes[DIALOGUE_PANE_DATE]);
 }
