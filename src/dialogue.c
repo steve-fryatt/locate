@@ -18,6 +18,7 @@
 #include "oslib/os.h"
 #include "oslib/osbyte.h"
 #include "oslib/osfscontrol.h"
+#include "oslib/territory.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib Header files. */
@@ -143,6 +144,9 @@
 #define DIALOGUE_CONTENTS_ICON_IGNORE_CASE 4
 #define DIALOGUE_CONTENTS_ICON_CTRL_CHARS 5
 
+#define DATE_FORMAT_DAY "%DY/%MN/%YR"
+#define DATE_FORMAT_TIME "%DY/%MN/%YR.%24:%MI"
+
 enum dialogue_size {
 	DIALOGUE_SIZE_NOT_IMPORTANT = 0,
 	DIALOGUE_SIZE_EQUAL_TO,
@@ -167,6 +171,12 @@ enum dialogue_date {
 	DIALOGUE_DATE_BEFORE,
 	DIALOGUE_DATE_BETWEEN,
 	DIALOGUE_DATE_NOT_BETWEEN
+};
+
+enum dialogue_date_status {
+	DIALOGUE_DATE_INVALID = 0,
+	DIALOGUE_DATE_DAY,
+	DIALOGUE_DATE_TIME
 };
 
 enum dialogue_age {
@@ -230,7 +240,9 @@ struct dialogue_block {
 
 	enum dialogue_date		date_mode;				/**< The date comparison mode.				*/
 	os_date_and_time		date_min;				/**< The minimum date.					*/
+	enum dialogue_date_status	date_min_status;			/**< The status of the minimum date value.		*/
 	os_date_and_time		date_max;				/**< The maximum date.					*/
+	enum dialogue_date_status	date_max_status;			/**< The status of the maximum date value.		*/
 
 	enum dialogue_age		age_mode;				/**< The age comparison mode.				*/
 	unsigned			age_min;				/**< The minimum age.					*/
@@ -516,6 +528,8 @@ struct dialogue_block *dialogue_create(struct file_block *file)
 		new->date_min[i] = 0;
 		new->date_max[i] = 0;
 	}
+	new->date_min_status = DIALOGUE_DATE_INVALID;
+	new->date_max_status = DIALOGUE_DATE_INVALID;
 
 	new->age_mode = DIALOGUE_AGE_ANY_AGE;
 	new->age_min = 0;
@@ -759,7 +773,40 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 	icons_set_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE, dialogue->use_age);
 
 	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_MODE_MENU, dialogue->date_mode);
-
+	switch (dialogue->date_min_status) {
+	case DIALOGUE_DATE_INVALID:
+		icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM, "");
+		break;
+	case DIALOGUE_DATE_DAY:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
+				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
+				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
+				DATE_FORMAT_DAY);
+		break;
+	case DIALOGUE_DATE_TIME:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
+				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
+				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
+				DATE_FORMAT_TIME);
+		break;
+	}
+	switch (dialogue->date_max_status) {
+	case DIALOGUE_DATE_INVALID:
+		icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO, "");
+		break;
+	case DIALOGUE_DATE_DAY:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
+				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
+				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
+				DATE_FORMAT_DAY);
+		break;
+	case DIALOGUE_DATE_TIME:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
+				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
+				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
+				DATE_FORMAT_TIME);
+		break;
+	}
 
 	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MODE_MENU, dialogue->age_mode);
 	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN_UNIT_MENU, dialogue->age_min_unit);
