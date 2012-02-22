@@ -856,11 +856,7 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_SUPPRESS_ERRORS, dialogue->suppress_errors);
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_FULL_INFO, dialogue->full_info);
 
-	/*
-	icons_printf(choices_window, CHOICE_ICON_SEARCH_PATH, "%s", config_str_read("SearchPath"));
-
-	icons_printf(choices_window, CHOICE_ICON_HISTORY_SIZE, "%d", config_int_read("HistorySize"));
-	*/
+	/* Update icon shading for the panes. */
 
 	dialogue_shade_size_pane();
 	dialogue_shade_date_pane();
