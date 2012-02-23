@@ -317,7 +317,7 @@ static void	dialogue_shade_type_pane(void);
 static void	dialogue_shade_attributes_pane(void);
 static void	dialogue_shade_contents_pane(void);
 static void	dialogue_write_filetype_list(char *buffer, size_t length, unsigned types[]);
-static void	dialogue_read_window(void);
+static void	dialogue_read_window(struct dialogue_block *dialogue);
 static void	dialogue_redraw_window(void);
 static void	dialogue_click_handler(wimp_pointer *pointer);
 static osbool	dialogue_keypress_handler(wimp_key *key);
@@ -811,8 +811,8 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MODE_MENU, dialogue->age_mode);
 	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN_UNIT_MENU, dialogue->age_min_unit);
 	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX_UNIT_MENU, dialogue->age_max_unit);
-	icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN, "%d", dialogue->size_min);
-	icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX, "%d", dialogue->size_max);
+	icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN, "%d", dialogue->age_min);
+	icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX, "%d", dialogue->age_max);
 
 	/* Set the Type pane */
 
@@ -1003,25 +1003,103 @@ static void dialogue_write_filetype_list(char *buffer, size_t length, unsigned t
  * Update the search settings from the values in the Search Dialogue window.
  */
 
-static void dialogue_read_window(void)
+static void dialogue_read_window(struct dialogue_block *dialogue)
 {
-	/* Read the main window. */
+	//icons_printf(dialogue_window, DIALOGUE_ICON_SEARCH_PATH, "%s", dialogue->path);
 
-	/*
-	config_str_set("SearchPath", icons_get_indirected_text_addr(choices_window, CHOICE_ICON_SEARCH_PATH));
+	//icons_printf(dialogue_window, DIALOGUE_ICON_FILENAME, "%s", dialogue->filename);
+	dialogue->ignore_case = icons_get_selected(dialogue_window, DIALOGUE_ICON_IGNORE_CASE);
 
-	config_opt_set("Multitask", icons_get_selected(choices_window, CHOICE_ICON_BACKGROUND_SEARCH));
-	config_opt_set("ImageFS", icons_get_selected(choices_window, CHOICE_ICON_IMAGE_FS));
-	config_opt_set("SuppressErrors", icons_get_selected(choices_window, CHOICE_ICON_SUPPRESS_ERRORS));
-	config_opt_set("FullInfoDisplay", icons_get_selected(choices_window, CHOICE_ICON_FULL_INFO));
-	config_opt_set("ConfirmHistoryAdd", icons_get_selected(choices_window, CHOICE_ICON_CONFIRM_HISTORY));
-	config_opt_set("QuitAsPlugin", icons_get_selected(choices_window, CHOICE_ICON_PLUGIN_QUIT));
-	config_opt_set("SearchWindAsPlugin", icons_get_selected(choices_window, CHOICE_ICON_PLUGIN_WINDOW));
-	config_opt_set("ScrollResults", icons_get_selected(choices_window, CHOICE_ICON_AUTOSCROLL));
-	config_opt_set("FileMenuSprites", icons_get_selected(choices_window, CHOICE_ICON_MENU_ICONS));
+	/* Set the Size pane */
 
-	config_int_set("HistorySize", atoi(icons_get_indirected_text_addr(choices_window, CHOICE_ICON_HISTORY_SIZE)));
-	*/
+	dialogue->size_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MODE_MENU);
+	dialogue->size_min_unit = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN_UNIT_MENU);
+	dialogue->size_max_unit = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX_UNIT_MENU);
+	dialogue->size_min = atoi(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN));
+	dialogue->size_max = atoi(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX));
+
+	/* Set the Date / Age pane. */
+
+	dialogue->use_age = icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE);
+
+	dialogue->date_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_MODE_MENU);
+	/*switch (dialogue->date_min_status) {
+	case DIALOGUE_DATE_INVALID:
+		icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM, "");
+		break;
+	case DIALOGUE_DATE_DAY:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
+				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
+				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
+				DATE_FORMAT_DAY);
+		break;
+	case DIALOGUE_DATE_TIME:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
+				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
+				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
+				DATE_FORMAT_TIME);
+		break;
+	}
+	switch (dialogue->date_max_status) {
+	case DIALOGUE_DATE_INVALID:
+		icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO, "");
+		break;
+	case DIALOGUE_DATE_DAY:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
+				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
+				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
+				DATE_FORMAT_DAY);
+		break;
+	case DIALOGUE_DATE_TIME:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
+				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
+				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
+				DATE_FORMAT_TIME);
+		break;
+	}*/
+
+	dialogue->age_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MODE_MENU);
+	dialogue->age_min_unit = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN_UNIT_MENU);
+	dialogue->age_max_unit = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX_UNIT_MENU);
+	dialogue->age_min = atoi(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN));
+	dialogue->age_max = atoi(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX));
+
+	/* Set the Type pane */
+
+	dialogue->type_directories = icons_get_selected(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_DIRECTORY);
+	dialogue->type_applications = icons_get_selected(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_APPLICATION);
+	dialogue->type_files = icons_get_selected(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_FILE);
+	dialogue->type_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_MODE_MENU);
+	//dialogue_write_filetype_list(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE),
+	//		icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE),
+	//		dialogue->type_types);
+
+	/* Set the Attributes pane. */
+
+	dialogue->attributes_locked = icons_get_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED);
+	dialogue->attributes_owner_read = icons_get_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_READ);
+	dialogue->attributes_owner_write = icons_get_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE);
+	dialogue->attributes_public_read = icons_get_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_READ);
+	dialogue->attributes_public_write = icons_get_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE);
+	dialogue->attributes_locked_yes = icons_get_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED_YES);
+	dialogue->attributes_owner_read_yes = icons_get_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_READ_YES);
+	dialogue->attributes_owner_write_yes = icons_get_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_OWN_WRITE_YES);
+	dialogue->attributes_public_read_yes = icons_get_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_READ_YES);
+	dialogue->attributes_public_write_yes = icons_get_selected(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_PUB_WRITE_YES);
+
+	/* Set the Contents pane. */
+
+	dialogue->contents_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_MODE_MENU);
+	//icons_printf(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT, "%s", dialogue->contents_text);
+	dialogue->contents_ignore_case = icons_get_selected(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_IGNORE_CASE);
+	dialogue->contents_ctrl_chars = icons_get_selected(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_CTRL_CHARS);
+
+	/* Set the search options. */
+
+	dialogue->background = icons_get_selected(dialogue_window, DIALOGUE_ICON_BACKGROUND_SEARCH);
+	dialogue->ignore_imagefs = icons_get_selected(dialogue_window, DIALOGUE_ICON_IMAGE_FS);
+	dialogue->suppress_errors = icons_get_selected(dialogue_window, DIALOGUE_ICON_SUPPRESS_ERRORS);
+	dialogue->full_info = icons_get_selected(dialogue_window, DIALOGUE_ICON_FULL_INFO);
 }
 
 
@@ -1055,7 +1133,7 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		switch ((int) pointer->i) {
 		case DIALOGUE_ICON_SEARCH:
 			if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
-				dialogue_read_window();
+				dialogue_read_window(dialogue_data);
 
 				if (pointer->buttons == wimp_CLICK_SELECT)
 					dialogue_close_window();
@@ -1108,7 +1186,7 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 	switch (key->c) {
 	case wimp_KEY_RETURN:
-		dialogue_read_window();
+		dialogue_read_window(dialogue_data);
 		//config_save();
 		dialogue_close_window();
 		break;
