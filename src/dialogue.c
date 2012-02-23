@@ -36,6 +36,7 @@
 
 #include "dialogue.h"
 
+#include "flexutils.h"
 #include "ihelp.h"
 #include "templates.h"
 
@@ -483,18 +484,7 @@ struct dialogue_block *dialogue_create(struct file_block *file)
 	}
 
 	if (!mem_ok) {
-		if (new->path != NULL)
-			flex_free((flex_ptr) &(new->path));
-		if (new->filename != NULL)
-			flex_free((flex_ptr) &(new->filename));
-		if (new->type_types != NULL)
-			flex_free((flex_ptr) &(new->type_types));
-		if (new->contents_text != NULL)
-			flex_free((flex_ptr) &(new->contents_text));
-
-		if (new != NULL)
-			heap_free(new);
-
+		dialogue_destroy(new);
 		return NULL;
 	}
 
@@ -588,10 +578,14 @@ void dialogue_destroy(struct dialogue_block *dialogue)
 	if (dialogue == NULL)
 		return;
 
-	flex_free((flex_ptr) &(dialogue->path));
-	flex_free((flex_ptr) &(dialogue->filename));
-	flex_free((flex_ptr) &(dialogue->type_types));
-	flex_free((flex_ptr) &(dialogue->contents_text));
+	if (dialogue->path != NULL)
+		flex_free((flex_ptr) &(dialogue->path));
+	if (dialogue->filename != NULL)
+		flex_free((flex_ptr) &(dialogue->filename));
+	if (dialogue->type_types != NULL)
+		flex_free((flex_ptr) &(dialogue->type_types));
+	if (dialogue->contents_text != NULL)
+		flex_free((flex_ptr) &(dialogue->contents_text));
 
 	heap_free(dialogue);
 }
@@ -1005,9 +999,10 @@ static void dialogue_write_filetype_list(char *buffer, size_t length, unsigned t
 
 static void dialogue_read_window(struct dialogue_block *dialogue)
 {
-	//icons_printf(dialogue_window, DIALOGUE_ICON_SEARCH_PATH, "%s", dialogue->path);
+	flexutils_store_string((flex_ptr) &(dialogue->path), icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_SEARCH_PATH));
 
-	//icons_printf(dialogue_window, DIALOGUE_ICON_FILENAME, "%s", dialogue->filename);
+	flexutils_store_string((flex_ptr) &(dialogue->filename), icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_FILENAME));
+
 	dialogue->ignore_case = icons_get_selected(dialogue_window, DIALOGUE_ICON_IGNORE_CASE);
 
 	/* Set the Size pane */
@@ -1090,7 +1085,7 @@ static void dialogue_read_window(struct dialogue_block *dialogue)
 	/* Set the Contents pane. */
 
 	dialogue->contents_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_MODE_MENU);
-	//icons_printf(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT, "%s", dialogue->contents_text);
+	flexutils_store_string((flex_ptr) &(dialogue->contents_text), icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT));
 	dialogue->contents_ignore_case = icons_get_selected(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_IGNORE_CASE);
 	dialogue->contents_ctrl_chars = icons_get_selected(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_CTRL_CHARS);
 
