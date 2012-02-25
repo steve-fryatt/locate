@@ -28,6 +28,7 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/msgs.h"
 #include "sflib/windows.h"
 #include "sflib/debug.h"
 #include "sflib/string.h"
@@ -318,7 +319,8 @@ static void	dialogue_shade_type_pane(void);
 static void	dialogue_shade_attributes_pane(void);
 static void	dialogue_shade_contents_pane(void);
 static void	dialogue_write_filetype_list(char *buffer, size_t length, unsigned types[]);
-static void	dialogue_read_window(struct dialogue_block *dialogue);
+static osbool	dialogue_read_window(struct dialogue_block *dialogue);
+static osbool	dialogue_read_filetype_list(flex_ptr list, char *buffer);
 static void	dialogue_redraw_window(void);
 static void	dialogue_click_handler(wimp_pointer *pointer);
 static osbool	dialogue_keypress_handler(wimp_key *key);
@@ -744,6 +746,8 @@ static void dialogue_toggle_size(bool expand)
 
 /**
  * Set the contents of the Search Dialogue window to reflect the current settings.
+ *
+ * \param *dialogue		The dialogue data block to read the settings from.
  */
 
 static void dialogue_set_window(struct dialogue_block *dialogue)
@@ -995,13 +999,28 @@ static void dialogue_write_filetype_list(char *buffer, size_t length, unsigned t
 
 /**
  * Update the search settings from the values in the Search Dialogue window.
+ *
+ * \param *dialogue		The dialogue data block to write the settings to.
+ * \return			TRUE if successful; else FALSE.
  */
 
-static void dialogue_read_window(struct dialogue_block *dialogue)
+static osbool dialogue_read_window(struct dialogue_block *dialogue)
 {
-	flexutils_store_string((flex_ptr) &(dialogue->path), icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_SEARCH_PATH));
+	osbool		success = TRUE;
 
-	flexutils_store_string((flex_ptr) &(dialogue->filename), icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_FILENAME));
+	if (!flexutils_store_string((flex_ptr) &(dialogue->path), icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_SEARCH_PATH))) {
+		if (success)
+			error_msgs_report_error("NoMemStoreParams");
+
+		success = FALSE;
+	}
+
+	if (!flexutils_store_string((flex_ptr) &(dialogue->filename), icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_FILENAME))) {
+		if (success)
+			error_msgs_report_error("NoMemStoreParams");
+
+		success = FALSE;
+	}
 
 	dialogue->ignore_case = icons_get_selected(dialogue_window, DIALOGUE_ICON_IGNORE_CASE);
 
@@ -1065,9 +1084,8 @@ static void dialogue_read_window(struct dialogue_block *dialogue)
 	dialogue->type_applications = icons_get_selected(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_APPLICATION);
 	dialogue->type_files = icons_get_selected(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_FILE);
 	dialogue->type_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_MODE_MENU);
-	//dialogue_write_filetype_list(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE),
-	//		icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE),
-	//		dialogue->type_types);
+	if (!dialogue_read_filetype_list((flex_ptr) &(dialogue->type_types), icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE)))
+		success = FALSE;
 
 	/* Set the Attributes pane. */
 
@@ -1085,7 +1103,12 @@ static void dialogue_read_window(struct dialogue_block *dialogue)
 	/* Set the Contents pane. */
 
 	dialogue->contents_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_MODE_MENU);
-	flexutils_store_string((flex_ptr) &(dialogue->contents_text), icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT));
+	if (!flexutils_store_string((flex_ptr) &(dialogue->contents_text), icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT))) {
+		if (success)
+			error_msgs_report_error("NoMemStoreParams");
+
+		success = FALSE;
+	}
 	dialogue->contents_ignore_case = icons_get_selected(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_IGNORE_CASE);
 	dialogue->contents_ctrl_chars = icons_get_selected(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_CTRL_CHARS);
 
@@ -1095,8 +1118,71 @@ static void dialogue_read_window(struct dialogue_block *dialogue)
 	dialogue->ignore_imagefs = icons_get_selected(dialogue_window, DIALOGUE_ICON_IMAGE_FS);
 	dialogue->suppress_errors = icons_get_selected(dialogue_window, DIALOGUE_ICON_SUPPRESS_ERRORS);
 	dialogue->full_info = icons_get_selected(dialogue_window, DIALOGUE_ICON_FULL_INFO);
+
+	return success;
 }
 
+
+/**
+ * Convert a comma-separated list of filetypes into a filetype list.  The list
+ * will be terminated with 0xffffffffu.
+ *
+ * \param ptr			Pointer to a flex block to take the new list.
+ * \param *buffer		The buffer to be converted.
+ * \return			TRUE if successful; else FALSE.
+ */
+
+static osbool dialogue_read_filetype_list(flex_ptr ptr, char *buffer)
+{
+	char		*c, *copy, *name, error[128];
+	int		types = 0, i = 0;
+	bits		type;
+	unsigned	*list;
+	osbool		success = TRUE;
+
+	/* Find out how many filetypes are listed in the buffer. */
+
+	if (*buffer != '\0')
+		types++;
+
+	for (c = buffer; *c != '\0'; c++)
+		if (*c == ',')
+			types++;
+
+	/* Allocate enough memory to store all the types, plus a terminator. */
+
+	if (flex_extend(ptr, sizeof(unsigned) * (types + 1)) == 0)
+		return FALSE;
+
+	list = (unsigned *) *ptr;
+
+	list[0] = 0xffffffffu;
+
+	/* Run through the buffer converting type names into values. */
+
+	copy = strdup(buffer);
+	if (copy == NULL)
+		return FALSE;
+
+	name = strtok(copy, ",");
+	while (name != NULL && i <= types) {
+		if (xosfscontrol_file_type_from_string(name, &type) == NULL) {
+			list[i++] = type;
+		} else {
+			msgs_param_lookup("BadFiletype", error, sizeof(error), name, NULL, NULL, NULL);
+			error_report_info(error);
+			success = FALSE;
+		}
+
+		name = strtok(NULL, ",");
+	}
+
+	free(copy);
+
+	list[i] = 0xffffffffu;
+
+	return success;
+}
 
 /**
  * Refresh the Search dialogue, to reflech changed icon states.

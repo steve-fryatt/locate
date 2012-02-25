@@ -35,7 +35,8 @@ DeftHistName:<untitled search>
 NoMemFileBlock:There was not enough free memory available to create the file descriptor block.
 NoMemSearchCreate:There was not enough free memory available to create the search.
 NoMemResultsCreate:There was not enough free memory available to create the results window.
-
+NoMemStoreParams:There was not enough free memory available to store the search parameters.
+BadFiletype:Type %0 was not recognised.
 
 
 
