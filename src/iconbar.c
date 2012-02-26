@@ -209,9 +209,11 @@ static osbool iconbar_icon_drop_handler(wimp_message *message)
 	if (datasave == NULL || datasave->w != wimp_ICON_BAR)
 		return FALSE;
 
-	wimp_get_pointer_info(&pointer);
+	/* It's our iconbar icon, so start by finding the pointer and then copy
+	 * the filename for manipulation.
+	 */
 
-	/* It's our window and the correct icon, so start by copying the filename. */
+	wimp_get_pointer_info(&pointer);
 
 	strcpy(path, datasave->file_name);
 
@@ -224,6 +226,4 @@ static osbool iconbar_icon_drop_handler(wimp_message *message)
 
 	return TRUE;
 }
-
-
 
