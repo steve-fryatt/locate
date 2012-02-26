@@ -146,8 +146,10 @@
 #define DIALOGUE_CONTENTS_ICON_IGNORE_CASE 4
 #define DIALOGUE_CONTENTS_ICON_CTRL_CHARS 5
 
-#define DATE_FORMAT_DAY "%DY/%MN/%YR"
-#define DATE_FORMAT_TIME "%DY/%MN/%YR.%24:%MI"
+#define DIALOGUE_DATE_FORMAT_DAY "%DY/%MN/%CE%YR"
+#define DIALOGUE_DATE_FORMAT_TIME "%DY/%MN/%CE%YR.%24:%MI"
+
+#define DIALOGUE_MAX_FILE_LINE 1024
 
 enum dialogue_size {
 	DIALOGUE_SIZE_NOT_IMPORTANT = 0,
@@ -321,11 +323,14 @@ static void	dialogue_shade_contents_pane(void);
 static void	dialogue_write_filetype_list(char *buffer, size_t length, unsigned types[]);
 static osbool	dialogue_read_window(struct dialogue_block *dialogue);
 static osbool	dialogue_read_filetype_list(flex_ptr list, char *buffer);
+static enum	dialogue_date_status dialogue_read_date(char *text, os_date_and_time *date);
+static osbool	dialogue_test_numeric_value(char *text);
 static void	dialogue_redraw_window(void);
 static void	dialogue_click_handler(wimp_pointer *pointer);
 static osbool	dialogue_keypress_handler(wimp_key *key);
 static void	dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
 static osbool	dialogue_icon_drop_handler(wimp_message *message);
+static void	dialogue_dump_settings(struct dialogue_block *dialogue);
 
 
 
@@ -779,13 +784,13 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
 				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
 				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
-				DATE_FORMAT_DAY);
+				DIALOGUE_DATE_FORMAT_DAY);
 		break;
 	case DIALOGUE_DATE_TIME:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
 				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
 				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
-				DATE_FORMAT_TIME);
+				DIALOGUE_DATE_FORMAT_TIME);
 		break;
 	}
 	switch (dialogue->date_max_status) {
@@ -796,13 +801,13 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
 				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
 				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
-				DATE_FORMAT_DAY);
+				DIALOGUE_DATE_FORMAT_DAY);
 		break;
 	case DIALOGUE_DATE_TIME:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
 				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
 				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
-				DATE_FORMAT_TIME);
+				DIALOGUE_DATE_FORMAT_TIME);
 		break;
 	}
 
@@ -1037,40 +1042,10 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 	dialogue->use_age = icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE);
 
 	dialogue->date_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_MODE_MENU);
-	/*switch (dialogue->date_min_status) {
-	case DIALOGUE_DATE_INVALID:
-		icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM, "");
-		break;
-	case DIALOGUE_DATE_DAY:
-		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
-				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
-				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
-				DATE_FORMAT_DAY);
-		break;
-	case DIALOGUE_DATE_TIME:
-		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
-				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
-				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
-				DATE_FORMAT_TIME);
-		break;
-	}
-	switch (dialogue->date_max_status) {
-	case DIALOGUE_DATE_INVALID:
-		icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO, "");
-		break;
-	case DIALOGUE_DATE_DAY:
-		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
-				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
-				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
-				DATE_FORMAT_DAY);
-		break;
-	case DIALOGUE_DATE_TIME:
-		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
-				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
-				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
-				DATE_FORMAT_TIME);
-		break;
-	}*/
+	dialogue->date_min_status = dialogue_read_date(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
+			&(dialogue->date_min));
+	dialogue->date_max_status = dialogue_read_date(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
+			&(dialogue->date_max));
 
 	dialogue->age_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MODE_MENU);
 	dialogue->age_min_unit = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN_UNIT_MENU);
@@ -1184,6 +1159,89 @@ static osbool dialogue_read_filetype_list(flex_ptr ptr, char *buffer)
 	return success;
 }
 
+
+/**
+ * Parse a textual date into five-byte OS date values.
+ *
+ * \param *text			The text to be parsed.
+ * \param *date			The location to store the resulting date.
+ * \return			The status of the resulting date.
+ */
+
+static enum dialogue_date_status dialogue_read_date(char *text, os_date_and_time *date)
+{
+	enum dialogue_date_status	result;
+	territory_ordinals		ordinals;
+	char				*copy, *day, *month, *year, *hour, *minute;
+
+	copy = strdup(text);
+	if (copy == NULL)
+		return DIALOGUE_DATE_INVALID;
+
+	day = strtok(copy, "/");
+	month = strtok(NULL, "/");
+	year = strtok(NULL, ".");
+	hour = strtok(NULL, ".:");
+	minute = strtok(NULL, "");
+
+	/* If day, month or year are invalid then it's not a date. */
+
+	if (!dialogue_test_numeric_value(day) || !dialogue_test_numeric_value(month) || !dialogue_test_numeric_value(year)) {
+		free(copy);
+		return DIALOGUE_DATE_INVALID;
+	}
+
+	ordinals.date = atoi(day);
+	ordinals.month = atoi(month);
+	ordinals.year = atoi(year);
+
+	if (dialogue_test_numeric_value(hour) && dialogue_test_numeric_value(minute)) {
+		ordinals.hour = atoi(hour);
+		ordinals.minute = atoi(minute);
+		result = DIALOGUE_DATE_TIME;
+	} else {
+		ordinals.hour = 0;
+		ordinals.minute = 0;
+		result = DIALOGUE_DATE_DAY;
+	}
+
+	ordinals.centisecond = 0;
+	ordinals.second = 0;
+
+	free(copy);
+
+	if (xterritory_convert_ordinals_to_time(territory_CURRENT, date, &ordinals) != NULL)
+		result = DIALOGUE_DATE_INVALID;
+
+	return result;
+}
+
+
+/**
+ * Test a string to make sure that it only contains decimal digits.
+ *
+ * \param *text			The string to test.
+ * \return			TRUE if strink OK; else FALSE.
+ */
+
+static osbool dialogue_test_numeric_value(char *text)
+{
+	int	i;
+	osbool	result = TRUE;
+
+	if (text == NULL)
+		return FALSE;
+
+	for (i = 0; i < strlen(text); i++)
+		if (!isdigit(text[i])) {
+			result = FALSE;
+			break;
+		}
+
+	return result;
+}
+
+
 /**
  * Refresh the Search dialogue, to reflech changed icon states.
  */
@@ -1215,6 +1273,8 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		case DIALOGUE_ICON_SEARCH:
 			if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
 				dialogue_read_window(dialogue_data);
+
+				dialogue_dump_settings(dialogue_data);
 
 				if (pointer->buttons == wimp_CLICK_SELECT)
 					dialogue_close_window();
@@ -1269,6 +1329,7 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 	case wimp_KEY_RETURN:
 		dialogue_read_window(dialogue_data);
 		//config_save();
+		dialogue_dump_settings(dialogue_data);
 		dialogue_close_window();
 		break;
 
@@ -1376,4 +1437,125 @@ static osbool dialogue_icon_drop_handler(wimp_message *message)
 
 	return TRUE;
 }
+
+
+/**
+ * Dump the contents of the a search parameter block for debugging.
+ *
+ * \param *dialogue		The dialogue data block to dump the settings from.
+ */
+
+static void dialogue_dump_settings(struct dialogue_block *dialogue)
+{
+	char	line[DIALOGUE_MAX_FILE_LINE];
+	int	i, index;
+
+	if (dialogue == NULL)
+		return;
+
+	debug_printf("Search path: '%s'", dialogue->path);
+
+	debug_printf("Filename: '%s'", dialogue->filename);
+	debug_printf("Ignore Case: %s", config_return_opt_string(dialogue->ignore_case));
+
+	/* Set the Size pane */
+
+	debug_printf("Size Mode: %d", dialogue->size_mode);
+	debug_printf("Min Size Unit: %d", dialogue->size_min_unit);
+	debug_printf("Max Size Unit: %d", dialogue->size_max_unit);
+	debug_printf("Min Size: %d", dialogue->size_min);
+	debug_printf("Max Size: %d", dialogue->size_max);
+
+	/* Set the Date / Age pane. */
+
+	debug_printf("Use Age Mode: %s", config_return_opt_string(dialogue->use_age));
+
+	debug_printf("Date Mode: %d", dialogue->date_mode);
+	debug_printf("Min Date Status: %d", dialogue->date_min_status);
+	switch (dialogue->date_min_status) {
+	case DIALOGUE_DATE_INVALID:
+		*line = '\0';
+		break;
+	case DIALOGUE_DATE_DAY:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
+				line, DIALOGUE_MAX_FILE_LINE, DIALOGUE_DATE_FORMAT_DAY);
+		break;
+	case DIALOGUE_DATE_TIME:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
+				line, DIALOGUE_MAX_FILE_LINE, DIALOGUE_DATE_FORMAT_TIME);
+		break;
+	}
+	debug_printf("Min Date: '%s'", line);
+	debug_printf("Max Date Status: %d", dialogue->date_max_status);
+	switch (dialogue->date_max_status) {
+	case DIALOGUE_DATE_INVALID:
+		*line = '\0';
+		break;
+	case DIALOGUE_DATE_DAY:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
+				line, DIALOGUE_MAX_FILE_LINE, DIALOGUE_DATE_FORMAT_DAY);
+		break;
+	case DIALOGUE_DATE_TIME:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
+				line, DIALOGUE_MAX_FILE_LINE, DIALOGUE_DATE_FORMAT_TIME);
+		break;
+	}
+	debug_printf("Max Date: '%s'", line);
+
+	debug_printf("Age Mode: %d", dialogue->age_mode);
+	debug_printf("Min Age Unit: %d", dialogue->age_min_unit);
+	debug_printf("Max Age Unit: %d", dialogue->age_max_unit);
+	debug_printf("Min Age: %d", dialogue->age_min);
+	debug_printf("Max Age: %d", dialogue->age_max);
+
+	/* Set the Type pane */
+
+	debug_printf("Match Directories: %s", config_return_opt_string(dialogue->type_directories));
+	debug_printf("Match Applications: %s", config_return_opt_string(dialogue->type_applications));
+	debug_printf("Match Files: %s", config_return_opt_string(dialogue->type_files));
+	debug_printf("Type Mode: %d", dialogue->type_mode);
+
+	index = 0;
+	for (i = 0; dialogue->type_types[i] != 0xffffffffu; i++) {
+		index += snprintf(line + index, DIALOGUE_MAX_FILE_LINE - (index + 1), "%03x,", dialogue->type_types[i]);
+	}
+	if (index > 0)
+		*(line + index - 1) = '\0';
+	else
+		*line = '\0';
+	debug_printf("Type List: '%s'", line);
+
+
+	//dialogue_write_filetype_list(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE),
+	//		icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE),
+	//		dialogue->type_types);
+
+	/* Set the Attributes pane. */
+
+	debug_printf("Test Locked: %s", config_return_opt_string(dialogue->attributes_locked));
+	debug_printf("Test Owner Read: %s", config_return_opt_string(dialogue->attributes_owner_read));
+	debug_printf("Test Owner Write: %s", config_return_opt_string(dialogue->attributes_owner_write));
+	debug_printf("Test Public Read: %s", config_return_opt_string(dialogue->attributes_public_read));
+	debug_printf("Test Public Write: %s", config_return_opt_string(dialogue->attributes_public_write));
+	debug_printf("Locked Status: %s", config_return_opt_string(dialogue->attributes_locked_yes));
+	debug_printf("Owner Read Status: %s", config_return_opt_string(dialogue->attributes_owner_read_yes));
+	debug_printf("Owner Write Status: %s", config_return_opt_string(dialogue->attributes_owner_write_yes));
+	debug_printf("Public Read Status: %s", config_return_opt_string(dialogue->attributes_public_read_yes));
+	debug_printf("Public Write Status: %s", config_return_opt_string(dialogue->attributes_public_write_yes));
+
+	/* Set the Contents pane. */
+
+	debug_printf("Contents Mode: %d", dialogue->contents_mode);
+	debug_printf("File Contents: '%s'", dialogue->contents_text);
+	debug_printf("Ignore Case in Contents: %s", config_return_opt_string(dialogue->contents_ignore_case));
+	debug_printf("Allow Ctrl Chars in Contents: %s", config_return_opt_string(dialogue->contents_ctrl_chars));
+
+	/* Set the search options. */
+
+	debug_printf("Search In Background: %s", config_return_opt_string(dialogue->background));
+	debug_printf("Ignore ImageFS Contents: %s", config_return_opt_string(dialogue->ignore_imagefs));
+	debug_printf("Suppress Errors: %s", config_return_opt_string(dialogue->suppress_errors));
+	debug_printf("Display Full Info: %s", config_return_opt_string(dialogue->full_info));
+}
+
 
