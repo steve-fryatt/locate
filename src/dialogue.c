@@ -1195,6 +1195,13 @@ static enum dialogue_date_status dialogue_read_date(char *text, os_date_and_time
 	ordinals.month = atoi(month);
 	ordinals.year = atoi(year);
 
+	/* 01 -> 80 == 2001 -> 2080; 81 -> 99 == 1981 -> 1999 */
+
+	if (ordinals.year >= 1 && ordinals.year <= 80)
+		ordinals.year += 2000;
+	else if (ordinals.year >= 81 && ordinals.year <= 99)
+		ordinals.year += 1900;
+
 	if (dialogue_test_numeric_value(hour) && dialogue_test_numeric_value(minute)) {
 		ordinals.hour = atoi(hour);
 		ordinals.minute = atoi(minute);
