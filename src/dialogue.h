@@ -21,10 +21,11 @@ void dialogue_initialise(void);
  * Create a new set of dialogue data with the default values.
  *
  * \param *file			The file to which the dialogue belongs.
+ * \param *path			The search path to use, or NULL for default.
  * \return			Pointer to the new block, or NULL on failure.
  */
 
-struct dialogue_block *dialogue_create(struct file_block *file);
+struct dialogue_block *dialogue_create(struct file_block *file, char *path);
 
 
 /**

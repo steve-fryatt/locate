@@ -452,10 +452,11 @@ void dialogue_initialise(void)
  * Create a new set of dialogue data with the default values.
  *
  * \param *file			The file to which the dialogue belongs.
+ * \param *path			The search path to use, or NULL for default.
  * \return			Pointer to the new block, or NULL on failure.
  */
 
-struct dialogue_block *dialogue_create(struct file_block *file)
+struct dialogue_block *dialogue_create(struct file_block *file, char *path)
 {
 	struct dialogue_block	*new;
 	osbool			mem_ok = TRUE;
@@ -463,6 +464,9 @@ struct dialogue_block *dialogue_create(struct file_block *file)
 
 	if (file == NULL)
 		return NULL;
+
+	if (path == NULL)
+		path = config_str_read("SearchPath");
 
 	/* Allocate all of the memory that we require. */
 
@@ -476,7 +480,7 @@ struct dialogue_block *dialogue_create(struct file_block *file)
 		new->type_types = NULL;
 		new->contents_text = NULL;
 
-		if (flex_alloc((flex_ptr) &(new->path), strlen(config_str_read("SearchPath")) + 1) == 0)
+		if (flex_alloc((flex_ptr) &(new->path), strlen(path) + 1) == 0)
 			mem_ok = FALSE;
 
 		if (flex_alloc((flex_ptr) &(new->filename), strlen("") + 1) == 0)
@@ -501,7 +505,7 @@ struct dialogue_block *dialogue_create(struct file_block *file)
 
 	new->pane = DIALOGUE_PANE_SIZE;
 
-	strcpy(new->path, config_str_read("SearchPath"));
+	strcpy(new->path, path);
 
 	/* Filename Details */
 

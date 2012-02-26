@@ -5,6 +5,8 @@
 
 /* ANSI C header files */
 
+#include <string.h>
+
 /* Acorn C header files */
 
 /* OSLib header files */
@@ -19,6 +21,7 @@
 #include "sflib/icons.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
+#include "sflib/string.h"
 #include "sflib/url.h"
 #include "sflib/windows.h"
 
@@ -53,6 +56,7 @@ static void	iconbar_click_handler(wimp_pointer *pointer);
 static void	iconbar_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void	iconbar_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static osbool	iconbar_proginfo_web_click(wimp_pointer *pointer);
+static osbool	iconbar_icon_drop_handler(wimp_message *message);
 
 
 static wimp_menu	*iconbar_menu = NULL;					/**< The iconbar menu handle.			*/
@@ -91,6 +95,8 @@ void iconbar_initialise(void)
 	event_add_window_menu(wimp_ICON_BAR, iconbar_menu);
 	event_add_window_menu_prepare(wimp_ICON_BAR, iconbar_menu_prepare);
 	event_add_window_menu_selection(wimp_ICON_BAR, iconbar_menu_selection);
+
+	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, iconbar_icon_drop_handler);
 }
 
 
@@ -107,7 +113,7 @@ static void iconbar_click_handler(wimp_pointer *pointer)
 
 	switch (pointer->buttons) {
 	case wimp_CLICK_SELECT:
-		file_create_dialogue(pointer);
+		file_create_dialogue(pointer, NULL);
 		break;
 
 	case wimp_CLICK_ADJUST:
@@ -180,4 +186,44 @@ static osbool iconbar_proginfo_web_click(wimp_pointer *pointer)
 
 	return TRUE;
 }
+
+
+/**
+ * Check incoming Message_DataSave to see if it's a file being dropped into the
+ * the iconbar icon.
+ *
+ * \param *message		The incoming message block.
+ * \return			TRUE if we claim the message as intended for us; else FALSE.
+ */
+
+static osbool iconbar_icon_drop_handler(wimp_message *message)
+{
+	wimp_full_message_data_xfer	*datasave = (wimp_full_message_data_xfer *) message;
+	wimp_pointer			pointer;
+	char				path[256];
+
+	/* If it isn't our window, don't claim the message as someone else
+	 * might want it.
+	 */
+
+	if (datasave == NULL || datasave->w != wimp_ICON_BAR)
+		return FALSE;
+
+	wimp_get_pointer_info(&pointer);
+
+	/* It's our window and the correct icon, so start by copying the filename. */
+
+	strcpy(path, datasave->file_name);
+
+	/* If it's a folder, take just the pathname. */
+
+	if (datasave->file_type <= 0xfff)
+		string_find_pathname(path);
+
+	file_create_dialogue(&pointer, path);
+
+	return TRUE;
+}
+
+
 
