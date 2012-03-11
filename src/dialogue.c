@@ -676,44 +676,38 @@ static void dialogue_change_pane(unsigned pane)
 			dialogue_panes[old_pane]);
 
 	wimp_close_window(dialogue_panes[old_pane]);
-/*
+
 	if (caret.w == dialogue_panes[old_pane]) {
 		switch (pane) {
-		case CHOICE_PANE_GENERAL:
-			place_dialogue_caret_fallback(choices_panes[CHOICE_PANE_GENERAL], 2,
-					CHOICE_ICON_DATEIN, CHOICE_ICON_DATEOUT);
+		case DIALOGUE_PANE_SIZE:
+			icons_put_caret_in_group(dialogue_panes[DIALOGUE_PANE_SIZE], 2,
+					DIALOGUE_SIZE_ICON_MIN, DIALOGUE_SIZE_ICON_MAX);
 			break;
 
-		case CHOICE_PANE_CURRENCY:
-			place_dialogue_caret_fallback(choices_panes[CHOICE_PANE_CURRENCY], 2,
-					CHOICE_ICON_DECIMALPLACE, CHOICE_ICON_DECIMALPOINT);
+		case DIALOGUE_PANE_DATE:
+			icons_put_caret_in_group(dialogue_panes[DIALOGUE_PANE_DATE], 4,
+					DIALOGUE_DATE_ICON_DATE_FROM, DIALOGUE_DATE_ICON_DATE_TO,
+					DIALOGUE_DATE_ICON_AGE_MIN, DIALOGUE_DATE_ICON_AGE_MAX);
 			break;
 
-		case CHOICE_PANE_SORDER:
-			place_dialogue_caret(choices_panes[CHOICE_PANE_SORDER], wimp_ICON_WINDOW);
+		case DIALOGUE_PANE_TYPE:
+			icons_put_caret_in_group(dialogue_panes[DIALOGUE_PANE_TYPE], 1, DIALOGUE_TYPE_ICON_TYPE);
 			break;
 
-		case CHOICE_PANE_REPORT:
-			place_dialogue_caret_fallback(choices_panes[CHOICE_PANE_REPORT], 2,
-					CHOICE_ICON_FONTSIZE, CHOICE_ICON_FONTSPACE);
+		case DIALOGUE_PANE_ATTRIBUTES:
+			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], wimp_ICON_WINDOW);
 			break;
 
-		case CHOICE_PANE_PRINT:
-			place_dialogue_caret_fallback(choices_panes[CHOICE_PANE_PRINT], 4,
-					CHOICE_ICON_MTOP, CHOICE_ICON_MLEFT,
-					CHOICE_ICON_MRIGHT, CHOICE_ICON_MBOTTOM);
-			break;
-
-		case CHOICE_PANE_TRANSACT:
-			place_dialogue_caret_fallback(choices_panes[CHOICE_PANE_TRANSACT], 1,
-					CHOICE_ICON_AUTOCOMP);
-			break;
-
-		case CHOICE_PANE_ACCOUNT:
-			place_dialogue_caret(choices_panes[CHOICE_PANE_ACCOUNT], wimp_ICON_WINDOW);
+		case DIALOGUE_PANE_CONTENTS:
+			icons_put_caret_in_group(dialogue_panes[DIALOGUE_PANE_CONTENTS], 1, DIALOGUE_CONTENTS_ICON_TEXT);
 			break;
 		}
-	} */
+
+		wimp_get_caret_position(&caret);
+
+		if (caret.i == wimp_ICON_WINDOW)
+			icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_FILENAME);
+	}
 }
 
 
