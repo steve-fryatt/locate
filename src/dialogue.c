@@ -879,6 +879,8 @@ static void dialogue_shade_size_pane(void)
 			DIALOGUE_SIZE_ICON_MIN, DIALOGUE_SIZE_ICON_MIN_UNIT, DIALOGUE_SIZE_ICON_MIN_UNIT_MENU);
 	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_SIZE], mode != DIALOGUE_SIZE_BETWEEN && mode != DIALOGUE_SIZE_NOT_BETWEEN, 4,
 			DIALOGUE_SIZE_ICON_MAX, DIALOGUE_SIZE_ICON_MAX_UNIT, DIALOGUE_SIZE_ICON_MAX_UNIT_MENU, DIALOGUE_SIZE_ICON_AND);
+
+	icons_replace_caret_in_window(dialogue_panes[DIALOGUE_PANE_SIZE]);
 }
 
 
@@ -915,6 +917,8 @@ static void dialogue_shade_date_pane(void)
 			DIALOGUE_DATE_ICON_AGE_MAX, DIALOGUE_DATE_ICON_AGE_MAX_UNIT,
 			DIALOGUE_DATE_ICON_AGE_MAX_UNIT_MENU, DIALOGUE_DATE_ICON_AGE_MAX_UNIT_OLD, DIALOGUE_DATE_ICON_AGE_AND);
 
+	icons_replace_caret_in_window(dialogue_panes[DIALOGUE_PANE_DATE]);
+
 	windows_redraw(dialogue_panes[DIALOGUE_PANE_DATE]);
 }
 
@@ -932,6 +936,8 @@ static void dialogue_shade_type_pane(void)
 			DIALOGUE_TYPE_ICON_MODE, DIALOGUE_TYPE_ICON_MODE_MENU);
 	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_TYPE], !files || mode == DIALOGUE_TYPE_OF_ANY, 2,
 			DIALOGUE_TYPE_ICON_TYPE, DIALOGUE_TYPE_ICON_TYPE_MENU);
+
+	icons_replace_caret_in_window(dialogue_panes[DIALOGUE_PANE_TYPE]);
 }
 
 
@@ -964,6 +970,8 @@ static void dialogue_shade_contents_pane(void)
 
 	icons_set_group_shaded(dialogue_panes[DIALOGUE_PANE_CONTENTS], mode == DIALOGUE_CONTENTS_ARE_NOT_IMPORTANT, 3,
 			DIALOGUE_CONTENTS_ICON_TEXT, DIALOGUE_CONTENTS_ICON_IGNORE_CASE, DIALOGUE_CONTENTS_ICON_CTRL_CHARS);
+
+	icons_replace_caret_in_window(dialogue_panes[DIALOGUE_PANE_CONTENTS]);
 }
 
 
