@@ -1259,12 +1259,33 @@ static osbool dialogue_test_numeric_value(char *text)
 
 static void dialogue_redraw_window(void)
 {
-	/*
-	wimp_set_icon_state(choices_window, CHOICE_ICON_SEARCH_PATH, 0, 0);
-	wimp_set_icon_state(choices_window, CHOICE_ICON_HISTORY_SIZE, 0, 0);
+	wimp_caret caret;
 
-	icons_replace_caret_in_window(choices_window);
-	*/
+	wimp_set_icon_state(dialogue_window, DIALOGUE_ICON_FILENAME, 0, 0);
+	wimp_set_icon_state(dialogue_window, DIALOGUE_ICON_SEARCH_PATH, 0, 0);
+
+	wimp_set_icon_state(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN, 0, 0);
+	wimp_set_icon_state(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX, 0, 0);
+
+	wimp_set_icon_state(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM, 0, 0);
+	wimp_set_icon_state(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO, 0, 0);
+	wimp_set_icon_state(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN, 0, 0);
+	wimp_set_icon_state(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX, 0, 0);
+
+	wimp_set_icon_state(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE, 0, 0);
+
+	wimp_set_icon_state(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT, 0, 0);
+
+	/* Update the caret position. */
+
+	icons_replace_caret_in_window(dialogue_panes[dialogue_pane]);
+
+	wimp_get_caret_position(&caret);
+	if (caret.w == dialogue_panes[dialogue_pane] && caret.i == wimp_ICON_WINDOW)
+		icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_FILENAME);
+
+	icons_replace_caret_in_window(dialogue_window);
+
 }
 
 
