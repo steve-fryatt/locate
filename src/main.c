@@ -68,7 +68,7 @@ static osbool	main_message_prequit(wimp_message *message);
  */
 
 wimp_t			main_task_handle;
-int			main_quit_flag = FALSE;
+osbool			main_quit_flag = FALSE;
 osspriteop_area		*main_wimp_sprites;
 
 

@@ -12,7 +12,7 @@
  */
 
 extern wimp_t			main_task_handle;
-extern int			main_quit_flag;
+extern osbool			main_quit_flag;
 extern osspriteop_area		*main_wimp_sprites;
 
 /**
