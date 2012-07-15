@@ -133,7 +133,6 @@ static void main_initialise(void)
 	char			resources[255], res_temp[255];
 	osspriteop_area		*sprites;
 
-	wimp_MESSAGE_LIST(13)	message_list;
 	wimp_version_no		wimp_version;
 
 
@@ -153,21 +152,8 @@ static void main_initialise(void)
 
 	/* Initialise with the Wimp. */
 
-	message_list.messages[0]=message_URI_RETURN_RESULT;
-	message_list.messages[1]=message_ANT_OPEN_URL;
-	message_list.messages[2]=message_DATA_SAVE;
-	message_list.messages[3]=message_DATA_SAVE_ACK;
-	message_list.messages[4]=message_DATA_LOAD;
-	message_list.messages[5]=message_MENU_WARNING;
-	message_list.messages[6]=message_MENUS_DELETED;
-	message_list.messages[7]=message_HELP_REQUEST;
-	message_list.messages[8]=message_TASK_INITIALISE;
-	message_list.messages[9]=message_TASK_CLOSE_DOWN;
-	message_list.messages[10]=message_PRE_QUIT;
-	message_list.messages[11]=message_QUIT;
-
 	msgs_lookup("TaskName", task_name, sizeof (task_name));
-	main_task_handle = wimp_initialise(wimp_VERSION_RO3, task_name, (wimp_message_list *) &message_list, &wimp_version);
+	main_task_handle = wimp_initialise(wimp_VERSION_RO3, task_name, NULL, &wimp_version);
 
 	event_add_message_handler(message_QUIT, EVENT_MESSAGE_INCOMING, main_message_quit);
 	event_add_message_handler(message_PRE_QUIT, EVENT_MESSAGE_INCOMING, main_message_prequit);
