@@ -22,7 +22,8 @@ void results_initialise(void);
  * Create and open a new results window.
  *
  * \param *file			The file block to which the window belongs.
- * \param *title		The title to use for the window.
+ * \param *title		The title to use for the window, or NULL to allocate
+ *				an empty buffer of TITLE_LENGTH.
  * \return			The results window handle, or NULL on failure.
  */
 
@@ -36,6 +37,16 @@ struct results_window *results_create(struct file_block *file, char *title);
  */
 
 void results_destroy(struct results_window *handle);
+
+
+/**
+ * Update the title text for a results window.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param *title		The text to be copied into the title.
+ */
+
+void results_set_title(struct results_window *handle, char *title);
 
 
 /**

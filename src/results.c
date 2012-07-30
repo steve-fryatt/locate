@@ -39,6 +39,7 @@
 
 
 #define STATUS_LENGTH 128							/**< The maximum size of the status bar text field.			*/
+#define TITLE_LENGTH 256							/**< The maximum size of the undefined title bar text field. 		*/
 
 #define RESULTS_TOOLBAR_HEIGHT 0						/**< The height of the toolbar in OS units.				*/
 #define RESULTS_LINE_HEIGHT 56							/**< The height of a results line, in OS units.				*/
@@ -185,7 +186,8 @@ void results_initialise(void)
  * Create and open a new results window.
  *
  * \param *file			The file block to which the window belongs.
- * \param *title		The title to use for the window.
+ * \param *title		The title to use for the window, or NULL to allocate
+ *				an empty buffer of TITLE_LENGTH.
  * \return			The results window handle, or NULL on failure.
  */
 
@@ -203,8 +205,13 @@ struct results_window *results_create(struct file_block *file, char *title)
 		mem_ok = FALSE;
 
 	if (mem_ok) {
-		if ((title_block = heap_strdup(title)) == NULL)
-			mem_ok = FALSE;
+		if (title != NULL) {
+			if ((title_block = heap_strdup(title)) == NULL)
+				mem_ok = FALSE;
+		} else {
+			if ((title_block = heap_alloc(TITLE_LENGTH)) == NULL)
+				mem_ok = FALSE;
+		}
 	}
 
 	if (mem_ok) {
@@ -283,6 +290,8 @@ struct results_window *results_create(struct file_block *file, char *title)
 	results_status_def->icons[RESULTS_ICON_STATUS].data.indirected_text.text = status_block;
 	results_status_def->icons[RESULTS_ICON_STATUS].data.indirected_text.size = STATUS_LENGTH;
 	*status_block = '\0';
+	if (title == NULL)
+		*title_block = '\0';
 
 	new->window = wimp_create_window(results_window_def);
 	new->status = wimp_create_window(results_status_def);
@@ -439,6 +448,20 @@ void results_destroy(struct results_window *handle)
 	heap_free(title);
 	heap_free(status);
 	heap_free(handle);
+}
+
+
+/**
+ * Update the title text for a results window.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param *title		The text to be copied into the title.
+ */
+
+void results_set_title(struct results_window *handle, char *title)
+{
+	if (handle != NULL && title != NULL)
+		windows_title_strncpy(handle->window, title);
 }
 
 

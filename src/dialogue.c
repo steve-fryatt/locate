@@ -642,9 +642,6 @@ static void dialogue_close_window(void)
 {
 	wimp_close_window(dialogue_window);
 
-	if (dialogue_data != NULL)
-		file_destroy(dialogue_data->file);
-
 	dialogue_data = NULL;
 }
 
@@ -1307,7 +1304,6 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		case DIALOGUE_ICON_SEARCH:
 			if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
 				dialogue_read_window(dialogue_data);
-
 				dialogue_dump_settings(dialogue_data);
 
 				if (pointer->buttons == wimp_CLICK_SELECT)
@@ -1317,6 +1313,8 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 
 		case DIALOGUE_ICON_CANCEL:
 			if (pointer->buttons == wimp_CLICK_SELECT) {
+				if (dialogue_data != NULL)
+					file_destroy(dialogue_data->file);
 				dialogue_close_window();
 			} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 				dialogue_set_window(dialogue_data);
@@ -1362,12 +1360,13 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 	switch (key->c) {
 	case wimp_KEY_RETURN:
 		dialogue_read_window(dialogue_data);
-		//config_save();
 		dialogue_dump_settings(dialogue_data);
 		dialogue_close_window();
 		break;
 
 	case wimp_KEY_ESCAPE:
+		if (dialogue_data != NULL)
+			file_destroy(dialogue_data->file);
 		dialogue_close_window();
 		break;
 
@@ -1481,8 +1480,9 @@ static osbool dialogue_icon_drop_handler(wimp_message *message)
 
 static void dialogue_dump_settings(struct dialogue_block *dialogue)
 {
-	char	line[DIALOGUE_MAX_FILE_LINE];
-	int	i, index;
+	char			line[DIALOGUE_MAX_FILE_LINE];
+	int			i, index;
+	struct search_block	*search;
 
 	if (dialogue == NULL)
 		return;
@@ -1590,6 +1590,8 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 	debug_printf("Ignore ImageFS Contents: %s", config_return_opt_string(dialogue->ignore_imagefs));
 	debug_printf("Suppress Errors: %s", config_return_opt_string(dialogue->suppress_errors));
 	debug_printf("Display Full Info: %s", config_return_opt_string(dialogue->full_info));
+
+	search = file_create_search(dialogue->file, dialogue->path);
 }
 
 

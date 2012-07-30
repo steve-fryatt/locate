@@ -29,6 +29,17 @@ void file_create_dialogue(wimp_pointer *pointer, char *path);
 
 
 /**
+ * Create a new search and results window for the file.
+ *
+ * \param *file			The file to create the objects for.
+ * \param *paths		The path(s) to search.
+ * \return			The new search block, or NULL on failure.
+ */
+
+struct search_block *file_create_search(struct file_block *file, char *paths);
+
+
+/**
  * Create a new file block by loading in pre-saved results.
  */
 

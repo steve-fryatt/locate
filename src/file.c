@@ -115,6 +115,42 @@ void file_create_dialogue(wimp_pointer *pointer, char *path)
 
 
 /**
+ * Create a new search and results window for the file.
+ *
+ * \param *file			The file to create the objects for.
+ * \param *paths		The path(s) to search.
+ * \return			The new search block, or NULL on failure.
+ */
+
+struct search_block *file_create_search(struct file_block *file, char *paths)
+{
+
+	if (file == NULL)
+		return NULL;
+
+	debug_printf("Starting to create file");
+
+	file->results = results_create(file, NULL);
+	if (file->results == NULL) {
+		file_destroy(file);
+		return NULL;
+	}
+
+	debug_printf("Results: 0x%x", file->results);
+
+	file->search = search_create(file, file->results, paths);
+	if (file->search == NULL) {
+		file_destroy(file);
+		return NULL;
+	}
+
+	debug_printf("Search: 0x%x", file->search);
+
+	return file->search;
+}
+
+
+/**
  * Create a new file block by loading in pre-saved results.
  */
 
