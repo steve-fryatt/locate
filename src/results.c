@@ -36,6 +36,7 @@
 
 #include "ihelp.h"
 #include "templates.h"
+#include "text.h"
 
 
 #define STATUS_LENGTH 128							/**< The maximum size of the status bar text field.			*/
@@ -134,9 +135,9 @@ struct results_window {
 
 	/* Generic text string storage. */
 
-	char			*text;						/**< The general text string dump.					*/
-	unsigned		text_free;					/**< Offset to the first free character in the text dump.		*/
-	unsigned		text_size;					/**< The current claimed size of the text dump.				*/
+	struct text_block	*text;						/**< The general text string dump.					*/
+
+	/* Window handles */
 
 	wimp_w			window;						/**< The window handle.							*/
 	wimp_w			status;						/**< The status bar handle.						*/
@@ -156,7 +157,6 @@ static void	results_close_handler(wimp_close *close);
 static void	results_update_extent(struct results_window *handle);
 static unsigned	results_add_line(struct results_window *handle, osbool show);
 static unsigned	results_add_fileblock(struct results_window *handle);
-static unsigned	results_store_text(struct results_window *handle, char *text);
 
 
 /* Line position calculations. */
@@ -204,6 +204,12 @@ struct results_window *results_create(struct file_block *file, char *title)
 	if ((new = heap_alloc(sizeof(struct results_window))) == NULL)
 		mem_ok = FALSE;
 
+	if (new != NULL) {
+		new->redraw = NULL;
+		new->files = NULL;
+		new->text = NULL;
+	}
+
 	if (mem_ok) {
 		if (title != NULL) {
 			if ((title_block = heap_strdup(title)) == NULL)
@@ -220,17 +226,15 @@ struct results_window *results_create(struct file_block *file, char *title)
 	}
 
 	if (mem_ok) {
-		new->redraw = NULL;
-		new->files = NULL;
-		new->text = NULL;
-
 		if (flex_alloc((flex_ptr) &(new->redraw), RESULTS_ALLOC_REDRAW * sizeof(struct results_line)) == 0)
 			mem_ok = FALSE;
 
 		if (flex_alloc((flex_ptr) &(new->files), RESULTS_ALLOC_FILES * sizeof(struct results_file)) == 0)
 			mem_ok = FALSE;
+	}
 
-		if (flex_alloc((flex_ptr) &(new->text), RESULTS_ALLOC_TEXT * sizeof(char)) == 0)
+	if (mem_ok) {
+		if ((new->text = text_create(RESULTS_ALLOC_TEXT)) == NULL)
 			mem_ok = FALSE;
 	}
 
@@ -244,7 +248,7 @@ struct results_window *results_create(struct file_block *file, char *title)
 		if (new != NULL && new->files != NULL)
 			flex_free((flex_ptr) &(new->files));
 		if (new != NULL && new->text != NULL)
-			flex_free((flex_ptr) &(new->text));
+			text_destroy(new->text);
 
 		if (new != NULL)
 			heap_free(new);
@@ -272,9 +276,6 @@ struct results_window *results_create(struct file_block *file, char *title)
 
 	new->files_size = RESULTS_ALLOC_FILES;
 	new->files_count = 0;
-
-	new->text_size = RESULTS_ALLOC_TEXT;
-	new->text_free = 0;
 
 	new->format_width = results_window_def->visible.x1 - results_window_def->visible.x0;
 
@@ -345,6 +346,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 	struct results_window	*res;
 	struct results_line	*line;
 	wimp_icon		*icon;
+	char			*text;
 	char			validation[255];
 	char			truncation[1024]; // \TODO -- Allocate properly.
 
@@ -365,6 +367,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 	strcpy(truncation, "...");
 
 	/* Redraw the window. */
+
+	text = text_get_base(res->text);
 
 	more = wimp_redraw_window(redraw);
 
@@ -389,13 +393,13 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
-				strcpy(validation + 1, res->text + line->sprite);
+				strcpy(validation + 1, text + line->sprite);
 
 				if (line->truncate > 0) {
-					strcpy(truncation + 3, res->text + line->text + line->truncate);
+					strcpy(truncation + 3, text + line->text + line->truncate);
 					icon[RESULTS_ICON_FILE].data.indirected_text.text = truncation;
 				} else {
-					icon[RESULTS_ICON_FILE].data.indirected_text.text = res->text + line->text;
+					icon[RESULTS_ICON_FILE].data.indirected_text.text = text + line->text;
 				}
 				icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_FG_COLOUR;
 				icon[RESULTS_ICON_FILE].flags |= line->colour << wimp_ICON_FG_COLOUR_SHIFT;
@@ -443,7 +447,8 @@ void results_destroy(struct results_window *handle)
 
 	flex_free((flex_ptr) &(handle->redraw));
 	flex_free((flex_ptr) &(handle->files));
-	flex_free((flex_ptr) &(handle->text));
+
+	text_destroy(handle->text);
 
 	heap_free(title);
 	heap_free(status);
@@ -486,8 +491,8 @@ void results_add_text(struct results_window *handle, char *text, char *sprite, o
 	if (line == RESULTS_NULL)
 		return;
 
-	offt = results_store_text(handle, text);
-	offv = results_store_text(handle, sprite);
+	offt = text_store(handle->text, text);
+	offv = text_store(handle->text, sprite);
 
 	if (offt != RESULTS_NULL && offv != RESULTS_NULL)
 	handle->redraw[line].type = RESULTS_LINE_TEXT;
@@ -522,7 +527,7 @@ void results_add_file(struct results_window *handle, char *text)
 	if (file == RESULTS_NULL)
 		return;
 
-	data = results_store_text(handle, text);
+	data = text_store(handle->text, text);
 
 	handle->redraw[file].type = (data == RESULTS_NULL) ? RESULTS_LINE_NONE : RESULTS_LINE_FILENAME;
 	handle->redraw[file].parent = file;
@@ -533,7 +538,7 @@ void results_add_file(struct results_window *handle, char *text)
 	if (info == RESULTS_NULL)
 		return;
 
-	data = results_store_text(handle, text);
+	data = text_store(handle->text, text);
 
 	handle->redraw[info].type = (data == RESULTS_NULL) ? RESULTS_LINE_NONE : RESULTS_LINE_FILEINFO;
 	handle->redraw[info].parent = file;
@@ -554,6 +559,7 @@ void results_add_file(struct results_window *handle, char *text)
 void results_reformat(struct results_window *handle, osbool all)
 {
 	int			line, width, length, pos;
+	char			*text;
 	char			truncate[1024]; // \TODO -- Allocate properly.
 
 	if (handle == NULL)
@@ -561,15 +567,17 @@ void results_reformat(struct results_window *handle, osbool all)
 
 	strcpy(truncate, "...");
 
+	text = text_get_base(handle->text);
+
 	width = handle->format_width - (2 * RESULTS_WINDOW_MARGIN) - RESULTS_ICON_WIDTH;
 
 	for (line = (all) ? 0 : handle->formatted_lines; line < handle->redraw_lines; line++) {
 		switch (handle->redraw[line].type) {
 		case RESULTS_LINE_TEXT:
-			if (wimptextop_string_width(handle->text + handle->redraw[line].text, 0) <= width)
+			if (wimptextop_string_width(text + handle->redraw[line].text, 0) <= width)
 				break;
 
-			strcpy(truncate + 3, handle->text + handle->redraw[line].text);
+			strcpy(truncate + 3, text + handle->redraw[line].text);
 			length = strlen(truncate) - 3;
 			pos = 0;
 
@@ -696,42 +704,5 @@ static unsigned results_add_fileblock(struct results_window *handle)
 	/* Get the new line. */
 
 	return handle->files_count++;
-}
-
-
-/**
- * Store a text string in the text dump, allocating new memory if required,
- * and returning the offset to the stored string.
- *
- * \param *handle		The handle of the results window to update.
- * \param *text			The text to be stored.
- * \return			Offset if successful; RESULTS_NULL on failure.
- */
-
-static unsigned results_store_text(struct results_window *handle, char *text)
-{
-	int		length, blocks;
-	unsigned	offset;
-
-	if (handle == NULL || text == NULL)
-		return RESULTS_NULL;
-
-	length = strlen(text) + 1;
-
-	if ((handle->text_free + length) > handle->text_size) {
-		for (blocks = 1; (handle->text_free + length) > (handle->text_size + blocks * RESULTS_ALLOC_TEXT); blocks++);
-
-		if (flex_extend((flex_ptr) &(handle->text), (handle->text_size + blocks * RESULTS_ALLOC_TEXT) * sizeof(char)) == 0)
-			return RESULTS_NULL;
-
-		handle->text_size += blocks * RESULTS_ALLOC_TEXT;
-	}
-
-	offset = handle->text_free;
-
-	strcpy(handle->text + handle->text_free, text);
-	handle->text_free += length;
-
-	return offset;
 }
 
