@@ -13,7 +13,7 @@
 struct textdump_block;
 
 
-#define TEXTDUMP_NULL 0xffffffff							/**< 'NULL' value for use with the unsigned flex block offsets.		*/
+#define TEXTDUMP_NULL 0xffffffff						/**< 'NULL' value for use with the unsigned flex block offsets.		*/
 
 
 /**
