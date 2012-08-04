@@ -1,19 +1,19 @@
-/* Locate - text.h
+/* Locate - textdump.h
  * (c) Stephen Fryatt, 2012
  *
  * Text storage in a Flex block.
  */
 
-#ifndef LOCATE_TEXT
-#define LOCATE_TEXT
+#ifndef LOCATE_TEXTDUMP
+#define LOCATE_TEXTDUMP
 
 #include "oslib/types.h"
 #include "flex.h"
 
-struct text_block;
+struct textdump_block;
 
 
-#define TEXT_NULL 0xffffffff							/**< 'NULL' value for use with the unsigned flex block offsets.		*/
+#define TEXTDUMP_NULL 0xffffffff							/**< 'NULL' value for use with the unsigned flex block offsets.		*/
 
 
 /**
@@ -23,7 +23,7 @@ struct text_block;
  * \return		The block handle, or NULL on failure.
  */
 
-struct text_block *text_create(unsigned allocation);
+struct textdump_block *textdump_create(unsigned allocation);
 
 
 /**
@@ -32,7 +32,7 @@ struct text_block *text_create(unsigned allocation);
  * \param *handle		The block to be destroyed.
  */
 
-void text_destroy(struct text_block *handle);
+void textdump_destroy(struct textdump_block *handle);
 
 
 /**
@@ -43,7 +43,7 @@ void text_destroy(struct text_block *handle);
  * \return			The block base, or NULL on error.
  */
 
-char *text_get_base(struct text_block *text);
+char *textdump_get_base(struct textdump_block *text);
 
 
 /**
@@ -52,10 +52,10 @@ char *text_get_base(struct text_block *text);
  *
  * \param *handle		The handle of the text dump to take the string.
  * \param *text			The text to be stored.
- * \return			Offset if successful; TEXT_NULL on failure.
+ * \return			Offset if successful; TEXTDUMP_NULL on failure.
  */
 
-unsigned text_store(struct text_block *handle, char *text);
+unsigned textdump_store(struct textdump_block *handle, char *text);
 
 #endif
 

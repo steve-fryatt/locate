@@ -1,4 +1,4 @@
-/* Locate - text.c
+/* Locate - textdump.c
  * (c) Stephen Fryatt, 2012
  *
  * Text storage in a Flex block.
@@ -24,12 +24,12 @@
 
 /* Application header files. */
 
-#include "text.h"
+#include "textdump.h"
 
 
-#define TEXT_ALLOCATION 1024							/**< The default allocation block size.					*/
+#define TEXTDUMP_ALLOCATION 1024							/**< The default allocation block size.					*/
 
-struct text_block {
+struct textdump_block {
 	char			*text;						/**< The general text string dump.					*/
 	unsigned		free;						/**< Offset to the first free character in the text dump.		*/
 	unsigned		size;						/**< The current claimed size of the text dump.				*/
@@ -44,15 +44,15 @@ struct text_block {
  * \return			The block handle, or NULL on failure.
  */
 
-struct text_block *text_create(unsigned allocation)
+struct textdump_block *textdump_create(unsigned allocation)
 {
-	struct text_block	*new;
+	struct textdump_block	*new;
 
-	new = heap_alloc(sizeof(struct text_block));
+	new = heap_alloc(sizeof(struct textdump_block));
 	if (new == NULL)
 		return NULL;
 
-	new->allocation = (allocation == 0) ? TEXT_ALLOCATION : allocation;
+	new->allocation = (allocation == 0) ? TEXTDUMP_ALLOCATION : allocation;
 
 	new->text = NULL;
 	new->free = 0;
@@ -73,7 +73,7 @@ struct text_block *text_create(unsigned allocation)
  * \param *handle		The block to be destroyed.
  */
 
-void text_destroy(struct text_block *handle)
+void textdump_destroy(struct textdump_block *handle)
 {
 	if (handle == NULL)
 		return;
@@ -93,7 +93,7 @@ void text_destroy(struct text_block *handle)
  * \return			The block base, or NULL on error.
  */
 
-char *text_get_base(struct text_block *handle)
+char *textdump_get_base(struct textdump_block *handle)
 {
 	if (handle == NULL)
 		return NULL;
@@ -108,16 +108,16 @@ char *text_get_base(struct text_block *handle)
  *
  * \param *handle		The handle of the text dump to take the string.
  * \param *text			The text to be stored.
- * \return			Offset if successful; TEXT_NULL on failure.
+ * \return			Offset if successful; TEXTDUMP_NULL on failure.
  */
 
-unsigned text_store(struct text_block *handle, char *text)
+unsigned textdump_store(struct textdump_block *handle, char *text)
 {
 	int		length, blocks;
 	unsigned	offset;
 
 	if (handle == NULL || text == NULL)
-		return TEXT_NULL;
+		return TEXTDUMP_NULL;
 
 	length = strlen(text) + 1;
 
@@ -125,7 +125,7 @@ unsigned text_store(struct text_block *handle, char *text)
 		for (blocks = 1; (handle->free + length) > (handle->size + blocks * handle->allocation); blocks++);
 
 		if (flex_extend((flex_ptr) &(handle->text), (handle->size + blocks * handle->allocation) * sizeof(char)) == 0)
-			return TEXT_NULL;
+			return TEXTDUMP_NULL;
 
 		handle->size += blocks * handle->allocation;
 	}

@@ -36,7 +36,7 @@
 
 #include "ihelp.h"
 #include "templates.h"
-#include "text.h"
+#include "textdump.h"
 
 
 #define STATUS_LENGTH 128							/**< The maximum size of the status bar text field.			*/
@@ -135,7 +135,7 @@ struct results_window {
 
 	/* Generic text string storage. */
 
-	struct text_block	*text;						/**< The general text string dump.					*/
+	struct textdump_block	*text;						/**< The general text string dump.					*/
 
 	/* Window handles */
 
@@ -234,7 +234,7 @@ struct results_window *results_create(struct file_block *file, char *title)
 	}
 
 	if (mem_ok) {
-		if ((new->text = text_create(RESULTS_ALLOC_TEXT)) == NULL)
+		if ((new->text = textdump_create(RESULTS_ALLOC_TEXT)) == NULL)
 			mem_ok = FALSE;
 	}
 
@@ -248,7 +248,7 @@ struct results_window *results_create(struct file_block *file, char *title)
 		if (new != NULL && new->files != NULL)
 			flex_free((flex_ptr) &(new->files));
 		if (new != NULL && new->text != NULL)
-			text_destroy(new->text);
+			textdump_destroy(new->text);
 
 		if (new != NULL)
 			heap_free(new);
@@ -368,7 +368,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 	/* Redraw the window. */
 
-	text = text_get_base(res->text);
+	text = textdump_get_base(res->text);
 
 	more = wimp_redraw_window(redraw);
 
@@ -448,7 +448,7 @@ void results_destroy(struct results_window *handle)
 	flex_free((flex_ptr) &(handle->redraw));
 	flex_free((flex_ptr) &(handle->files));
 
-	text_destroy(handle->text);
+	textdump_destroy(handle->text);
 
 	heap_free(title);
 	heap_free(status);
@@ -491,10 +491,10 @@ void results_add_text(struct results_window *handle, char *text, char *sprite, o
 	if (line == RESULTS_NULL)
 		return;
 
-	offt = text_store(handle->text, text);
-	offv = text_store(handle->text, sprite);
+	offt = textdump_store(handle->text, text);
+	offv = textdump_store(handle->text, sprite);
 
-	if (offt != RESULTS_NULL && offv != RESULTS_NULL)
+	if (offt != TEXTDUMP_NULL && offv != TEXTDUMP_NULL)
 	handle->redraw[line].type = RESULTS_LINE_TEXT;
 	handle->redraw[line].parent = line;
 	handle->redraw[line].text = offt;
@@ -527,7 +527,7 @@ void results_add_file(struct results_window *handle, char *text)
 	if (file == RESULTS_NULL)
 		return;
 
-	data = text_store(handle->text, text);
+	data = textdump_store(handle->text, text);
 
 	handle->redraw[file].type = (data == RESULTS_NULL) ? RESULTS_LINE_NONE : RESULTS_LINE_FILENAME;
 	handle->redraw[file].parent = file;
@@ -538,7 +538,7 @@ void results_add_file(struct results_window *handle, char *text)
 	if (info == RESULTS_NULL)
 		return;
 
-	data = text_store(handle->text, text);
+	data = textdump_store(handle->text, text);
 
 	handle->redraw[info].type = (data == RESULTS_NULL) ? RESULTS_LINE_NONE : RESULTS_LINE_FILEINFO;
 	handle->redraw[info].parent = file;
@@ -567,7 +567,7 @@ void results_reformat(struct results_window *handle, osbool all)
 
 	strcpy(truncate, "...");
 
-	text = text_get_base(handle->text);
+	text = textdump_get_base(handle->text);
 
 	width = handle->format_width - (2 * RESULTS_WINDOW_MARGIN) - RESULTS_ICON_WIDTH;
 
