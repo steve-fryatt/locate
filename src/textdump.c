@@ -27,7 +27,7 @@
 #include "textdump.h"
 
 
-#define TEXTDUMP_ALLOCATION 1024							/**< The default allocation block size.					*/
+#define TEXTDUMP_ALLOCATION 1024						/**< The default allocation block size.					*/
 
 struct textdump_block {
 	char			*text;						/**< The general text string dump.					*/
