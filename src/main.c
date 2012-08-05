@@ -53,6 +53,7 @@
 #include "iconbar.h"
 #include "ihelp.h"
 #include "results.h"
+#include "search.h"
 #include "templates.h"
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -99,17 +100,28 @@ static void main_poll_loop(void)
 {
 	wimp_event_no		reason;
 	wimp_block		blk;
+	wimp_poll_flags		mask;
 
 	while (!main_quit_flag) {
-		reason = wimp_poll(wimp_MASK_NULL, &blk, 0);
+		mask = ((search_poll_required()) ? 0 : wimp_MASK_NULL);
+
+		reason = wimp_poll(mask, &blk, 0);
 
 		/* Events are passed to Event Lib first; only if this fails
 		 * to handle them do they get passed on to the internal
 		 * inline handlers shown here.
+		 *
+		 * \TODO -- search_poll_all() might need to be pulled outside
+		 * the if() statement, if other Null Poll claimants interfere
+		 * via Event Lib.
 		 */
 
 		if (!event_process_event(reason, &blk, 0)) {
 			switch (reason) {
+			case wimp_NULL_REASON_CODE:
+				search_poll_all();
+				break;
+
 			case wimp_OPEN_WINDOW_REQUEST:
 				wimp_open_window(&(blk.open));
 				break;

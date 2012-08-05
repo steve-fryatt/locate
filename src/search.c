@@ -69,14 +69,18 @@ struct search_block {
 	struct search_stack	*stack;						/**< The search stack.							*/
 	unsigned		stack_level;					/**< The current stack level.						*/
 	unsigned		stack_size;					/**< The amount of stack levels currently claimed.			*/
+
+	struct search_block	*next;						/**< The next active search in the active search list.			*/
 };
 
 
 /* Global variables. */
 
+static struct search_block	*search_active = NULL;				/**< A linked list of all active searches.				*/
 
 /* Local function prototypes. */
 
+static osbool	search_poll(struct search_block *search, os_t end_time);
 static unsigned	search_add_stack(struct search_block *search);
 
 
@@ -154,6 +158,7 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 	new->results = results;
 
 	new->active = FALSE;
+	new->next = NULL;
 
 	new->stack_size = SEARCH_ALLOC_STACK;
 	new->stack_level = 0;
@@ -189,6 +194,13 @@ void search_destroy(struct search_block *search)
 	if (search == NULL)
 		return;
 
+	/* If the search is active, remove it from the active list. */
+
+	if (search->active)
+		search_stop(search);
+
+	/* Free any memory allocated to the search. */
+
 	flex_free((flex_ptr) &(search->stack));
 	heap_free(search->path);
 	heap_free(search->paths);
@@ -210,14 +222,82 @@ void search_start(struct search_block *search)
 	if (search == NULL)
 		return;
 
+	/* Allocate a search stack. */
+
 	if ((stack = search_add_stack(search)) == SEARCH_NULL)
 		return;
 
+	/* Flag the search as active. */
+
 	search->active = TRUE;
 
-	// \TODO -- this is for debugging only!
+	/* Link the search into the active search list. */
 
-	results_add_text(search->results, "This is some text", "small_unf", FALSE, wimp_COLOUR_RED);
+	search->next = search_active;
+	search_active = search;
+}
+
+
+/**
+ * Stop an active search.
+ *
+ * \param *Search		The handle of the search to stop.
+ */
+
+void search_stop(struct search_block *search)
+{
+	struct search_block	*active;
+
+
+	if (search == NULL || search->active == FALSE)
+		return;
+
+	/* Flag the search inactive. */
+
+	search->active = FALSE;
+
+	/* If the search is at the head of the list, remove it... */
+
+	if (search_active == search) {
+		search_active = search->next;
+		return;
+	}
+
+	/* ...otherwise find it in the list and remove it. */
+
+	active = search_active;
+
+	while (active != NULL && active->next != search)
+		active = active->next;
+
+	if (active != NULL)
+		active->next = search->next;
+}
+
+
+/**
+ * Test to see if a poll is required.
+ *
+ * \return			TRUE if any searches are active; else FALSE.
+ */
+
+osbool search_poll_required(void)
+{
+	return (search_active == NULL) ? FALSE : TRUE;
+}
+
+/**
+ * Run any active searches in a Null poll.
+ */
+
+void search_poll_all(void)
+{
+	struct search_block	*search = search_active;
+
+	while (search != NULL) {
+		search_poll(search, (os_t) 0);
+		search = search->next;
+	}
 }
 
 
@@ -225,7 +305,7 @@ void search_start(struct search_block *search)
  * Poll
  */
 
-osbool search_poll(struct search_block *search, os_t end_time)
+static osbool search_poll(struct search_block *search, os_t end_time)
 {
 	os_error		*error;
 	osbool			done = FALSE;
@@ -234,6 +314,13 @@ osbool search_poll(struct search_block *search, os_t end_time)
 
 	if (search == NULL || !search->active)
 		return TRUE;
+
+
+	// \TODO -- this is for debugging only!
+
+	results_add_text(search->results, "This is some text", "small_unf", FALSE, wimp_COLOUR_RED);
+
+
 /*
 	stack = &(search->stack[search->stack_level]);
 
@@ -254,6 +341,8 @@ osbool search_poll(struct search_block *search, os_t end_time)
 
 	}
 	*/
+
+	return TRUE;
 }
 
 

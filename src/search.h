@@ -42,5 +42,30 @@ void search_destroy(struct search_block *search);
 
 void search_start(struct search_block *search);
 
+
+/**
+ * Stop an active search.
+ *
+ * \param *Search		The handle of the search to stop.
+ */
+
+void search_stop(struct search_block *search);
+
+
+/**
+ * Test to see if a poll is required.
+ *
+ * \return			TRUE if any searches are active; else FALSE.
+ */
+
+osbool search_poll_required(void);
+
+
+/**
+ * Run any active searches in a Null poll.
+ */
+
+void search_poll_all(void);
+
 #endif
 
