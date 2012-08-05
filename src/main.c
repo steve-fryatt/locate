@@ -179,20 +179,20 @@ static void main_initialise(void)
 
 	config_initialise(task_name, "Locate", "<Locate$Dir>");
 
-	config_str_init("SearchPath", "ADFS::4.$");
-	config_int_init("PathBufSize", 4095);
-	config_opt_init("Multitask", TRUE);
-	config_opt_init("ImageFS", FALSE);
-	config_opt_init("SuppressErrors", TRUE);
-	config_int_init("HistorySize", 10);
-	config_opt_init("ConfirmHistoryAdd", TRUE);
-	config_opt_init("FileMenuSprites", FALSE);
-	config_opt_init("ScrollResults", TRUE);
-	config_int_init("OSGBPBReadSize", 1000);
-	config_opt_init("QuitAsPlugin", FALSE);
-	config_opt_init("SearchWindAsPlugin", FALSE);
-	config_opt_init("FullInfoDisplay", FALSE);
-	config_int_init("MultitaskTimeslot", 10);				/**< The timeslot, in cs, allowed for a search poll.	*/
+	config_str_init("SearchPath", "ADFS::4.$");				/**< The default search path.					*/
+	config_int_init("PathBufSize", 4095);					/**< The path buffer size, in bytes.				*/
+	config_opt_init("Multitask", TRUE);					/**< TRUE if searches multitask; else FALSE.			*/
+	config_opt_init("ImageFS", FALSE);					/**< TRUE to search ImageFS contents; else FALSE.		*/
+	config_opt_init("SuppressErrors", TRUE);				/**< TRUE to list errors in search results; FALSE to report.	*/
+	config_int_init("HistorySize", 10);					/**< The number of entries in the history menu.			*/
+	config_opt_init("ConfirmHistoryAdd", TRUE);				/**< TRUE to confirm all additions to the history.		*/
+	config_opt_init("FileMenuSprites", FALSE);				/**< TRUE to include file icons in the filetype menu.		*/
+	config_opt_init("ScrollResults", TRUE);					/**< TRUE to scroll the results window to the last entry.	*/
+	config_int_init("OSGBPBReadSize", 1000);				/**< The number of bytes allocated ot OS_GBPB calls.		*/
+	config_opt_init("QuitAsPlugin", FALSE);					/**< Quit when complete if running as a FilerAction plugin.	*/
+	config_opt_init("SearchWindAsPlugin", FALSE);				/**< TRUE to open a search window when acting as a plugin.	*/
+	config_opt_init("FullInfoDisplay", FALSE);				/**< TRUE to display full file info by default.			*/
+	config_int_init("MultitaskTimeslot", 10);				/**< The timeslot, in cs, allowed for a search poll.		*/
 
 	config_load();
 
