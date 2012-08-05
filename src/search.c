@@ -77,6 +77,7 @@ struct search_block {
 /* Global variables. */
 
 static struct search_block	*search_active = NULL;				/**< A linked list of all active searches.				*/
+static int			search_searches_active = 0;			/**< A count of active searches.					*/
 
 /* Local function prototypes. */
 
@@ -231,6 +232,8 @@ void search_start(struct search_block *search)
 
 	search->active = TRUE;
 
+	search_searches_active++;
+
 	/* Link the search into the active search list. */
 
 	search->next = search_active;
@@ -255,6 +258,8 @@ void search_stop(struct search_block *search)
 	/* Flag the search inactive. */
 
 	search->active = FALSE;
+
+	search_searches_active--;
 
 	/* If the search is at the head of the list, remove it... */
 
@@ -286,6 +291,7 @@ osbool search_poll_required(void)
 	return (search_active == NULL) ? FALSE : TRUE;
 }
 
+
 /**
  * Run any active searches in a Null poll.
  */
@@ -293,9 +299,12 @@ osbool search_poll_required(void)
 void search_poll_all(void)
 {
 	struct search_block	*search = search_active;
+	os_t			time_slice;
+
+	time_slice = (os_t) (config_int_read("MultitaskTimeslot") / search_searches_active);
 
 	while (search != NULL) {
-		search_poll(search, (os_t) 0);
+		search_poll(search, os_read_monotonic_time() + time_slice);
 		search = search->next;
 	}
 }
@@ -312,13 +321,16 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	int			read, next;
 	struct search_stack	*stack;
 
+	char text[100];
+
 	if (search == NULL || !search->active)
 		return TRUE;
 
 
 	// \TODO -- this is for debugging only!
 
-	results_add_text(search->results, "This is some text", "small_unf", FALSE, wimp_COLOUR_RED);
+	sprintf(text, "Search for %d centiseconds", end_time - os_read_monotonic_time());
+	results_add_text(search->results, text, "small_unf", FALSE, wimp_COLOUR_RED);
 
 
 /*

@@ -192,6 +192,7 @@ static void main_initialise(void)
 	config_opt_init("QuitAsPlugin", FALSE);
 	config_opt_init("SearchWindAsPlugin", FALSE);
 	config_opt_init("FullInfoDisplay", FALSE);
+	config_int_init("MultitaskTimeslot", 10);				/**< The timeslot, in cs, allowed for a search poll.	*/
 
 	config_load();
 
