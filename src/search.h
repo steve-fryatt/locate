@@ -33,5 +33,14 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 
 void search_destroy(struct search_block *search);
 
+
+/**
+ * Make a search active so that it will run on subsequent calls to search_poll().
+ *
+ * \param *search		The handle of the search to make active.
+ */
+
+void search_start(struct search_block *search);
+
 #endif
 

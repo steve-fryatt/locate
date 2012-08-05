@@ -1592,6 +1592,9 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 	debug_printf("Display Full Info: %s", config_return_opt_string(dialogue->full_info));
 
 	search = file_create_search(dialogue->file, dialogue->path);
+	if (search == NULL)
+		return;
+	search_start(search);
 }
 
 

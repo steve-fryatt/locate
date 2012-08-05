@@ -16,6 +16,7 @@
 
 /* SFLib Header files. */
 
+#include "sflib/debug.h"
 #include "sflib/heap.h"
 
 /* OSLib Header files. */
@@ -119,21 +120,36 @@ unsigned textdump_store(struct textdump_block *handle, char *text)
 	if (handle == NULL || text == NULL)
 		return TEXTDUMP_NULL;
 
+	// \TODO -- Remove debug code!
+	debug_printf("\\BText dump '%s'", text);
+
 	length = strlen(text) + 1;
+
+	// \TODO -- Remove debug code!
+	debug_printf("Length %d (including terminator)", length);
 
 	if ((handle->free + length) > handle->size) {
 		for (blocks = 1; (handle->free + length) > (handle->size + blocks * handle->allocation); blocks++);
+
+		// \TODO -- Remove debug code!
+		debug_printf("Need to extend block by %u", blocks * handle->allocation * sizeof(char));
 
 		if (flex_extend((flex_ptr) &(handle->text), (handle->size + blocks * handle->allocation) * sizeof(char)) == 0)
 			return TEXTDUMP_NULL;
 
 		handle->size += blocks * handle->allocation;
+
+		// \TODO -- Remove debug code!
+		debug_printf("...done (%u bytes)", handle->size);
 	}
 
 	offset = handle->free;
 
 	strcpy(handle->text + handle->free, text);
 	handle->free += length;
+
+	// \TODO -- Remove debug code!
+	debug_printf("Stored at offset %u, free from %u", offset, handle->free);
 
 	return offset;
 }

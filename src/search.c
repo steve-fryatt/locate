@@ -214,8 +214,16 @@ void search_start(struct search_block *search)
 		return;
 
 	search->active = TRUE;
+
+	// \TODO -- this is for debugging only!
+
+	results_add_text(search->results, "This is some text", "small_unf", FALSE, wimp_COLOUR_RED);
 }
 
+
+/**
+ * Poll
+ */
 
 osbool search_poll(struct search_block *search, os_t end_time)
 {
