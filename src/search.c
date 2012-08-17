@@ -52,6 +52,7 @@ struct search_stack {
 
 	int			read;
 	int			next;
+	int			ptr;						/**< The next item to read from the block.				*/
 };
 
 /* A data structure defining a search. */
@@ -319,7 +320,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	os_error		*error;
 	osbool			done = FALSE;
 	int			read, next;
-	struct search_stack	*stack;
+	//struct search_stack	*stack;
+	unsigned		stack;
 
 	char text[100];
 
@@ -329,8 +331,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 	// \TODO -- this is for debugging only!
 
-	sprintf(text, "Search for %d centiseconds", end_time - os_read_monotonic_time());
-	results_add_text(search->results, text, "small_unf", FALSE, wimp_COLOUR_RED);
+//	sprintf(text, "Search for %d centiseconds", end_time - os_read_monotonic_time());
+//	results_add_text(search->results, text, "small_unf", FALSE, wimp_COLOUR_RED);
 
 
 /*
@@ -345,14 +347,27 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	}
 */
 
+	if (search->stack_level == 0)
+		return FALSE;
 
-/*
-	while (!done && os_read_monotonic_time() < end_time) {
-		error = xosgbpb_dir_entries_info(path, 1000, search->stack[search->stack_level].next,
-				SEARCH_BLOCK_SIZE, NULL, &read, &next);
+	stack = search->stack_level - 1;
 
+
+	while ((search->stack[stack].read != -1) && (os_read_monotonic_time() < end_time)) {
+		if (search->stack[stack].ptr >= search->stack[stack].read) {
+			error = xosgbpb_dir_entries_info("HostFS::$", &(search->stack[stack].info), search->stack[stack].next, 1000,
+					SEARCH_BLOCK_SIZE, NULL, &(search->stack[stack].read), &(search->stack[stack].next));
+
+			search->stack[stack].ptr = 0;
+		}
+
+		while ((search->stack[stack].read != -1) && (os_read_monotonic_time() < end_time) &&
+				(search->stack[stack].ptr >= search->stack[stack].read)) {
+
+			results_add_text(search->results, "File", "small_unf", FALSE, wimp_COLOUR_BLACK);
+			search->stack[stack].ptr++;
+		}
 	}
-	*/
 
 	return TRUE;
 }
@@ -392,6 +407,7 @@ static unsigned search_add_stack(struct search_block *search)
 
 	search->stack[offset].read = 0;
 	search->stack[offset].next = 0;
+	search->stack[offset].ptr = 0;
 
 	return offset;
 }
