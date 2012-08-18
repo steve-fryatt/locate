@@ -50,9 +50,10 @@ struct search_stack {
 	char			filename[SEARCH_MAX_FILENAME];			/**< The filename of the current directory.				*/
 	bits			info[SEARCH_BLOCK_SIZE];			/**< Block for OS_GBPB 10.						*/
 
-	int			read;
-	int			next;
-	int			ptr;						/**< The next item to read from the block.				*/
+	int			read;						/**< The number of files read at the last OS_GBPB call.			*/
+	int			context;					/**< The context for the next OS_GBPB call.				*/
+	int			next;						/**< The number of the next item to read from the block.		*/
+	unsigned		data_offset;					/**< Offset to the data for the next item to be read from the block.	*/
 };
 
 /* A data structure defining a search. */
@@ -82,8 +83,9 @@ static int			search_searches_active = 0;			/**< A count of active searches.					
 
 /* Local function prototypes. */
 
-static osbool	search_poll(struct search_block *search, os_t end_time);
-static unsigned	search_add_stack(struct search_block *search);
+static osbool		search_poll(struct search_block *search, os_t end_time);
+static unsigned		search_add_stack(struct search_block *search);
+static unsigned		search_drop_stack(struct search_block *search);
 
 
 /**
@@ -221,13 +223,15 @@ void search_start(struct search_block *search)
 {
 	unsigned stack;
 
-	if (search == NULL)
+	if (search == NULL || search->path_count == 0)
 		return;
 
-	/* Allocate a search stack. */
+	/* Allocate a search stack and set up the first search folder. */
 
 	if ((stack = search_add_stack(search)) == SEARCH_NULL)
 		return;
+
+	strncpy(search->stack[stack].filename, search->path[--search->path_count], SEARCH_MAX_FILENAME);
 
 	/* Flag the search as active. */
 
@@ -312,62 +316,118 @@ void search_poll_all(void)
 
 
 /**
- * Poll
+ * Poll an active search for a given timeslice.
+ *
+ * \param *search		The search to be polled.
+ * \param end_time		The time by which control must return.
+ * \return			TRUE or FALSE. \TODO!
  */
 
 static osbool search_poll(struct search_block *search, os_t end_time)
 {
 	os_error		*error;
 	osbool			done = FALSE;
-	int			read, next;
-	//struct search_stack	*stack;
+	int			read, context, i;
 	unsigned		stack;
+	osgbpb_info		*file_data;
+	char			filename[4996], leafname[SEARCH_MAX_FILENAME];
 
-	char text[100];
 
 	if (search == NULL || !search->active)
 		return TRUE;
 
+	debug_printf("Entering search poll 0x%x", search);
 
-	// \TODO -- this is for debugging only!
+	/* If there's no stack set up, the search must have ended. */
 
-//	sprintf(text, "Search for %d centiseconds", end_time - os_read_monotonic_time());
-//	results_add_text(search->results, text, "small_unf", FALSE, wimp_COLOUR_RED);
-
-
-/*
-	stack = &(search->stack[search->stack_level]);
-
-	if (stack->remaining == 0) {
-		error = xosgbpb_dir_entries_info("path", 1000,
-				stack->next, SEARCH_BLOCK_SIZE, NULL,
-				&(stack->remaining), &(stack->next));
-
-
-	}
-*/
-
-	if (search->stack_level == 0)
+	if (search->stack_level == 0) {
+		search_stop(search);
 		return FALSE;
+	}
+
+	/* Get the current stack level, and enter the search loop. */
 
 	stack = search->stack_level - 1;
 
+	while (stack != SEARCH_NULL && (search->stack[stack].context != -1) && (os_read_monotonic_time() < end_time)) {
+		debug_printf("In Stack: %u, Filename: '%s', Read: %d, context: %d, next: %d", stack, search->stack[stack].filename, search->stack[stack].read, search->stack[stack].context, search->stack[stack].next);
 
-	while ((search->stack[stack].read != -1) && (os_read_monotonic_time() < end_time)) {
-		if (search->stack[stack].ptr >= search->stack[stack].read) {
-			error = xosgbpb_dir_entries_info("HostFS::$", &(search->stack[stack].info), search->stack[stack].next, 1000,
-					SEARCH_BLOCK_SIZE, NULL, &(search->stack[stack].read), &(search->stack[stack].next));
+		/* If there are no outstanding entries in the current buffer, call
+		 * OS_GBPB 10 to get another set of file details.
+		 */
 
-			search->stack[stack].ptr = 0;
+		if (search->stack[stack].next >= search->stack[stack].read) {
+			*filename = '\0';
+
+			for (i = 0; i <= stack; i++) {
+				if (i > 0)
+					strcat(filename, ".");
+				strcat(filename, search->stack[i].filename);
+			}
+
+			debug_printf("Search path: '%s'", filename);
+
+			error = xosgbpb_dir_entries_info(filename, search->stack[stack].info, 1000, search->stack[stack].context,
+					SEARCH_BLOCK_SIZE, "*", &(search->stack[stack].read), &(search->stack[stack].context));
+
+			search->stack[stack].next = 0;
+			search->stack[stack].data_offset = 0;
+
+			debug_printf("Out Read: %d, context: %d, next: %d", search->stack[stack].read, search->stack[stack].context, search->stack[stack].next);
 		}
 
-		while ((search->stack[stack].read != -1) && (os_read_monotonic_time() < end_time) &&
-				(search->stack[stack].ptr >= search->stack[stack].read)) {
+		/* Process the buffered details. */
+
+		while ((os_read_monotonic_time() < end_time) && (search->stack[stack].next < search->stack[stack].read)) {
+			file_data = (osgbpb_info *) ((unsigned) search->stack[stack].info + search->stack[stack].data_offset);
+
+			debug_printf("Looping %d of %d with offset %u to address 0x%x for file '%s'", search->stack[stack].next, search->stack[stack].read, search->stack[stack].data_offset, file_data, file_data->name);
+
+			search->stack[stack].data_offset += ((24 + strlen(file_data->name)) & 0xfffffffc);
+			search->stack[stack].next++;
+
+			if (file_data->obj_type == fileswitch_IS_DIR) {
+				/* Take a copy of the name before we shift the flex heap. */
+
+				strncpy(leafname, file_data->name, SEARCH_MAX_FILENAME);
+
+				stack = search_add_stack(search);
+
+				strncpy(search->stack[stack].filename, leafname, SEARCH_MAX_FILENAME);
+				debug_printf("Down into folder: stack %u", stack);
+				continue;
+			}
 
 			results_add_text(search->results, "File", "small_unf", FALSE, wimp_COLOUR_BLACK);
-			search->stack[stack].ptr++;
+		}
+
+		/* If that was all the files in the current folder, return to the
+		 * parent.
+		 */
+
+		if (search->stack[stack].context == -1) {
+			stack = search_drop_stack(search);
+			debug_printf("Up out of folder: stack %u", stack);
 		}
 	}
+
+	/* If the stack is empty, the current path has been completed.  Either prepare
+	 * the next path for the next poll, or terminate the search if there are
+	 * no more paths to search.
+	 */
+
+	if (stack == SEARCH_NULL) {
+		if (search->path_count > 0) {
+			/* Re-allocate a search stack and set up the first search folder. */
+
+			if ((stack = search_add_stack(search)) != SEARCH_NULL)
+				strncpy(search->stack[stack].filename, search->path[--search->path_count], SEARCH_MAX_FILENAME);
+		} else {
+			search_stop(search);
+		}
+	}
+
+	debug_printf("Exiting search poll 0x%x", search);
 
 	return TRUE;
 }
@@ -406,9 +466,29 @@ static unsigned search_add_stack(struct search_block *search)
 	offset = search->stack_level++;
 
 	search->stack[offset].read = 0;
+	search->stack[offset].context = 0;
 	search->stack[offset].next = 0;
-	search->stack[offset].ptr = 0;
+	search->stack[offset].data_offset = 0;
 
 	return offset;
+}
+
+
+/**
+ * Drop back down a line on the search stack and return the new offset.
+ *
+ * \param *handle		The handle of the search.
+ * \return			The offset of the new entry, or SEARCH_NULL.
+ */
+
+static unsigned search_drop_stack(struct search_block *search)
+{
+	if (search == NULL)
+		return SEARCH_NULL;
+
+	if (search->stack_level > 0)
+		search->stack_level--;
+
+	return (search->stack_level == 0) ? SEARCH_NULL : search->stack_level - 1;
 }
 
