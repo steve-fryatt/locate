@@ -1592,7 +1592,13 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 	debug_printf("Suppress Errors: %s", config_return_opt_string(dialogue->suppress_errors));
 	debug_printf("Display Full Info: %s", config_return_opt_string(dialogue->full_info));
 
-	search = file_create_search(dialogue->file, dialogue->path);
+	/* Use the icon field for the paths, as this won't move about in the flex heap.
+	 *
+	 * \TODO -- This might need a separate buffer allocating to copy the name into, if
+	 *          we ever need to send a path set independent of the dialogue.
+	 */
+
+	search = file_create_search(dialogue->file, icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_SEARCH_PATH));
 	if (search == NULL)
 		return;
 	search_start(search);
