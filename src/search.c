@@ -64,6 +64,8 @@ struct search_block {
 
 	osbool			active;						/**< TRUE if the search is active; else FALSE.				*/
 
+	osbool			include_imagefs;				/**< TRUE to search inside Image Filing Systems; else FALSE.		*/
+
 	int			path_count;					/**< The number of search paths remaining to use.			*/
 	char			*paths;						/**< Line containing the full set of search paths.			*/
 	char			**path;						/**< Index to each of the search paths.					*/
@@ -163,6 +165,8 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 
 	new->active = FALSE;
 	new->next = NULL;
+
+	new->include_imagefs = FALSE;
 
 	new->stack_size = SEARCH_ALLOC_STACK;
 	new->stack_level = 0;
@@ -326,8 +330,7 @@ void search_poll_all(void)
 static osbool search_poll(struct search_block *search, os_t end_time)
 {
 	os_error		*error;
-	osbool			done = FALSE;
-	int			read, context, i;
+	int			i;
 	unsigned		stack;
 	osgbpb_info		*file_data;
 	char			filename[4996], leafname[SEARCH_MAX_FILENAME];
@@ -367,7 +370,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 			debug_printf("Search path: '%s'", filename);
 
-			error = xosgbpb_dir_entries_info(filename, search->stack[stack].info, 1000, search->stack[stack].context,
+			error = xosgbpb_dir_entries_info(filename, (osgbpb_info_list *) search->stack[stack].info, 1000, search->stack[stack].context,
 					SEARCH_BLOCK_SIZE, "*", &(search->stack[stack].read), &(search->stack[stack].context));
 
 			search->stack[stack].next = 0;
@@ -383,10 +386,34 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 			debug_printf("Looping %d of %d with offset %u to address 0x%x for file '%s'", search->stack[stack].next, search->stack[stack].read, search->stack[stack].data_offset, file_data, file_data->name);
 
+			if (TRUE) {
+				*filename = '\0';
+
+				for (i = 0; i <= stack; i++) {
+					if (i > 0)
+						strcat(filename, ".");
+					strcat(filename, search->stack[i].filename);
+				}
+
+				strcat(filename, ".");
+				strcat(filename, file_data->name);
+
+				results_add_text(search->results, filename, "small_xxx", FALSE, wimp_COLOUR_BLACK);
+			}
+
+			/* Refind the file data, as it could have moved if the flex heap shuffled.
+			 *
+			 * Update the data offsets for the next file.
+			 */
+
+			file_data = (osgbpb_info *) ((unsigned) search->stack[stack].info + search->stack[stack].data_offset);
+
 			search->stack[stack].data_offset += ((24 + strlen(file_data->name)) & 0xfffffffc);
 			search->stack[stack].next++;
 
-			if (file_data->obj_type == fileswitch_IS_DIR) {
+			/* If the object is a folder, recurse down into it. */
+
+			if (file_data->obj_type == fileswitch_IS_DIR || (search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE)) {
 				/* Take a copy of the name before we shift the flex heap. */
 
 				strncpy(leafname, file_data->name, SEARCH_MAX_FILENAME);
@@ -397,8 +424,6 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				debug_printf("Down into folder: stack %u", stack);
 				continue;
 			}
-
-			results_add_text(search->results, "File", "small_unf", FALSE, wimp_COLOUR_BLACK);
 		}
 
 		/* If that was all the files in the current folder, return to the
@@ -426,6 +451,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 			search_stop(search);
 		}
 	}
+
+	results_reformat(search->results, FALSE);
 
 	debug_printf("Exiting search poll 0x%x", search);
 
