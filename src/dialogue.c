@@ -39,6 +39,7 @@
 
 #include "flexutils.h"
 #include "ihelp.h"
+#include "search.h"
 #include "templates.h"
 
 
