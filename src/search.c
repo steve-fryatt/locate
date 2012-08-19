@@ -359,6 +359,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 		 * OS_GBPB 10 to get another set of file details.
 		 */
 
+		error = NULL;
+
 		if (search->stack[stack].next >= search->stack[stack].read) {
 			*filename = '\0';
 
@@ -377,6 +379,19 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 			search->stack[stack].data_offset = 0;
 
 			debug_printf("Out Read: %d, context: %d, next: %d", search->stack[stack].read, search->stack[stack].context, search->stack[stack].next);
+		}
+
+		/* Handle any errors thrown by the OS_GBPB call by dropping back out of
+		 * the current directory.
+		 */
+
+		if (error != NULL) {
+			stack = search_drop_stack(search);
+			debug_printf("Up out of folder: stack %u", stack);
+
+			results_add_text(search->results, error->errmess, "small_xxx", FALSE, wimp_COLOUR_RED);
+
+			continue;
 		}
 
 		/* Process the buffered details. */
@@ -433,6 +448,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 		if (search->stack[stack].context == -1) {
 			stack = search_drop_stack(search);
 			debug_printf("Up out of folder: stack %u", stack);
+
+			continue;
 		}
 	}
 
