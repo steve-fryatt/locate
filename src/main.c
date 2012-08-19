@@ -203,7 +203,7 @@ static void main_initialise(void)
 
 	/* Load the window templates. */
 
-	sprites = resources_load_user_sprite_area("<Locate$Dir>.Sprites");
+	sprites = resources_load_user_sprite_area("<Locate$Sprites>.Sprites");
 
 	main_wimp_sprites = sprites;
 
@@ -216,7 +216,7 @@ static void main_initialise(void)
 	dataxfer_initialise();
 	choices_initialise();
 	dialogue_initialise();
-	results_initialise();
+	results_initialise(sprites);
 	iconbar_initialise();
 	url_initialise();
 

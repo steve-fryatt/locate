@@ -17,6 +17,7 @@
 /* OSLib Header files. */
 
 #include "oslib/osbyte.h"
+#include "oslib/osspriteop.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib Header files. */
@@ -149,6 +150,8 @@ struct results_window {
 static wimp_window	*results_window_def = NULL;				/**< Definition for the main results window.				*/
 static wimp_window	*results_status_def = NULL;				/**< Definition for the results status pane.				*/
 
+static osspriteop_area	*results_sprite_area = NULL;				/**< The application sprite area.					*/
+
 
 /* Local function prototypes. */
 
@@ -171,9 +174,11 @@ static unsigned	results_add_fileblock(struct results_window *handle);
 
 /**
  * Initialise the Results module.
+ *
+ * \param *sprites		Pointer to the sprite area to be used.
  */
 
-void results_initialise(void)
+void results_initialise(osspriteop_area *sprites)
 {
 	results_window_def = templates_load_window("Results");
 	results_window_def->icon_count = 0;
@@ -182,6 +187,8 @@ void results_initialise(void)
 
 	if (results_window_def == NULL || results_status_def == NULL)
 		error_msgs_report_fatal("BadTemplate");
+
+	results_sprite_area = sprites;
 }
 
 
@@ -290,6 +297,7 @@ struct results_window *results_create(struct file_block *file, char *title)
 
 	results_window_def->title_data.indirected_text.text = title_block;
 	results_window_def->title_data.indirected_text.size = strlen(title_block) + 1;
+	results_window_def->sprite_area = results_sprite_area;
 
 	results_status_def->icons[RESULTS_ICON_STATUS].data.indirected_text.text = status_block;
 	results_status_def->icons[RESULTS_ICON_STATUS].data.indirected_text.size = STATUS_LENGTH;

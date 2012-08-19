@@ -11,11 +11,14 @@
 
 struct results_window;
 
+
 /**
  * Initialise the Results module.
+ *
+ * \param *sprites		Pointer to the sprite area to be used.
  */
 
-void results_initialise(void);
+void results_initialise(osspriteop_area *sprites);
 
 
 /**
