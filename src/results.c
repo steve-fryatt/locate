@@ -159,7 +159,10 @@ static unsigned	results_add_line(struct results_window *handle, osbool show);
 static unsigned	results_add_fileblock(struct results_window *handle);
 
 
-/* Line position calculations. */
+/* Line position calculations.
+ *
+ * NB: These can be called with lines < 0 to give lines off the top of the window!
+ */
 
 #define LINE_BASE(x) (-((x)+1) * RESULTS_LINE_HEIGHT - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN)
 #define LINE_Y0(x) (LINE_BASE(x) + RESULTS_LINE_OFFSET)
@@ -558,6 +561,7 @@ void results_add_file(struct results_window *handle, char *text)
 
 void results_reformat(struct results_window *handle, osbool all)
 {
+	os_error		*error;
 	int			line, width, length, pos;
 	char			*text;
 	char			truncate[1024]; // \TODO -- Allocate properly.
@@ -595,6 +599,10 @@ void results_reformat(struct results_window *handle, osbool all)
 			break;
 		}
 	}
+
+	error = xwimp_force_redraw(handle->window,
+			0, LINE_Y0(handle->redraw_lines - 1),
+			handle->format_width, (all) ? LINE_Y1(0) : LINE_Y1(handle->formatted_lines));
 
 	handle->formatted_lines = handle->redraw_lines;
 
