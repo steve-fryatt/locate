@@ -53,16 +53,26 @@ void results_set_title(struct results_window *handle, char *title);
 
 
 /**
- * Add a line of unspecific text to the end of a results window.
+ * Add an error message to the results window.
  *
- * \param *handle		The handle to the results window to update.
- * \param *text			The text to add.
- * \param *sprite		The name of the sprite to use.
- * \param small			TRUE to plot the sprite half-size; else FALSE.
- * \param colour		The colour to use for the text.
+ * \param *handle		The handle of the results window to update.
+ * \param *message		The error message text.
+ * \param *path			The path of the folder where the error occurred,
+ *				or NULL if not applicable.
  */
 
-void results_add_text(struct results_window *handle, char *text, char *sprite, osbool small, wimp_colour colour);
+void results_add_error(struct results_window *handle, char *message, char *path);
+
+
+/**
+ * Add a file to the end of the results window.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param *name			The complete filename.
+ * \param type			The type of the file.
+ */
+
+void results_add_file(struct results_window *handle, char *name, unsigned type);
 
 
 /**

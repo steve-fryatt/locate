@@ -389,7 +389,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 			stack = search_drop_stack(search);
 			debug_printf("Up out of folder: stack %u", stack);
 
-			results_add_text(search->results, error->errmess, "small_xxx", FALSE, wimp_COLOUR_RED);
+			results_add_error(search->results, error->errmess, filename);
 
 			continue;
 		}
@@ -413,7 +413,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				strcat(filename, ".");
 				strcat(filename, file_data->name);
 
-				results_add_text(search->results, filename, "small_xxx", FALSE, wimp_COLOUR_BLACK);
+				results_add_file(search->results, filename, 0xfffu);
 			}
 
 			/* Refind the file data, as it could have moved if the flex heap shuffled.
