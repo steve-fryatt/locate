@@ -17,6 +17,7 @@
 /* OSLib Header files. */
 
 #include "oslib/os.h"
+#include "oslib/osfile.h"
 #include "oslib/osgbpb.h"
 
 /* SF-Lib Header files. */
@@ -404,13 +405,13 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 			/* Work out a filetype using the convention 0x000-0xfff, 0x1000, 0x2000, 0x3000. */
 
 			if (file_data->obj_type == fileswitch_IS_DIR && file_data->name[0] == '!')
-				search->stack[stack].filetype = RESULTS_FILETYPE_APP;
+				search->stack[stack].filetype = osfile_TYPE_APPLICATION;
 			else if (file_data->obj_type == fileswitch_IS_DIR)
-				search->stack[stack].filetype = RESULTS_FILETYPE_DIR;
+				search->stack[stack].filetype = osfile_TYPE_DIR;
 			else if ((file_data->load_addr & 0xfff00000u) != 0xfff00000)
-				search->stack[stack].filetype = RESULTS_FILETYPE_UNTYPED;
+				search->stack[stack].filetype = osfile_TYPE_UNTYPED;
 			else
-				search->stack[stack].filetype = (file_data->load_addr & 0xfff00u) >> 8;
+				search->stack[stack].filetype = (file_data->load_addr & osfile_FILE_TYPE) >> osfile_FILE_TYPE_SHIFT;
 
 			debug_printf("Looping %d of %d with offset %u to address 0x%x for file '%s' of type 0x%x", search->stack[stack].next, search->stack[stack].read, search->stack[stack].data_offset, file_data, file_data->name, search->stack[stack].filetype);
 			if (TRUE) {

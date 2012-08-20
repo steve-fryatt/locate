@@ -50,6 +50,7 @@
 #include "dataxfer.h"
 #include "dialogue.h"
 #include "file.h"
+#include "fileicon.h"
 #include "iconbar.h"
 #include "ihelp.h"
 #include "results.h"
@@ -85,6 +86,7 @@ int main(int argc, char *argv[])
 
 	file_destroy_all();
 
+	fileicon_terminate();
 	msgs_terminate();
 	wimp_close_down(main_task_handle);
 
@@ -215,6 +217,7 @@ static void main_initialise(void)
 	ihelp_initialise();
 	dataxfer_initialise();
 	choices_initialise();
+	fileicon_initialise();
 	dialogue_initialise();
 	results_initialise(sprites);
 	iconbar_initialise();

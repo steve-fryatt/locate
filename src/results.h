@@ -9,10 +9,6 @@
 
 #include "file.h"
 
-#define RESULTS_FILETYPE_DIR 0x1000u
-#define RESULTS_FILETYPE_APP 0x2000u
-#define RESULTS_FILETYPE_UNTYPED 0x3000u
-
 struct results_window;
 
 
