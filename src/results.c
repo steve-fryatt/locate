@@ -19,6 +19,7 @@
 #include "oslib/osbyte.h"
 #include "oslib/osspriteop.h"
 #include "oslib/wimp.h"
+#include "oslib/wimpspriteop.h"
 
 /* SF-Lib Header files. */
 
@@ -84,6 +85,13 @@ enum results_line_flags {
 	RESULTS_FLAG_SELECTED = 4						/**< The row is currently selected.					*/
 };
 
+enum results_sprite_status {
+	RESULTS_SPRITE_UNCHECKED = 0,
+	RESULTS_SPRITE_NONE,
+	RESULTS_SPRITE_LARGE,
+	RESULTS_SPRITE_SMALL
+};
+
 /** A file information block. */
 
 struct results_file {
@@ -147,16 +155,19 @@ struct results_window {
 
 /* Global variables. */
 
-static wimp_window	*results_window_def = NULL;				/**< Definition for the main results window.				*/
-static wimp_window	*results_status_def = NULL;				/**< Definition for the results status pane.				*/
+static wimp_window			*results_window_def = NULL;		/**< Definition for the main results window.				*/
+static wimp_window			*results_status_def = NULL;		/**< Definition for the results status pane.				*/
 
-static osspriteop_area	*results_sprite_area = NULL;				/**< The application sprite area.					*/
+static osspriteop_area			*results_sprite_area = NULL;		/**< The application sprite area.					*/
+
+static enum results_sprite_status	results_file_icons[4096];		/**< Cached list of file type icon sprites.				*/
 
 
 /* Local function prototypes. */
 
 static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
+static osbool	results_find_icon_sprite(char *name, size_t len, unsigned type);
 static void	results_update_extent(struct results_window *handle);
 static unsigned	results_add_line(struct results_window *handle, osbool show);
 static unsigned	results_add_fileblock(struct results_window *handle);
@@ -180,6 +191,8 @@ static unsigned	results_add_fileblock(struct results_window *handle);
 
 void results_initialise(osspriteop_area *sprites)
 {
+	int	i;
+
 	results_window_def = templates_load_window("Results");
 	results_window_def->icon_count = 0;
 
@@ -189,6 +202,9 @@ void results_initialise(osspriteop_area *sprites)
 		error_msgs_report_fatal("BadTemplate");
 
 	results_sprite_area = sprites;
+
+	for (i = 0; i < 4096; i++)
+		results_file_icons[i] = RESULTS_SPRITE_UNCHECKED;
 }
 
 
@@ -524,8 +540,11 @@ void results_add_error(struct results_window *handle, char *message, char *path)
 
 void results_add_file(struct results_window *handle, char *name, unsigned type)
 {
-	unsigned file, info, data, fileblock;
-	unsigned line, offv, offt;
+	unsigned	file, info, data, fileblock;
+	unsigned	line, offv, offt;
+	char		sprite[20];
+	os_error	*error;
+	osbool		small;
 
 	if (handle == NULL)
 		return;
@@ -534,8 +553,10 @@ void results_add_file(struct results_window *handle, char *name, unsigned type)
 	if (line == RESULTS_NULL)
 		return;
 
+	small = results_find_icon_sprite(sprite, sizeof(sprite), type);
+
 	offt = textdump_store(handle->text, name);
-	offv = textdump_store(handle->text, "small_xxx");
+	offv = textdump_store(handle->text, sprite);
 
 	if (offt == TEXTDUMP_NULL || offv == TEXTDUMP_NULL)
 		return;
@@ -543,6 +564,8 @@ void results_add_file(struct results_window *handle, char *name, unsigned type)
 	handle->redraw[line].type = RESULTS_LINE_TEXT;
 	handle->redraw[line].text = offt;
 	handle->redraw[line].sprite = offv;
+	if (!small)
+		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
 
 /*
 	fileblock = results_add_fileblock(handle);
@@ -571,6 +594,80 @@ void results_add_file(struct results_window *handle, char *name, unsigned type)
 	handle->redraw[info].text = RESULTS_NULL;
 	handle->redraw[info].file = fileblock;
 */
+}
+
+
+/**
+ * Find a sprite name to go with a filetype.
+ *
+ * \param *name			Pointer to a buffer to hold the sprite name.
+ * \param len			The length of the sprite name buffer.
+ * \param type			The filetype to match.
+ * \return			TRUE if a small sprite has been found; FALSE if large.
+ */
+
+static osbool results_find_icon_sprite(char *name, size_t len, unsigned type)
+{
+	os_error	*error;
+
+	/* Deal with special cases first. */
+
+	if (type > 0xfffu) {
+		switch (type) {
+		case RESULTS_FILETYPE_DIR:
+			snprintf(name, len, "small_dir");
+			break;
+		case RESULTS_FILETYPE_APP:
+			snprintf(name, len, "small_app");
+			break;
+		case RESULTS_FILETYPE_UNTYPED:
+			snprintf(name, len, "small_lxa");
+			break;
+		default:
+			snprintf(name, len, "small_xxx");
+			break;
+		}
+
+		return TRUE;
+	}
+
+	/* For filetypes, check the cache and then start testing sprites. */
+
+	switch (results_file_icons[type]) {
+	case RESULTS_SPRITE_LARGE:
+		snprintf(name, len, "file_%3x", type);
+		return FALSE;
+
+	case RESULTS_SPRITE_SMALL:
+		snprintf(name, len, "small_%3x", type);
+		return TRUE;
+
+	case RESULTS_SPRITE_NONE:
+		snprintf(name, len, "small_xxx");
+		return TRUE;
+
+	default:
+		snprintf(name, len, "small_%3x", type);
+		error = xwimpspriteop_read_sprite_info(name, NULL, NULL, NULL, NULL);
+
+		if (error == NULL) {
+			results_file_icons[type] = RESULTS_SPRITE_SMALL;
+			return TRUE;
+		}
+
+		snprintf(name, len, "file_%3x", type);
+		error = xwimpspriteop_read_sprite_info(name, NULL, NULL, NULL, NULL);
+
+		if (error == NULL) {
+			results_file_icons[type] = RESULTS_SPRITE_LARGE;
+			return FALSE;
+		}
+
+		results_file_icons[type] = RESULTS_SPRITE_NONE;
+	}
+
+	snprintf(name, len, "small_xxx");
+	return TRUE;
 }
 
 

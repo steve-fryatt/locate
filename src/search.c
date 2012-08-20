@@ -54,6 +54,8 @@ struct search_stack {
 	int			context;					/**< The context for the next OS_GBPB call.				*/
 	int			next;						/**< The number of the next item to read from the block.		*/
 	unsigned		data_offset;					/**< Offset to the data for the next item to be read from the block.	*/
+
+	unsigned		filetype;					/**< The filetype of the current file.					*/
 };
 
 /* A data structure defining a search. */
@@ -399,8 +401,18 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 		while ((os_read_monotonic_time() < end_time) && (search->stack[stack].next < search->stack[stack].read)) {
 			file_data = (osgbpb_info *) ((unsigned) search->stack[stack].info + search->stack[stack].data_offset);
 
-			debug_printf("Looping %d of %d with offset %u to address 0x%x for file '%s'", search->stack[stack].next, search->stack[stack].read, search->stack[stack].data_offset, file_data, file_data->name);
+			/* Work out a filetype using the convention 0x000-0xfff, 0x1000, 0x2000, 0x3000. */
 
+			if (file_data->obj_type == fileswitch_IS_DIR && file_data->name[0] == '!')
+				search->stack[stack].filetype = RESULTS_FILETYPE_APP;
+			else if (file_data->obj_type == fileswitch_IS_DIR)
+				search->stack[stack].filetype = RESULTS_FILETYPE_DIR;
+			else if ((file_data->load_addr & 0xfff00000u) != 0xfff00000)
+				search->stack[stack].filetype = RESULTS_FILETYPE_UNTYPED;
+			else
+				search->stack[stack].filetype = (file_data->load_addr & 0xfff00u) >> 8;
+
+			debug_printf("Looping %d of %d with offset %u to address 0x%x for file '%s' of type 0x%x", search->stack[stack].next, search->stack[stack].read, search->stack[stack].data_offset, file_data, file_data->name, search->stack[stack].filetype);
 			if (TRUE) {
 				*filename = '\0';
 
@@ -413,7 +425,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				strcat(filename, ".");
 				strcat(filename, file_data->name);
 
-				results_add_file(search->results, filename, 0xfffu);
+				results_add_file(search->results, filename, search->stack[stack].filetype);
 			}
 
 			/* Refind the file data, as it could have moved if the flex heap shuffled.
