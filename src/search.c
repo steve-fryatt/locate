@@ -212,9 +212,14 @@ void search_destroy(struct search_block *search)
 
 	/* Free any memory allocated to the search. */
 
-	flex_free((flex_ptr) &(search->stack));
-	heap_free(search->path);
-	heap_free(search->paths);
+	if (search->stack != NULL)
+		flex_free((flex_ptr) &(search->stack));
+
+	if (search->path != NULL)
+		heap_free(search->path);
+
+	if (search->paths != NULL)
+		heap_free(search->paths);
 
 	heap_free(search);
 }
@@ -284,6 +289,7 @@ void search_stop(struct search_block *search)
 		search->stack_level = 0;
 
 		flex_free((flex_ptr) &(search->stack));
+		search->stack = NULL;
 	}
 
 	/* If the search is at the head of the list, remove it... */
