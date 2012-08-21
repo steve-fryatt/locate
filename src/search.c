@@ -273,6 +273,19 @@ void search_stop(struct search_block *search)
 
 	search_searches_active--;
 
+	/* Free any stack that's allocated.
+	 *
+	 * NB: This will need to be reallocated if the search is restarted, so
+	 * it's terminal.  Any search history will be lost.
+	 */
+
+	if (search->stack != NULL) {
+		search->stack_size = 0;
+		search->stack_level = 0;
+
+		flex_free((flex_ptr) &(search->stack));
+	}
+
 	/* If the search is at the head of the list, remove it... */
 
 	if (search_active == search) {
