@@ -49,7 +49,7 @@
 
 struct search_stack {
 	char			filename[SEARCH_MAX_FILENAME];			/**< The filename of the current directory.				*/
-	bits			info[SEARCH_BLOCK_SIZE];			/**< Block for OS_GBPB 10.						*/
+	byte			info[SEARCH_BLOCK_SIZE];			/**< Block for OS_GBPB 10.						*/
 
 	int			read;						/**< The number of files read at the last OS_GBPB call.			*/
 	int			context;					/**< The context for the next OS_GBPB call.				*/
