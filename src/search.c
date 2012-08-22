@@ -404,7 +404,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 	stack = search->stack_level - 1;
 
-	while (stack != SEARCH_NULL && (search->stack[stack].context != -1) && (os_read_monotonic_time() < end_time)) {
+	while (stack != SEARCH_NULL && (os_read_monotonic_time() < end_time)) {
 		debug_printf("In Stack: %u, Filename: '%s', Read: %d, context: %d, next: %d", stack, search->stack[stack].filename, search->stack[stack].read, search->stack[stack].context, search->stack[stack].next);
 
 		/* If there are no outstanding entries in the current buffer, call
@@ -511,7 +511,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 		 * parent.
 		 */
 
-		if (search->stack[stack].context == -1) {
+		if ((search->stack[stack].next >= search->stack[stack].read) && (search->stack[stack].context == -1)) {
 			stack = search_drop_stack(search);
 			debug_printf("Up out of folder: stack %u", stack);
 
