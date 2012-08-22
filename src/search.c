@@ -27,6 +27,7 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/msgs.h"
 #include "sflib/windows.h"
 #include "sflib/debug.h"
 #include "sflib/string.h"
@@ -76,6 +77,9 @@ struct search_block {
 	struct search_stack	*stack;						/**< The search stack.							*/
 	unsigned		stack_level;					/**< The current stack level.						*/
 	unsigned		stack_size;					/**< The amount of stack levels currently claimed.			*/
+
+	unsigned		file_count;					/**< The number of files found in the search.				*/
+	unsigned		error_count;					/**< The number of errors encountered during the search.		*/
 
 	struct search_block	*next;						/**< The next active search in the active search list.			*/
 };
@@ -174,6 +178,9 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 	new->stack_size = SEARCH_ALLOC_STACK;
 	new->stack_level = 0;
 
+	new->file_count = 0;
+	new->error_count = 0;
+
 	new->path_count = paths;
 
 	/* Split the path list into separate paths and link them into .path[]
@@ -233,10 +240,18 @@ void search_destroy(struct search_block *search)
 
 void search_start(struct search_block *search)
 {
-	unsigned stack;
+	unsigned	stack;
+	char		title[256];
+
 
 	if (search == NULL || search->path_count == 0)
 		return;
+
+	/* Set the window title up. */
+
+	msgs_param_lookup("ResWindTitle", title, sizeof(title), "", "", NULL, NULL);
+
+	results_set_title(search->results, title);
 
 	/* Allocate a search stack and set up the first search folder. */
 
@@ -267,6 +282,7 @@ void search_start(struct search_block *search)
 void search_stop(struct search_block *search)
 {
 	struct search_block	*active;
+	char			status[256], errors[256], number[20];
 
 
 	if (search == NULL || search->active == FALSE)
@@ -291,6 +307,20 @@ void search_stop(struct search_block *search)
 		flex_free((flex_ptr) &(search->stack));
 		search->stack = NULL;
 	}
+
+	/* Sort out the status bar text. */
+
+	if (search->error_count == 0) {
+		*errors = '\0';
+	} else {
+		snprintf(number, sizeof(number), "%d", search->error_count);
+		msgs_param_lookup("Errors", errors, sizeof(errors), number, NULL, NULL, NULL);
+	}
+
+	snprintf(number, sizeof(number), "%d", search->file_count);
+	msgs_param_lookup("Found", status, sizeof(status), number, errors, NULL, NULL);
+
+	results_set_status(search->results, status);
 
 	/* If the search is at the head of the list, remove it... */
 
@@ -408,6 +438,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 		 */
 
 		if (error != NULL) {
+			search->error_count++;
+
 			stack = search_drop_stack(search);
 			debug_printf("Up out of folder: stack %u", stack);
 
@@ -434,6 +466,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 			debug_printf("Looping %d of %d with offset %u to address 0x%x for file '%s' of type 0x%x", search->stack[stack].next, search->stack[stack].read, search->stack[stack].data_offset, file_data, file_data->name, search->stack[stack].filetype);
 			if (TRUE) {
+				search->file_count++;
+
 				*filename = '\0';
 
 				for (i = 0; i <= stack; i++) {

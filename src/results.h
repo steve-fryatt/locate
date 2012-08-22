@@ -43,6 +43,16 @@ void results_destroy(struct results_window *handle);
 
 
 /**
+ * Update the status bar text for a results window.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param *status		The text to be copied into the status bar.
+ */
+
+void results_set_status(struct results_window *handle, char *status);
+
+
+/**
  * Update the title text for a results window.
  *
  * \param *handle		The handle of the results window to update.

@@ -298,7 +298,7 @@ struct results_window *results_create(struct file_block *file, char *title)
 	windows_place_as_footer(results_window_def, results_status_def, status_height);
 
 	results_window_def->title_data.indirected_text.text = title_block;
-	results_window_def->title_data.indirected_text.size = strlen(title_block) + 1;
+	results_window_def->title_data.indirected_text.size = (title == NULL) ? TITLE_LENGTH : strlen(title_block) + 1;
 	results_window_def->sprite_area = results_sprite_area;
 
 	results_status_def->icons[RESULTS_ICON_STATUS].data.indirected_text.text = status_block;
@@ -471,6 +471,22 @@ void results_destroy(struct results_window *handle)
 
 
 /**
+ * Update the status bar text for a results window.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param *status		The text to be copied into the status bar.
+ */
+
+void results_set_status(struct results_window *handle, char *status)
+{
+	if (handle != NULL && status != NULL)
+		icons_strncpy(handle->status, RESULTS_ICON_STATUS, status);
+
+	xwimp_set_icon_state(handle->status, RESULTS_ICON_STATUS, 0, 0);
+}
+
+
+/**
  * Update the title text for a results window.
  *
  * \param *handle		The handle of the results window to update.
@@ -481,6 +497,8 @@ void results_set_title(struct results_window *handle, char *title)
 {
 	if (handle != NULL && title != NULL)
 		windows_title_strncpy(handle->window, title);
+
+	xwimp_force_redraw_title(handle->window);
 }
 
 
