@@ -35,8 +35,13 @@
 
 osbool flexutils_store_string(flex_ptr ptr, char *text)
 {
-	if (flex_extend(ptr, strlen(text) + 1) == 0)
-		return FALSE;
+	if (*ptr == NULL) {
+		if (flex_alloc(ptr, strlen(text) + 1) == 0)
+			return FALSE;
+	} else {
+		if (flex_extend(ptr, strlen(text) + 1) == 0)
+			return FALSE;
+	}
 
 	strcpy((char *) *ptr, text);
 
