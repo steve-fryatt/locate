@@ -1601,6 +1601,11 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 	search = file_create_search(dialogue->file, icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_SEARCH_PATH));
 	if (search == NULL)
 		return;
+
+	search_set_options(search, !dialogue->ignore_imagefs, dialogue->type_files, dialogue->type_directories, dialogue->type_applications);
+	if (strcmp(dialogue->filename, "") != 0 && strcmp(dialogue->filename, "*") != 0)
+		search_set_filename(search, icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_FILENAME), dialogue->ignore_case);
+
 	search_start(search);
 }
 

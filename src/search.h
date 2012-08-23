@@ -35,6 +35,31 @@ void search_destroy(struct search_block *search);
 
 
 /**
+ * Set specific options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param search_imagefs	TRUE to search into ImageFSs; FALSE to skip.
+ * \param include_files		TRUE to include files; FALSE to exclude.
+ * \param include_directories	TRUE to include directories; FALSE to exclude.
+ * \param include_applications	TRUE to include applications; FALSE to exclude.
+ */
+
+void search_set_options(struct search_block *search, osbool search_imagefs,
+		osbool include_files, osbool include_directories, osbool include_applications);
+
+
+/**
+ * Set the filename matching options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param *filename		Pointer to the filename to match.
+ * \param any_case		TRUE to match case insensitively; else FALSE.
+ */
+
+void search_set_filename(struct search_block *search, char *filename, osbool any_case);
+
+
+/**
  * Make a search active so that it will run on subsequent calls to search_poll().
  *
  * \param *search		The handle of the search to make active.

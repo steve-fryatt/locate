@@ -36,6 +36,7 @@
 
 #include "search.h"
 
+#include "flexutils.h"
 #include "results.h"
 
 
@@ -80,6 +81,38 @@ struct search_block {
 
 	unsigned		file_count;					/**< The number of files found in the search.				*/
 	unsigned		error_count;					/**< The number of errors encountered during the search.		*/
+
+	/* Search Parameters */
+
+	osbool			include_files;					/**< TRUE to include files in the results; FALSE to exclude.		*/
+	osbool			include_directories;				/**< TRUE to include directories in the results; FALSE to exclude.	*/
+	osbool			include_applications;				/**< TRUE to include applications in the results; FALSE to exclude.	*/
+
+	osbool			test_filename;					/**< TRUE to test the filename; FALSE to ignore.			*/
+	char			*filename;					/**< Pointer to a flex block with the filename to test; NULL if none.	*/
+	osbool			filename_any_case;				/**< TRUE if the filename should be tested case insenitively.		*/
+
+	osbool			test_size;
+	unsigned		minimum_size;
+	unsigned		maximum_size;
+
+	osbool			test_date;
+
+	osbool			test_type;
+
+	osbool			test_locked;
+
+	osbool			test_owner_read;
+
+	osbool			test_owner_write;
+
+	osbool			test_public_read;
+
+	osbool			test_public_write;
+
+	osbool			test_contents;
+
+	/* Block List */
 
 	struct search_block	*next;						/**< The next active search in the active search list.			*/
 };
@@ -173,13 +206,21 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 	new->active = FALSE;
 	new->next = NULL;
 
-	new->include_imagefs = FALSE;
-
 	new->stack_size = SEARCH_ALLOC_STACK;
 	new->stack_level = 0;
 
 	new->file_count = 0;
 	new->error_count = 0;
+
+	new->include_imagefs = FALSE;
+
+	new->include_files = TRUE;
+	new->include_directories = TRUE;
+	new->include_applications = TRUE;
+
+	new->test_filename = FALSE;
+	new->filename = NULL;
+	new->filename_any_case = FALSE;
 
 	new->path_count = paths;
 
@@ -228,7 +269,53 @@ void search_destroy(struct search_block *search)
 	if (search->paths != NULL)
 		heap_free(search->paths);
 
+	if (search->filename != NULL)
+		flex_free((flex_ptr) & (search->filename));
+
 	heap_free(search);
+}
+
+
+/**
+ * Set specific options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param search_imagefs	TRUE to search into ImageFSs; FALSE to skip.
+ * \param include_files		TRUE to include files; FALSE to exclude.
+ * \param include_directories	TRUE to include directories; FALSE to exclude.
+ * \param include_applications	TRUE to include applications; FALSE to exclude.
+ */
+
+void search_set_options(struct search_block *search, osbool search_imagefs,
+		osbool include_files, osbool include_directories, osbool include_applications)
+{
+	if (search == NULL)
+		return;
+
+	search->include_imagefs = search_imagefs;
+
+	search->include_files = include_files;
+	search->include_directories = include_directories;
+	search->include_applications = include_applications;
+}
+
+
+/**
+ * Set the filename matching options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param *filename		Pointer to the filename to match.
+ * \param any_case		TRUE to ,atch case insensitively; else FALSE.
+ */
+
+void search_set_filename(struct search_block *search, char *filename, osbool any_case)
+{
+	if (search == NULL)
+		return;
+
+	search->test_filename = TRUE;
+	flexutils_store_string((flex_ptr) &(search->filename), filename);
+	search->filename_any_case = any_case;
 }
 
 
@@ -241,7 +328,7 @@ void search_destroy(struct search_block *search)
 void search_start(struct search_block *search)
 {
 	unsigned	stack;
-	char		title[256];
+	char		title[256], flag[10], flags[10];
 
 
 	if (search == NULL || search->path_count == 0)
@@ -249,7 +336,14 @@ void search_start(struct search_block *search)
 
 	/* Set the window title up. */
 
-	msgs_param_lookup("ResWindTitle", title, sizeof(title), "", "", NULL, NULL);
+	*flags = '\0';
+
+	if (search->include_files == FALSE || search->include_directories == FALSE || search->include_applications == FALSE) {
+		msgs_lookup("TypeFlag", flag, sizeof(flag));
+		strcat(flags, flag);
+	}
+
+	msgs_param_lookup("ResWindTitle", title, sizeof(title), (search->filename != NULL) ? search->filename: "", flags, NULL, NULL);
 
 	results_set_title(search->results, title);
 
@@ -465,7 +559,12 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				search->stack[stack].filetype = (file_data->load_addr & osfile_FILE_TYPE) >> osfile_FILE_TYPE_SHIFT;
 
 			debug_printf("Looping %d of %d with offset %u to address 0x%x for file '%s' of type 0x%x", search->stack[stack].next, search->stack[stack].read, search->stack[stack].data_offset, file_data, file_data->name, search->stack[stack].filetype);
-			if (TRUE) {
+			if (((((search->stack[stack].filetype >= 0x000 && search->stack[stack].filetype <= 0xfff) || (search->stack[stack].filetype == osfile_TYPE_UNTYPED)) && search->include_files) ||
+					((search->stack[stack].filetype == osfile_TYPE_DIR) && search->include_directories) ||
+					((search->stack[stack].filetype == osfile_TYPE_APPLICATION) && search->include_applications)) &&
+					(!search->test_filename || string_wildcard_compare(search->filename, file_data->name, search->filename_any_case))
+
+					) {
 				search->file_count++;
 
 				*filename = '\0';
