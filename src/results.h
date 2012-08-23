@@ -53,6 +53,18 @@ void results_set_status(struct results_window *handle, char *status);
 
 
 /**
+ * Update the status bar text for a results window using a template and truncating
+ * the inset text to fit if necessary.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param *token		The messagetrans token of the template.
+ * \param *text 		The text to be inserted into placeholder %0.
+ */
+
+void results_set_status_template(struct results_window *handle, char *token, char *text);
+
+
+/**
  * Update the title text for a results window.
  *
  * \param *handle		The handle of the results window to update.

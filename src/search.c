@@ -692,6 +692,20 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 		}
 	}
 
+	/* If the search continues, update the status bar. */
+
+	if (stack != SEARCH_NULL) {
+		*filename = '\0';
+
+		for (i = 0; i <= stack; i++) {
+			if (i > 0)
+				strcat(filename, ".");
+			strcat(filename, search->stack[i].filename);
+		}
+
+		results_set_status_template(search->results, "Searching", filename);
+	}
+
 	results_reformat(search->results, FALSE);
 
 	debug_printf("Exiting search poll 0x%x", search);

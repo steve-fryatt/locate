@@ -27,6 +27,7 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/msgs.h"
 #include "sflib/windows.h"
 #include "sflib/debug.h"
 #include "sflib/string.h"
@@ -481,6 +482,65 @@ void results_set_status(struct results_window *handle, char *status)
 {
 	if (handle != NULL && status != NULL)
 		icons_strncpy(handle->status, RESULTS_ICON_STATUS, status);
+
+	xwimp_set_icon_state(handle->status, RESULTS_ICON_STATUS, 0, 0);
+}
+
+
+/**
+ * Update the status bar text for a results window using a template and truncating
+ * the inset text to fit if necessary.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param *token		The messagetrans token of the template.
+ * \param *text 		The text to be inserted into placeholder %0.
+ */
+
+void results_set_status_template(struct results_window *handle, char *token, char *text)
+{
+	char			status[STATUS_LENGTH], truncate[STATUS_LENGTH], *pos;
+	int			i;
+	wimp_icon_state		icon;
+	os_error		*error;
+
+
+	if (handle == NULL || token == NULL || text == NULL)
+		return;
+
+	/* If text is longer than the buffer, truncate it to the buffer length. */
+
+	i = (strlen(text) + 1) - STATUS_LENGTH;
+
+	if (i <= 0) {
+		strncpy(truncate, text, sizeof(truncate));
+	} else {
+		i += 3;
+
+		while (i-- > 0 && *text != '\0')
+			text++;
+
+		strncpy(truncate, "...", sizeof(truncate));
+		strncpy(truncate + 3, text, sizeof(truncate) - 3);
+	}
+
+	icon.w = handle->status;
+	icon.i = RESULTS_ICON_STATUS;
+	error = xwimp_get_icon_state(&icon);
+	if (error != NULL)
+		return;
+
+	pos = truncate;
+
+	msgs_param_lookup(token, status, sizeof(status), pos, NULL, NULL, NULL);
+
+	while (wimptextop_string_width(status, 0) > (icon.icon.extent.x1 - icon.icon.extent.x0)) {
+		*(pos + 3) = '.';
+		pos++;
+
+		msgs_param_lookup(token, status, sizeof(status), pos, NULL, NULL, NULL);
+	}
+
+	icons_strncpy(handle->status, RESULTS_ICON_STATUS, status);
 
 	xwimp_set_icon_state(handle->status, RESULTS_ICON_STATUS, 0, 0);
 }
