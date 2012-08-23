@@ -1606,6 +1606,9 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 	if (strcmp(dialogue->filename, "") != 0 && strcmp(dialogue->filename, "*") != 0)
 		search_set_filename(search, icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_FILENAME), dialogue->ignore_case);
 
+	if (dialogue->type_mode != DIALOGUE_TYPE_OF_ANY && dialogue->type_types[0] != 0xffffffffu)
+		search_set_types(search, dialogue->type_types, (dialogue->type_mode == DIALOGUE_TYPE_NOT_OF_TYPE) ? TRUE : FALSE);
+
 	search_start(search);
 }
 

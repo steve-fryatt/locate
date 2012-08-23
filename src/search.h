@@ -60,6 +60,17 @@ void search_set_filename(struct search_block *search, char *filename, osbool any
 
 
 /**
+ * Set the filetype matching options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param type_list[]		An 0xffffffffu terminated list of filetypes.
+ * \param invert		TRUE to exclude listed types; FALSE to include.
+ */
+
+void search_set_types(struct search_block *search, unsigned type_list[], osbool invert);
+
+
+/**
  * Make a search active so that it will run on subsequent calls to search_poll().
  *
  * \param *search		The handle of the search to make active.

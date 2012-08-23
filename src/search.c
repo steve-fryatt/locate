@@ -98,7 +98,8 @@ struct search_block {
 
 	osbool			test_date;
 
-	osbool			test_type;
+	osbool			test_filetype;					/**< TRUE to test the filetype; FALSE to ignore.			*/
+	bits			filetypes[4096 / (8 * sizeof(bits))];		/**< Bitmask for the filetype matching.					*/
 
 	osbool			test_locked;
 
@@ -222,6 +223,8 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 	new->filename = NULL;
 	new->filename_any_case = FALSE;
 
+	new->test_filetype = FALSE;
+
 	new->path_count = paths;
 
 	/* Split the path list into separate paths and link them into .path[]
@@ -320,6 +323,49 @@ void search_set_filename(struct search_block *search, char *filename, osbool any
 
 
 /**
+ * Set the filetype matching options for a search.
+ *
+ * Type matching is done via a bitmask, with one bit in an array of 32-bit words
+ * for each filetype. Bit 0 of the first word is for 0x000; Bit 31 of the 128th
+ * word is for 0xfff.  Bits are *always* set to allow a type, so the invert
+ * option starts by setting all the bits and then clearing those that are excluded.
+ *
+ * \param *search		The search to set the options for.
+ * \param type_list[]		An 0xffffffffu terminated list of filetypes.
+ * \param invert		TRUE to exclude listed types; FALSE to include.
+ */
+
+void search_set_types(struct search_block *search, unsigned type_list[], osbool invert)
+{
+	int	i;
+
+
+	if (search == NULL || type_list == NULL)
+		return;
+
+	search->test_filetype = TRUE;
+
+	/* Set the bitmask to the default state. */
+
+	for (i = 0; i < 4096 / (8 * sizeof(bits)); i++)
+		search->filetypes[i] = (invert) ? 0xffffffffu : 0x0u;
+
+	/* Set or clear individual bits to suit the type list passed in. */
+
+	i = 0;
+
+	while (type_list[i] != 0xffffffffu) {
+		if (invert)
+			search->filetypes[type_list[i] / (8 * sizeof(bits))] &= ~(1 << (type_list[i] % (8 * sizeof(bits))));
+		else
+			search->filetypes[type_list[i] / (8 * sizeof(bits))] |= (1 << (type_list[i] % (8 * sizeof(bits))));
+
+		i++;
+	}
+}
+
+
+/**
  * Make a search active so that it will run on subsequent calls to search_poll().
  *
  * \param *search		The handle of the search to make active.
@@ -338,7 +384,8 @@ void search_start(struct search_block *search)
 
 	*flags = '\0';
 
-	if (search->include_files == FALSE || search->include_directories == FALSE || search->include_applications == FALSE) {
+	if (search->include_files == FALSE || search->include_directories == FALSE || search->include_applications == FALSE ||
+			search->test_filetype == TRUE) {
 		msgs_lookup("TypeFlag", flag, sizeof(flag));
 		strcat(flags, flag);
 	}
@@ -559,10 +606,21 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				search->stack[stack].filetype = (file_data->load_addr & osfile_FILE_TYPE) >> osfile_FILE_TYPE_SHIFT;
 
 			debug_printf("Looping %d of %d with offset %u to address 0x%x for file '%s' of type 0x%x", search->stack[stack].next, search->stack[stack].read, search->stack[stack].data_offset, file_data, file_data->name, search->stack[stack].filetype);
+
+			/* Test the object that we have found, starting by making sure that the object type is one that we want. */
+
 			if (((((search->stack[stack].filetype >= 0x000 && search->stack[stack].filetype <= 0xfff) || (search->stack[stack].filetype == osfile_TYPE_UNTYPED)) && search->include_files) ||
 					((search->stack[stack].filetype == osfile_TYPE_DIR) && search->include_directories) ||
 					((search->stack[stack].filetype == osfile_TYPE_APPLICATION) && search->include_applications)) &&
-					(!search->test_filename || string_wildcard_compare(search->filename, file_data->name, search->filename_any_case))
+
+					/* If we're testing filename, does the name match? */
+
+					(!search->test_filename || string_wildcard_compare(search->filename, file_data->name, search->filename_any_case)) &&
+
+					/* If we're testing filetype and the type falls between 0x000 and 0xfff, is it set in the bitmask? */
+
+					(!search->test_filetype || ((search->stack[stack].filetype < 0x000) && (search->stack[stack].filetype > 0xfff)) ||
+							((search->filetypes[search->stack[stack].filetype / (8 * sizeof(bits))] & (1 << (search->stack[stack].filetype % (8 * sizeof(bits))))) != 0))
 
 					) {
 				search->file_count++;
