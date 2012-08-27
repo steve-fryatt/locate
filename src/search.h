@@ -7,6 +7,8 @@
 #ifndef LOCATE_SEARCH
 #define LOCATE_SEARCH
 
+#include "oslib/fileswitch.h"
+
 #include "results.h"
 
 struct search_block;
@@ -60,6 +62,29 @@ void search_set_filename(struct search_block *search, char *filename, osbool any
 
 
 /**
+ * Set the filesize matching options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param minimum		The minimum size to match in bytes.
+ * \param maximum		The maximum size to match in bytes.
+ */
+
+void search_set_size(struct search_block *search, int minimum, int maximum);
+
+
+/**
+ * Set the datestamp matching options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param minimum		The minimum date to match.
+ * \param maximum		The maximum date to match.
+ * \param as_age		TRUE to flag the parameters as age, FALSE for date.
+ */
+
+void search_set_date(struct search_block *search, os_date_and_time minimum, os_date_and_time maximum, osbool as_age);
+
+
+/**
  * Set the filetype matching options for a search.
  *
  * \param *search		The search to set the options for.
@@ -68,6 +93,17 @@ void search_set_filename(struct search_block *search, char *filename, osbool any
  */
 
 void search_set_types(struct search_block *search, unsigned type_list[], osbool invert);
+
+
+/**
+ * Set the attribute matching options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param mask			A mask setting bits to add to the test.
+ * \param required		The required states for the masked bits.
+ */
+
+void search_set_attributes(struct search_block *search, fileswitch_attr mask, fileswitch_attr required);
 
 
 /**

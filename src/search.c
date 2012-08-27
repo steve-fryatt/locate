@@ -92,24 +92,26 @@ struct search_block {
 	char			*filename;					/**< Pointer to a flex block with the filename to test; NULL if none.	*/
 	osbool			filename_any_case;				/**< TRUE if the filename should be tested case insenitively.		*/
 
-	osbool			test_size;
-	unsigned		minimum_size;
-	unsigned		maximum_size;
+	osbool			test_size;					/**< TRUE to test the file size; FALSE to ignore.			*/
+	osbool			size_logic;					/**< The required result of the size comparison.			*/
+	int			minimum_size;					/**< The minimum allowable file size.					*/
+	int			maximum_size;					/**< The maximum allowable file size.					*/
 
-	osbool			test_date;
+	osbool			test_date;					/**< TRUE to test the datestamp; FALSE to ignore.			*/
+	osbool			date_logic;					/**< The required result of the date comparison.			*/
+	unsigned		minimum_date_lo;				/**< The low four bytes of the minimum allowable datestamp.		*/
+	unsigned		minimum_date_hi;				/**< The high byte of the minimum allowable datestamp.			*/
+	unsigned		maximum_date_lo;				/**< The low four bytes of the maximum allowable datestamp.		*/
+	unsigned		maximum_date_hi;				/**< The high byte of the maximum allowable datestamp.			*/
+	osbool			date_as_age;					/**< TRUE if the date is expressed as age, for the title flags.		*/
 
 	osbool			test_filetype;					/**< TRUE to test the filetype; FALSE to ignore.			*/
 	bits			filetypes[4096 / (8 * sizeof(bits))];		/**< Bitmask for the filetype matching.					*/
+	osbool			include_untyped;				/**< TRUE if untyped files should match the type test.			*/
 
-	osbool			test_locked;
-
-	osbool			test_owner_read;
-
-	osbool			test_owner_write;
-
-	osbool			test_public_read;
-
-	osbool			test_public_write;
+	osbool			test_attributes;				/**< TRUE to test the file attributes; FALSE to ignore.			*/
+	bits			attributes;					/**< The required attributes.						*/
+	bits			attributes_mask;				/**< The bit mask for the required attributes (set to test).		*/
 
 	osbool			test_contents;
 
@@ -213,6 +215,8 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 	new->file_count = 0;
 	new->error_count = 0;
 
+	/* The Search criteria. */
+
 	new->include_imagefs = FALSE;
 
 	new->include_files = TRUE;
@@ -223,7 +227,22 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 	new->filename = NULL;
 	new->filename_any_case = FALSE;
 
+	new->test_size = FALSE;
+	new->size_logic = TRUE;
+	new->minimum_size = 0x0;
+	new->maximum_size = 0x7fffffff;
+
+	new->test_date = FALSE;
+	new->date_logic = TRUE;
+
+	new->test_attributes = FALSE;
+	new->attributes = 0x0u;
+	new->attributes_mask = 0x0u;
+
 	new->test_filetype = FALSE;
+	new->include_untyped = FALSE;
+
+	new->test_contents = FALSE;
 
 	new->path_count = paths;
 
@@ -308,7 +327,7 @@ void search_set_options(struct search_block *search, osbool search_imagefs,
  *
  * \param *search		The search to set the options for.
  * \param *filename		Pointer to the filename to match.
- * \param any_case		TRUE to ,atch case insensitively; else FALSE.
+ * \param any_case		TRUE to match case insensitively; else FALSE.
  */
 
 void search_set_filename(struct search_block *search, char *filename, osbool any_case)
@@ -323,6 +342,49 @@ void search_set_filename(struct search_block *search, char *filename, osbool any
 
 
 /**
+ * Set the filesize matching options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param minimum		The minimum size to match in bytes.
+ * \param maximum		The maximum size to match in bytes.
+ */
+
+void search_set_size(struct search_block *search, int minimum, int maximum)
+{
+	if (search == NULL)
+		return;
+
+	search->test_size = TRUE;
+	search->minimum_size = minimum;
+	search->maximum_size = maximum;
+}
+
+
+/**
+ * Set the datestamp matching options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param minimum		The minimum date to match.
+ * \param maximum		The maximum date to match.
+ * \param as_age		TRUE to flag the parameters as age, FALSE for date.
+ */
+
+void search_set_date(struct search_block *search, os_date_and_time minimum, os_date_and_time maximum, osbool as_age)
+{
+	if (search == NULL)
+		return;
+
+	search->test_date = TRUE;
+	search->minimum_date_lo = minimum[0] | (minimum[1] << 8) | (minimum[2] << 16) | (minimum[3] << 24);
+	search->minimum_date_hi = minimum[4];
+	search->maximum_date_lo = maximum[0] | (maximum[1] << 8) | (maximum[2] << 16) | (maximum[3] << 24);
+	search->maximum_date_hi = maximum[4];
+
+	search->date_as_age = as_age;
+}
+
+
+/**
  * Set the filetype matching options for a search.
  *
  * Type matching is done via a bitmask, with one bit in an array of 32-bit words
@@ -332,6 +394,7 @@ void search_set_filename(struct search_block *search, char *filename, osbool any
  *
  * \param *search		The search to set the options for.
  * \param type_list[]		An 0xffffffffu terminated list of filetypes.
+ *				0x1000u is used to signify "untyped".
  * \param invert		TRUE to exclude listed types; FALSE to include.
  */
 
@@ -350,18 +413,43 @@ void search_set_types(struct search_block *search, unsigned type_list[], osbool 
 	for (i = 0; i < 4096 / (8 * sizeof(bits)); i++)
 		search->filetypes[i] = (invert) ? 0xffffffffu : 0x0u;
 
+	search->include_untyped = invert;
+
 	/* Set or clear individual bits to suit the type list passed in. */
 
 	i = 0;
 
 	while (type_list[i] != 0xffffffffu) {
-		if (invert)
-			search->filetypes[type_list[i] / (8 * sizeof(bits))] &= ~(1 << (type_list[i] % (8 * sizeof(bits))));
-		else
-			search->filetypes[type_list[i] / (8 * sizeof(bits))] |= (1 << (type_list[i] % (8 * sizeof(bits))));
+		if (type_list[i] == 0x1000u) {
+			search->include_untyped = !invert;
+		} else if ((type_list[i] >= 0x000u) && (type_list[i] <= 0xfffu)) {
+			if (invert)
+				search->filetypes[type_list[i] / (8 * sizeof(bits))] &= ~(1 << (type_list[i] % (8 * sizeof(bits))));
+			else
+				search->filetypes[type_list[i] / (8 * sizeof(bits))] |= (1 << (type_list[i] % (8 * sizeof(bits))));
+		}
 
 		i++;
 	}
+}
+
+
+/**
+ * Set the attribute matching options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param mask			A mask setting bits to add to the test.
+ * \param required		The required states for the masked bits.
+ */
+
+void search_set_attributes(struct search_block *search, fileswitch_attr mask, fileswitch_attr required)
+{
+	if (search == NULL && mask != 0x0u)
+		return;
+
+	search->test_attributes = TRUE;
+	search->attributes_mask |= mask;
+	search->attributes |= required;
 }
 
 
@@ -384,9 +472,32 @@ void search_start(struct search_block *search)
 
 	*flags = '\0';
 
+	if (search->test_size == TRUE) {
+		msgs_lookup("SizeFlag", flag, sizeof(flag));
+		strcat(flags, flag);
+	}
+
+	if (search->test_date == TRUE) {
+		if (search->date_as_age)
+			msgs_lookup("AgeFlag", flag, sizeof(flag));
+		else
+			msgs_lookup("DateFlag", flag, sizeof(flag));
+		strcat(flags, flag);
+	}
+
 	if (search->include_files == FALSE || search->include_directories == FALSE || search->include_applications == FALSE ||
 			search->test_filetype == TRUE) {
 		msgs_lookup("TypeFlag", flag, sizeof(flag));
+		strcat(flags, flag);
+	}
+
+	if (search->test_attributes == TRUE) {
+		msgs_lookup("AttrFlag", flag, sizeof(flag));
+		strcat(flags, flag);
+	}
+
+	if (search->test_contents == TRUE) {
+		msgs_lookup("ContFlag", flag, sizeof(flag));
 		strcat(flags, flag);
 	}
 
@@ -617,10 +728,25 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 					(!search->test_filename || string_wildcard_compare(search->filename, file_data->name, search->filename_any_case)) &&
 
+					/* If we're testing filesize, does it fall into range? */
+
+					(!search->test_size || (search->stack[stack].filetype == osfile_TYPE_DIR) || (search->stack[stack].filetype == osfile_TYPE_APPLICATION) ||
+							(((file_data->size >= search->minimum_size) && (file_data->size <= search->maximum_size)) == search->size_logic)) &&
+
+					/* If we're testing date, does it fall into range? */
+
+					(!search->test_date || (search->stack[stack].filetype == osfile_TYPE_UNTYPED) ||
+							((((file_data->load_addr & 0xffu) >= search->minimum_date_hi) && ((file_data->load_addr & 0xffu) <= search->maximum_date_hi) &&
+							(file_data->exec_addr >= search->minimum_date_lo) && (file_data->exec_addr <= search->maximum_date_lo)) == search->date_logic)) &&
+
 					/* If we're testing filetype and the type falls between 0x000 and 0xfff, is it set in the bitmask? */
 
 					(!search->test_filetype || ((search->stack[stack].filetype < 0x000) && (search->stack[stack].filetype > 0xfff)) ||
-							((search->filetypes[search->stack[stack].filetype / (8 * sizeof(bits))] & (1 << (search->stack[stack].filetype % (8 * sizeof(bits))))) != 0))
+							((search->filetypes[search->stack[stack].filetype / (8 * sizeof(bits))] & (1 << (search->stack[stack].filetype % (8 * sizeof(bits))))) != 0)) &&
+
+					/* If we're testing attributes, do the bits cancel out? */
+
+					(!search->test_attributes || (((file_data->attr ^ search->attributes) & search->attributes_mask) == 0x0u))
 
 					) {
 				search->file_count++;

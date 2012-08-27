@@ -152,6 +152,8 @@
 
 #define DIALOGUE_MAX_FILE_LINE 1024
 
+#define MAX_BUFFER(current, size) (((size) > (current)) ? (size) : (current))
+
 enum dialogue_size {
 	DIALOGUE_SIZE_NOT_IMPORTANT = 0,
 	DIALOGUE_SIZE_EQUAL_TO,
@@ -331,6 +333,7 @@ static void	dialogue_click_handler(wimp_pointer *pointer);
 static osbool	dialogue_keypress_handler(wimp_key *key);
 static void	dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
 static osbool	dialogue_icon_drop_handler(wimp_message *message);
+static void	dialogue_start_search(struct dialogue_block *dialogue);
 static void	dialogue_dump_settings(struct dialogue_block *dialogue);
 
 
@@ -1305,7 +1308,7 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		case DIALOGUE_ICON_SEARCH:
 			if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
 				dialogue_read_window(dialogue_data);
-				dialogue_dump_settings(dialogue_data);
+				dialogue_start_search(dialogue_data);
 
 				if (pointer->buttons == wimp_CLICK_SELECT)
 					dialogue_close_window();
@@ -1361,7 +1364,7 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 	switch (key->c) {
 	case wimp_KEY_RETURN:
 		dialogue_read_window(dialogue_data);
-		dialogue_dump_settings(dialogue_data);
+		dialogue_start_search(dialogue_data);
 		dialogue_close_window();
 		break;
 
@@ -1474,6 +1477,95 @@ static osbool dialogue_icon_drop_handler(wimp_message *message)
 
 
 /**
+ * Take a set of dialogue settings and create a search from them.  This converts
+ * the "human-friendly" details from the dialogue into the details used by the
+ * search routines.
+ *
+ * \param *dialogue		The dialogue settings to use.
+ */
+
+static void dialogue_start_search(struct dialogue_block *dialogue)
+{
+	struct search_block	*search;
+	size_t			buffer_size = 0;
+	char			*buffer;
+
+
+	/* Dump the settings to Reporter for debugging. */
+
+	dialogue_dump_settings(dialogue);
+
+	/* Calculate the required fixed buffer size and allocate the buffer. */
+
+	buffer_size = MAX_BUFFER(buffer_size, strlen(dialogue->path) + 1);
+	buffer_size = MAX_BUFFER(buffer_size, strlen(dialogue->filename) + 1);
+	buffer_size = MAX_BUFFER(buffer_size, strlen(dialogue->contents_text) + 1);
+
+	buffer = heap_alloc(buffer_size);
+	if (buffer == NULL)
+		return;
+
+	/* Create the search and give up if this fails. */
+
+	strncpy(buffer, dialogue->path, buffer_size);
+
+	search = file_create_search(dialogue->file, buffer);
+
+	if (search == NULL) {
+		heap_free(buffer);
+		return;
+	}
+
+	/* Set the generic search options. */
+
+	search_set_options(search, !dialogue->ignore_imagefs, dialogue->type_files, dialogue->type_directories, dialogue->type_applications);
+
+	/* Set the filename search options. */
+
+	if (strcmp(dialogue->filename, "") != 0 && strcmp(dialogue->filename, "*") != 0) {
+		strncpy(buffer, dialogue->filename, buffer_size);
+		search_set_filename(search, buffer, dialogue->ignore_case);
+	}
+
+	/* Set the datestamp search options. */
+
+	if (dialogue->size_mode != DIALOGUE_SIZE_NOT_IMPORTANT) {
+
+	}
+
+	/* Set the size search options. */
+
+	/* Set the filetype search options. */
+
+	if (dialogue->type_mode != DIALOGUE_TYPE_OF_ANY && dialogue->type_types[0] != 0xffffffffu)
+		search_set_types(search, dialogue->type_types, (dialogue->type_mode == DIALOGUE_TYPE_NOT_OF_TYPE) ? TRUE : FALSE);
+
+	/* Set the attributes search options. */
+
+	if (dialogue->attributes_locked)
+		search_set_attributes(search, fileswitch_ATTR_OWNER_LOCKED, (dialogue->attributes_locked_yes) ? fileswitch_ATTR_OWNER_LOCKED : 0);
+
+	if (dialogue->attributes_owner_read)
+		search_set_attributes(search, fileswitch_ATTR_OWNER_READ, (dialogue->attributes_owner_read_yes) ? fileswitch_ATTR_OWNER_READ : 0);
+
+	if (dialogue->attributes_owner_write)
+		search_set_attributes(search, fileswitch_ATTR_OWNER_WRITE, (dialogue->attributes_owner_write_yes) ? fileswitch_ATTR_OWNER_WRITE : 0);
+
+	if (dialogue->attributes_public_read)
+		search_set_attributes(search, fileswitch_ATTR_WORLD_READ, (dialogue->attributes_public_read_yes) ? fileswitch_ATTR_WORLD_READ : 0);
+
+	if (dialogue->attributes_public_write)
+		search_set_attributes(search, fileswitch_ATTR_WORLD_WRITE, (dialogue->attributes_public_write_yes) ? fileswitch_ATTR_WORLD_WRITE : 0);
+
+	/* Tidy up and start the search. */
+
+	heap_free(buffer);
+
+	search_start(search);
+}
+
+
+/**
  * Dump the contents of the a search parameter block for debugging.
  *
  * \param *dialogue		The dialogue data block to dump the settings from.
@@ -1483,7 +1575,6 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 {
 	char			line[DIALOGUE_MAX_FILE_LINE];
 	int			i, index;
-	struct search_block	*search;
 
 	if (dialogue == NULL)
 		return;
@@ -1591,25 +1682,6 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 	debug_printf("Ignore ImageFS Contents: %s", config_return_opt_string(dialogue->ignore_imagefs));
 	debug_printf("Suppress Errors: %s", config_return_opt_string(dialogue->suppress_errors));
 	debug_printf("Display Full Info: %s", config_return_opt_string(dialogue->full_info));
-
-	/* Use the icon field for the paths, as this won't move about in the flex heap.
-	 *
-	 * \TODO -- This might need a separate buffer allocating to copy the name into, if
-	 *          we ever need to send a path set independent of the dialogue.
-	 */
-
-	search = file_create_search(dialogue->file, icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_SEARCH_PATH));
-	if (search == NULL)
-		return;
-
-	search_set_options(search, !dialogue->ignore_imagefs, dialogue->type_files, dialogue->type_directories, dialogue->type_applications);
-	if (strcmp(dialogue->filename, "") != 0 && strcmp(dialogue->filename, "*") != 0)
-		search_set_filename(search, icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_FILENAME), dialogue->ignore_case);
-
-	if (dialogue->type_mode != DIALOGUE_TYPE_OF_ANY && dialogue->type_types[0] != 0xffffffffu)
-		search_set_types(search, dialogue->type_types, (dialogue->type_mode == DIALOGUE_TYPE_NOT_OF_TYPE) ? TRUE : FALSE);
-
-	search_start(search);
 }
 
 
