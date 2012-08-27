@@ -65,23 +65,25 @@ void search_set_filename(struct search_block *search, char *filename, osbool any
  * Set the filesize matching options for a search.
  *
  * \param *search		The search to set the options for.
+ * \param in_limits		TRUE to match when in limits; FALSE to negate logic.
  * \param minimum		The minimum size to match in bytes.
  * \param maximum		The maximum size to match in bytes.
  */
 
-void search_set_size(struct search_block *search, int minimum, int maximum);
+void search_set_size(struct search_block *search, osbool in_limits, int minimum, int maximum);
 
 
 /**
  * Set the datestamp matching options for a search.
  *
  * \param *search		The search to set the options for.
+ * \param in_limits		TRUE to match when in limits; FALSE to negate logic.
  * \param minimum		The minimum date to match.
  * \param maximum		The maximum date to match.
  * \param as_age		TRUE to flag the parameters as age, FALSE for date.
  */
 
-void search_set_date(struct search_block *search, os_date_and_time minimum, os_date_and_time maximum, osbool as_age);
+void search_set_date(struct search_block *search, osbool in_limits, os_date_and_time minimum, os_date_and_time maximum, osbool as_age);
 
 
 /**

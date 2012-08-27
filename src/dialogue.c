@@ -334,6 +334,7 @@ static osbool	dialogue_keypress_handler(wimp_key *key);
 static void	dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
 static osbool	dialogue_icon_drop_handler(wimp_message *message);
 static void	dialogue_start_search(struct dialogue_block *dialogue);
+static int	dialogue_scale_size(unsigned base, enum dialogue_size_unit unit, osbool top);
 static void	dialogue_dump_settings(struct dialogue_block *dialogue);
 
 
@@ -995,7 +996,9 @@ static void dialogue_write_filetype_list(char *buffer, size_t length, unsigned t
 	name[8] = '\0';
 
 	for (i = 0; types[i] != 0xffffffffu; i++) {
-		if (xosfscontrol_read_file_type(types[i], (bits *) &name[0], (bits *) &name[4]) != NULL)
+		if (types[i] == 0x1000u)
+			strncpy(name, "Untyped", sizeof(name));
+		else if (xosfscontrol_read_file_type(types[i], (bits *) &name[0], (bits *) &name[4]) != NULL)
 			continue;
 
 		if (insert != buffer && insert < end)
@@ -1150,6 +1153,8 @@ static osbool dialogue_read_filetype_list(flex_ptr ptr, char *buffer)
 	while (name != NULL && i <= types) {
 		if (xosfscontrol_file_type_from_string(name, &type) == NULL) {
 			list[i++] = type;
+		} else if (string_nocase_strcmp(name, "Untyped") == 0) {
+			list[i++] = 0x1000u;
 		} else {
 			msgs_param_lookup("BadFiletype", error, sizeof(error), name, NULL, NULL, NULL);
 			error_report_info(error);
@@ -1527,13 +1532,52 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 		search_set_filename(search, buffer, dialogue->ignore_case);
 	}
 
-	/* Set the datestamp search options. */
+	/* Set the size search options. */
 
 	if (dialogue->size_mode != DIALOGUE_SIZE_NOT_IMPORTANT) {
+		switch (dialogue->size_mode) {
+		case DIALOGUE_SIZE_EQUAL_TO:
+			search_set_size(search, TRUE,
+					dialogue_scale_size(dialogue->size_min, dialogue->size_min_unit, FALSE),
+					dialogue_scale_size(dialogue->size_min, dialogue->size_min_unit, TRUE));
+			break;
 
+		case DIALOGUE_SIZE_NOT_EQUAL_TO:
+			search_set_size(search, FALSE,
+					dialogue_scale_size(dialogue->size_min, dialogue->size_min_unit, FALSE),
+					dialogue_scale_size(dialogue->size_min, dialogue->size_min_unit, TRUE));
+			break;
+
+		case DIALOGUE_SIZE_GREATER_THAN:
+			search_set_size(search, TRUE,
+					dialogue_scale_size(dialogue->size_min, dialogue->size_min_unit, FALSE),
+					0x7fffffff);
+			break;
+
+		case DIALOGUE_SIZE_LESS_THAN:
+			search_set_size(search, TRUE,
+					0x0u,
+					dialogue_scale_size(dialogue->size_min, dialogue->size_min_unit, TRUE));
+			break;
+
+		case DIALOGUE_SIZE_BETWEEN:
+			search_set_size(search, TRUE,
+					dialogue_scale_size(dialogue->size_min, dialogue->size_min_unit, FALSE),
+					dialogue_scale_size(dialogue->size_max, dialogue->size_max_unit, TRUE));
+			break;
+
+		case DIALOGUE_SIZE_NOT_BETWEEN:
+			search_set_size(search, FALSE,
+					dialogue_scale_size(dialogue->size_min, dialogue->size_min_unit, FALSE),
+					dialogue_scale_size(dialogue->size_max, dialogue->size_max_unit, TRUE));
+			break;
+
+		case DIALOGUE_SIZE_NOT_IMPORTANT:
+			break;
+		}
 	}
 
-	/* Set the size search options. */
+	/* Set the datestamp search options. */
 
 	/* Set the filetype search options. */
 
@@ -1562,6 +1606,39 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 	heap_free(buffer);
 
 	search_start(search);
+}
+
+
+/**
+ * Scale size values up by standard dialogue box units and round up or down.
+ *
+ * \param base			The base value to scale.
+ * \param unit			The units to be applied to the base value.
+ * \param top			TRUE to round up; FALSE to round down.
+ * \return			The scaled and rounded value in bytes.
+ */
+
+static int dialogue_scale_size(unsigned base, enum dialogue_size_unit unit, osbool top)
+{
+	int	result;
+
+
+	switch (unit) {
+	case DIALOGUE_SIZE_MBYTES:
+		result = (base * 1048576) + ((top) ? +524288 : -524288);
+		break;
+
+	case DIALOGUE_SIZE_KBYTES:
+		result = (base * 1024) + ((top) ? +512 : -512);
+		break;
+
+	case DIALOGUE_SIZE_BYTES:
+	default:
+		result = base;
+		break;
+	}
+
+	return result;
 }
 
 

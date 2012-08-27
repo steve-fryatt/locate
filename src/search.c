@@ -345,18 +345,22 @@ void search_set_filename(struct search_block *search, char *filename, osbool any
  * Set the filesize matching options for a search.
  *
  * \param *search		The search to set the options for.
+ * \param in_limits		TRUE to match when in limits; FALSE to negate logic.
  * \param minimum		The minimum size to match in bytes.
  * \param maximum		The maximum size to match in bytes.
  */
 
-void search_set_size(struct search_block *search, int minimum, int maximum)
+void search_set_size(struct search_block *search, osbool in_limits, int minimum, int maximum)
 {
 	if (search == NULL)
 		return;
 
 	search->test_size = TRUE;
+	search->size_logic = in_limits;
 	search->minimum_size = minimum;
 	search->maximum_size = maximum;
+
+	debug_printf("Setting size options: %d to %d on logic %u", minimum, maximum, in_limits);
 }
 
 
@@ -366,15 +370,17 @@ void search_set_size(struct search_block *search, int minimum, int maximum)
  * \param *search		The search to set the options for.
  * \param minimum		The minimum date to match.
  * \param maximum		The maximum date to match.
+ * \param in_limits		TRUE to match when in limits; FALSE to negate logic.
  * \param as_age		TRUE to flag the parameters as age, FALSE for date.
  */
 
-void search_set_date(struct search_block *search, os_date_and_time minimum, os_date_and_time maximum, osbool as_age)
+void search_set_date(struct search_block *search, osbool in_limits, os_date_and_time minimum, os_date_and_time maximum, osbool as_age)
 {
 	if (search == NULL)
 		return;
 
 	search->test_date = TRUE;
+	search->date_logic = in_limits;
 	search->minimum_date_lo = minimum[0] | (minimum[1] << 8) | (minimum[2] << 16) | (minimum[3] << 24);
 	search->minimum_date_hi = minimum[4];
 	search->maximum_date_lo = maximum[0] | (maximum[1] << 8) | (maximum[2] << 16) | (maximum[3] << 24);
