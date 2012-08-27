@@ -17,6 +17,7 @@
 
 #include "oslib/os.h"
 #include "oslib/osbyte.h"
+#include "oslib/osword.h"
 #include "oslib/osfscontrol.h"
 #include "oslib/territory.h"
 #include "oslib/wimp.h"
@@ -37,6 +38,7 @@
 
 #include "dialogue.h"
 
+#include "datetime.h"
 #include "flexutils.h"
 #include "ihelp.h"
 #include "search.h"
@@ -335,6 +337,7 @@ static void	dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp
 static osbool	dialogue_icon_drop_handler(wimp_message *message);
 static void	dialogue_start_search(struct dialogue_block *dialogue);
 static int	dialogue_scale_size(unsigned base, enum dialogue_size_unit unit, osbool top);
+static void	dialogue_scale_age(os_date_and_time date, unsigned base, enum dialogue_age_unit unit, int round);
 static void	dialogue_dump_settings(struct dialogue_block *dialogue);
 
 
@@ -1491,9 +1494,9 @@ static osbool dialogue_icon_drop_handler(wimp_message *message)
 
 static void dialogue_start_search(struct dialogue_block *dialogue)
 {
-	struct search_block	*search;
-	size_t			buffer_size = 0;
-	char			*buffer;
+	struct search_block		*search;
+	size_t				buffer_size = 0;
+	char				*buffer;
 
 
 	/* Dump the settings to Reporter for debugging. */
@@ -1550,14 +1553,14 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 
 		case DIALOGUE_SIZE_GREATER_THAN:
 			search_set_size(search, TRUE,
-					dialogue_scale_size(dialogue->size_min, dialogue->size_min_unit, FALSE),
+					dialogue_scale_size(dialogue->size_min, dialogue->size_min_unit, TRUE),
 					0x7fffffff);
 			break;
 
 		case DIALOGUE_SIZE_LESS_THAN:
 			search_set_size(search, TRUE,
 					0x0u,
-					dialogue_scale_size(dialogue->size_min, dialogue->size_min_unit, TRUE));
+					dialogue_scale_size(dialogue->size_min, dialogue->size_min_unit, FALSE));
 			break;
 
 		case DIALOGUE_SIZE_BETWEEN:
@@ -1578,6 +1581,74 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 	}
 
 	/* Set the datestamp search options. */
+
+	if (!dialogue->use_age && dialogue->date_mode != DIALOGUE_DATE_AT_ANY_TIME) {
+
+	}
+
+	if (dialogue->use_age && dialogue->age_mode != DIALOGUE_AGE_ANY_AGE) {
+		char				line[DIALOGUE_MAX_FILE_LINE];
+		os_date_and_time		min_date, max_date;
+		oswordreadclock_utc_block	now;
+
+		now.op = oswordreadclock_OP_UTC;
+		oswordreadclock_utc(&now);
+
+		datetime_copy_date(min_date, now.utc);
+		datetime_copy_date(max_date, now.utc);
+
+		switch (dialogue->age_mode) {
+		case DIALOGUE_AGE_EXACTLY:
+			dialogue_scale_age(min_date, dialogue->age_min, dialogue->age_min_unit, -1);
+			dialogue_scale_age(max_date, dialogue->age_min, dialogue->age_min_unit, +1);
+			search_set_date(search, TRUE, min_date, max_date, TRUE);
+			break;
+
+		case DIALOGUE_AGE_ANY_AGE_BUT:
+			dialogue_scale_age(min_date, dialogue->age_min, dialogue->age_min_unit, -1);
+			dialogue_scale_age(max_date, dialogue->age_min, dialogue->age_min_unit, +1);
+			search_set_date(search, FALSE, min_date, max_date, TRUE);
+			break;
+
+		case DIALOGUE_AGE_LESS_THAN:
+			dialogue_scale_age(min_date, dialogue->age_min, dialogue->age_min_unit, 0);
+			datetime_set_date(max_date, 0xffu, 0xffffffffu);
+			search_set_date(search, TRUE, min_date, max_date, TRUE);
+			break;
+
+		case DIALOGUE_AGE_MORE_THAN:
+			datetime_set_date(min_date, 0x0u, 0x0u);
+			dialogue_scale_age(max_date, dialogue->age_min, dialogue->age_min_unit, 0);
+			search_set_date(search, TRUE, min_date, max_date, TRUE);
+			break;
+
+		case DIALOGUE_AGE_BETWEEN:
+			dialogue_scale_age(min_date, dialogue->age_min, dialogue->age_min_unit, 0);
+			dialogue_scale_age(max_date, dialogue->age_max, dialogue->age_max_unit, 0);
+			search_set_date(search, TRUE, min_date, max_date, TRUE);
+			break;
+
+		case DIALOGUE_AGE_NOT_BETWEEN:
+			dialogue_scale_age(min_date, dialogue->age_min, dialogue->age_min_unit, 0);
+			dialogue_scale_age(max_date, dialogue->age_max, dialogue->age_max_unit, 0);
+			search_set_date(search, FALSE, min_date, max_date, TRUE);
+			break;
+
+		case DIALOGUE_AGE_ANY_AGE:
+			break;
+		}
+
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(now.utc),
+				line, DIALOGUE_MAX_FILE_LINE, "%DY/%MN/%CE%YR.%24:%MI.%SE");
+		debug_printf("Now: '%s'", line);
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(min_date),
+				line, DIALOGUE_MAX_FILE_LINE, "%DY/%MN/%CE%YR.%24:%MI.%SE");
+		debug_printf("Min Date: '%s'", line);
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(max_date),
+				line, DIALOGUE_MAX_FILE_LINE, "%DY/%MN/%CE%YR.%24:%MI.%SE");
+		debug_printf("Max Date: '%s'", line);
+
+	}
 
 	/* Set the filetype search options. */
 
@@ -1643,6 +1714,49 @@ static int dialogue_scale_size(unsigned base, enum dialogue_size_unit unit, osbo
 
 
 /**
+ * Scale age values up by standard dialogue box units and round up or down.
+ *
+ * \param date			The base date to be used and updated.
+ * \param base			The base value to scale.
+ * \param unit			The units to be applied to the base value.
+ * \param round			-1 to round down, 1 to round up, 0 to be exact.
+ */
+
+static void dialogue_scale_age(os_date_and_time date, unsigned base, enum dialogue_age_unit unit, int round)
+{
+	os_date_and_time	factor;
+
+	switch (unit) {
+	case DIALOGUE_AGE_MINUTES:
+		datetime_set_date(factor, 0u, (6000u * base) + (3000u * round));
+		break;
+
+	case DIALOGUE_AGE_HOURS:
+		datetime_set_date(factor, 0u, (360000u * base) + (180000u * round));
+		break;
+
+	case DIALOGUE_AGE_DAYS:
+		datetime_set_date(factor, 0u, (8640000u * base) + (4320000u * round));
+		break;
+
+	case DIALOGUE_AGE_WEEKS:
+		datetime_set_date(factor, 0u, (60480000u * base) + (30240000u * round));
+		break;
+
+	case DIALOGUE_AGE_MONTHS:
+		datetime_set_date(factor, 0u, 0u);
+		break;
+
+	case DIALOGUE_AGE_YEARS:
+		datetime_set_date(factor, 0u, 0u);
+		break;
+	}
+
+	datetime_subtract_date(date, factor);
+}
+
+
+/**
  * Dump the contents of the a search parameter block for debugging.
  *
  * \param *dialogue		The dialogue data block to dump the settings from.
@@ -1652,6 +1766,7 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 {
 	char			line[DIALOGUE_MAX_FILE_LINE];
 	int			i, index;
+
 
 	if (dialogue == NULL)
 		return;
