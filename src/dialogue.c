@@ -1765,8 +1765,6 @@ static void dialogue_scale_age(os_date_and_time date, unsigned base, enum dialog
 			datetime_add_date(date, factor);
 		break;
 	}
-
-
 }
 
 
