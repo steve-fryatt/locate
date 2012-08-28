@@ -13,6 +13,7 @@
 /* OSLib Header files. */
 
 #include "oslib/os.h"
+#include "oslib/territory.h"
 #include "oslib/types.h"
 
 /* Application header files. */
@@ -124,5 +125,61 @@ void datetime_copy_date(os_date_and_time out, os_date_and_time in)
 	out[2] = in[2];
 	out[3] = in[3];
 	out[4] = in[4];
+}
+
+
+/**
+ * Add or subtract a given number of months from a date, rounding the result in
+ * to fit the resulting number of days.
+ *
+ * \param date			The date to be modified.
+ * \param months		The number of months to add or subtract.
+ */
+
+void datetime_add_months(os_date_and_time date, int months)
+{
+	int			years, days_in_month;
+	territory_ordinals	ordinals;
+
+	territory_convert_time_to_ordinals(territory_CURRENT, (const os_date_and_time *) date, &ordinals);
+
+	years = months / 12;
+	months %= 12;
+
+	ordinals.month += months;
+
+	if (ordinals.month > 12) {
+		ordinals.month -= 12;
+		years++;
+	}
+
+	if (ordinals.month < 1) {
+		ordinals.month += 12;
+		years--;
+	}
+
+	ordinals.year += years;
+
+	switch (ordinals.month) {
+	case 4:
+	case 6:
+	case 9:
+	case 11:
+		days_in_month = 30;
+		break;
+
+	case 2:
+		days_in_month = (((ordinals.year % 4) == 0) && ((ordinals.year % 100) != 0)) ? 29 : 28;
+		break;
+
+	default:
+		days_in_month = 31;
+		break;
+	}
+
+	if (ordinals.date > days_in_month)
+		ordinals.date = days_in_month;
+
+	territory_convert_ordinals_to_time(territory_CURRENT, (os_date_and_time *) date, &ordinals);
 }
 

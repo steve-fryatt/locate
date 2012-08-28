@@ -64,5 +64,16 @@ void datetime_set_date(os_date_and_time date, unsigned high, unsigned low);
 
 void datetime_copy_date(os_date_and_time out, os_date_and_time in);
 
+
+/**
+ * Add or subtract a given number of months from a date, rounding the result in
+ * to fit the resulting number of days.
+ *
+ * \param date			The date to be modified.
+ * \param months		The number of months to add or subtract.
+ */
+
+void datetime_add_months(os_date_and_time date, int months);
+
 #endif
 
