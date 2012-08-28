@@ -742,8 +742,10 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 					/* If we're testing date, does it fall into range? */
 
 					(!search->test_date || (search->stack[stack].filetype == osfile_TYPE_UNTYPED) ||
-							((((file_data->load_addr & 0xffu) >= search->minimum_date_hi) && ((file_data->load_addr & 0xffu) <= search->maximum_date_hi) &&
-							(file_data->exec_addr >= search->minimum_date_lo) && (file_data->exec_addr <= search->maximum_date_lo)) == search->date_logic)) &&
+							(((((file_data->load_addr & 0xffu) > search->minimum_date_hi) ||
+									(((file_data->load_addr & 0xffu) == search->minimum_date_hi) && (file_data->exec_addr >= search->minimum_date_lo))) &&
+							(((file_data->load_addr & 0xffu) < search->maximum_date_hi) ||
+									(((file_data->load_addr & 0xffu) == search->maximum_date_hi) && (file_data->exec_addr <= search->maximum_date_lo)))) == search->date_logic)) &&
 
 					/* If we're testing filetype and the type falls between 0x000 and 0xfff, is it set in the bitmask? */
 
