@@ -268,7 +268,7 @@ In addition, clicking <mouse>adjust</mouse> on the icon-bar icon will open a sea
 <chapter title="Matching on File Size" file="Size">
 
 To check for certain sizes of file, select the <icon>Size</icon> option in the left margin of the <link ref="Advanced">search window</link>.  Choose a search criteria from the drop down list (the default is <code>not important</code> meaning that the size is ignored).  Having selected a criteria, it is possible to enter the required size(s) into the fields below; select the units required for each field.  The larger units match a spread either side of the specified size, so 1Kb would match from 1Kb-512bytes to 1Kb+512bytes.
-   
+
 Directories and applications will always match the size test, as their sizes are not very meaningful.
 
 </chapter>
@@ -283,12 +283,12 @@ To check for certain modification dates, select <icon>Date</icon> in the left ma
 Again choose a search criteria.  If using the absolute date option, enter the dates and times as appropriate.  Dates are specified in the form 'DD/MM/YYYY' and are rounded up or down if being used as upper or lower limits.  To specify a specific time, increase this notation to 'DD/MM/YYYY.HH:MM'.
 
 Clicking on the <icon>Set...</icon> button on the right of the date fields will open a dialogue box which allows the date to be set more easily (without remembering the order of the components required by <cite>Locate</cite>).  Enter the details in the box as required and click on <icon>Set</icon>.
-   
-If specifying the dates in terms of age, pick a unit from the drop down menu by the field and enter the required value.  Note that <code>month</code> is treated as being 30 days and <code>year</code> as being 365 days; this may be made more more intelligent in a future version.  Also note that dates and ages work in opposite directions: as dates get 'bigger' the objects get more recent; as ages get 'bigger' the objects get older.
+
+If specifying the dates in terms of age, pick a unit from the drop down menu by the field and enter the required value. <menu>Exactly</menu> and <menu>Any age but</menu> match a window of the unit centred on the specified point in history: "exactly four months" would match a period of 15 days either side of the time four months ago when the search was started. Note that dates and ages work in opposite directions: as dates get 'bigger' the objects get more recent; as ages get 'bigger' the objects get older. Also note that, unlike in <cite>Locate 1</cite>, month and year now correctly take the calendar into account.
 
 The datestamps of directories and applications are tested, but the results may not always be as expected.  For applications the Filer shows the datestamp to be that of the <file>!RunImage</file> file inside (if one is present).  <cite>Locate</cite> will check the datestamp of the application directory itself, as shown by using <command>*Info</command> at the command line.  Untyped files do not have datestamps, so these will <strong>always</strong> match whatever date constraints are set.
 
-The default criteria for date is <code>not important</code>, meaning that the datestamp will be ignored.
+The default criteria for date is <menu>not important</menu>, meaning that the datestamp will be ignored.
 
 </chapter>
 
@@ -313,7 +313,7 @@ Although image directories will be viewed as directories when actually looking f
 <chapter title="Matching on Object attributes" file="Attributes">
 
 To check the file attributes, select <icon>Attributes</icon> in the left margin of the <link ref="Advanced">search window</link>.  To check a given attribute, select its entry and set the icons on the right as required.
-   
+
 All object types will be compared, even though it is not possible to give applications and directories private read and write access (at least under ADFS).  For this reason, <cite>Locate</cite> will only ever match files if these options are set to match <code>Yes</code>.
 
 </chapter>
@@ -445,7 +445,7 @@ This is a complete list of all the changes made to the publicly released version
 <li>Implemented correct Tab caret movement in the <link ref="Simple">search window</link>.
 <li>Fixed Wimp_TextOp code so that it works under RISC OS 3.1.
 </list>
-  
+
 <subhead title="0.20 (27 March 2001)">
 
 <list>
