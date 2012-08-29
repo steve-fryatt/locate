@@ -45,9 +45,9 @@
 #define SETTIME_ICON_MINUTE_UP 18
 
 
-static wimp_w		settime_window = NULL;				/**< The handle of the dialogue box.				*/
+static wimp_w		settime_window = NULL;					/**< The handle of the dialogue box.				*/
 
-static wimp_w		settime_parent_window = NULL;			/**< The parent window handle.					*/
+static wimp_w		settime_parent_window = NULL;				/**< The parent window handle.					*/
 static wimp_i		settime_parent_icon;					/**< The parent icon handle.					*/
 
 
@@ -56,7 +56,7 @@ static osbool	settime_keypress_handler(wimp_key *key);
 
 
 /**
- * Initialise the date dialogue.
+ * Initialise the Set Time dialogue.
  */
 
 void settime_initialise(void)

@@ -9,7 +9,7 @@
 
 
 /**
- * Initialise the date dialogue.
+ * Initialise the Set Time dialogue.
  */
 
 void settime_initialise(void);
