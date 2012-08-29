@@ -10,6 +10,18 @@
 #include "oslib/types.h"
 #include "flex.h"
 
+#define DATETIME_HALF_MINUTE 3000u
+#define DATETIME_1_MINUTE 6000u
+#define DATETIME_HALF_HOUR 180000u
+#define DATETIME_1_HOUR 360000u
+#define DATETIME_HALF_DAY 4320000u
+#define DATETIME_1_DAY 8640000u
+#define DATETIME_HALF_WEEK 30240000u
+#define DATETIME_1_WEEK 60480000u
+#define DATETIME_15_DAYS 129600000u
+#define DATETIME_HALF_YEAR 1576800000u
+
+
 
 /**
  * Add two os_date_and_time values together, storing the result in the first.

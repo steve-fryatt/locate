@@ -1728,28 +1728,28 @@ static void dialogue_scale_age(os_date_and_time date, unsigned base, enum dialog
 
 	switch (unit) {
 	case DIALOGUE_AGE_MINUTES:
-		datetime_set_date(factor, 0u, (6000u * base) + (3000u * round));
+		datetime_set_date(factor, 0u, (DATETIME_1_MINUTE * base) + (DATETIME_HALF_MINUTE * round));
 		datetime_subtract_date(date, factor);
 		break;
 
 	case DIALOGUE_AGE_HOURS:
-		datetime_set_date(factor, 0u, (360000u * base) + (180000u * round));
+		datetime_set_date(factor, 0u, (DATETIME_1_HOUR * base) + (DATETIME_HALF_HOUR * round));
 		datetime_subtract_date(date, factor);
 		break;
 
 	case DIALOGUE_AGE_DAYS:
-		datetime_set_date(factor, 0u, (8640000u * base) + (4320000u * round));
+		datetime_set_date(factor, 0u, (DATETIME_1_DAY * base) + (DATETIME_HALF_DAY * round));
 		datetime_subtract_date(date, factor);
 		break;
 
 	case DIALOGUE_AGE_WEEKS:
-		datetime_set_date(factor, 0u, (60480000u * base) + (30240000u * round));
+		datetime_set_date(factor, 0u, (DATETIME_1_WEEK * base) + (DATETIME_HALF_WEEK * round));
 		datetime_subtract_date(date, factor);
 		break;
 
 	case DIALOGUE_AGE_MONTHS:
 		datetime_add_months(date, -base);
-		datetime_set_date(factor, 0u, 129600000u);
+		datetime_set_date(factor, 0u, DATETIME_15_DAYS);
 		if (round < 0)
 			datetime_subtract_date(date, factor);
 		else if (round > 0)
@@ -1758,7 +1758,7 @@ static void dialogue_scale_age(os_date_and_time date, unsigned base, enum dialog
 
 	case DIALOGUE_AGE_YEARS:
 		datetime_add_months(date, -12 * base);
-		datetime_set_date(factor, 0u, 1576800000u);
+		datetime_set_date(factor, 0u, DATETIME_HALF_YEAR);
 		if (round < 0)
 			datetime_subtract_date(date, factor);
 		else if (round > 0)
