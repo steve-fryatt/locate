@@ -55,6 +55,7 @@
 #include "ihelp.h"
 #include "results.h"
 #include "search.h"
+#include "settime.h"
 #include "templates.h"
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -218,6 +219,7 @@ static void main_initialise(void)
 	dataxfer_initialise();
 	choices_initialise();
 	fileicon_initialise();
+	settime_initialise();
 	dialogue_initialise();
 	results_initialise(sprites);
 	iconbar_initialise();

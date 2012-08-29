@@ -42,6 +42,7 @@
 #include "flexutils.h"
 #include "ihelp.h"
 #include "search.h"
+#include "settime.h"
 #include "templates.h"
 
 
@@ -1318,8 +1319,10 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 				dialogue_read_window(dialogue_data);
 				dialogue_start_search(dialogue_data);
 
-				if (pointer->buttons == wimp_CLICK_SELECT)
+				if (pointer->buttons == wimp_CLICK_SELECT) {
+					settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
 					dialogue_close_window();
+				}
 			}
 			break;
 
@@ -1327,6 +1330,7 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 			if (pointer->buttons == wimp_CLICK_SELECT) {
 				if (dialogue_data != NULL)
 					file_destroy(dialogue_data->file);
+				settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
 				dialogue_close_window();
 			} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 				dialogue_set_window(dialogue_data);
@@ -1348,9 +1352,11 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 			dialogue_toggle_size(icons_get_selected(dialogue_window, DIALOGUE_ICON_SHOW_OPTS));
 			break;
 		}
-	} else if (pointer->w == dialogue_panes[DIALOGUE_PANE_DATE])
+	} else if (pointer->w == dialogue_panes[DIALOGUE_PANE_DATE]) {
 		dialogue_shade_date_pane();
-	else if (pointer->w == dialogue_panes[DIALOGUE_PANE_TYPE])
+		if (pointer->i == DIALOGUE_DATE_ICON_DATE_FROM_SET || pointer->i == DIALOGUE_DATE_ICON_DATE_TO_SET)
+			settime_open(pointer->w, (pointer->i == DIALOGUE_DATE_ICON_DATE_FROM_SET) ? DIALOGUE_DATE_ICON_DATE_FROM : DIALOGUE_DATE_ICON_DATE_TO, pointer);
+	} else if (pointer->w == dialogue_panes[DIALOGUE_PANE_TYPE])
 		dialogue_shade_type_pane();
 	else if (pointer->w == dialogue_panes[DIALOGUE_PANE_ATTRIBUTES])
 		dialogue_shade_attributes_pane();
@@ -1371,12 +1377,14 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 	switch (key->c) {
 	case wimp_KEY_RETURN:
+		settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
 		dialogue_read_window(dialogue_data);
 		dialogue_start_search(dialogue_data);
 		dialogue_close_window();
 		break;
 
 	case wimp_KEY_ESCAPE:
+		settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
 		if (dialogue_data != NULL)
 			file_destroy(dialogue_data->file);
 		dialogue_close_window();
