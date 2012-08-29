@@ -1582,8 +1582,66 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 
 	/* Set the datestamp search options. */
 
-	if (!dialogue->use_age && dialogue->date_mode != DIALOGUE_DATE_AT_ANY_TIME) {
+	if (!dialogue->use_age && dialogue->date_mode != DIALOGUE_DATE_AT_ANY_TIME && dialogue->date_min_status != DIALOGUE_DATE_INVALID) {
+		char				line[DIALOGUE_MAX_FILE_LINE];
+		os_date_and_time	min_date, max_date;
 
+		switch (dialogue->date_mode) {
+		case DIALOGUE_DATE_AT:
+			datetime_copy_date(min_date, dialogue->date_min);
+			datetime_set_date(max_date, 0u, ((dialogue->date_min_status == DIALOGUE_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE) - 1u);
+			datetime_add_date(max_date, min_date);
+			search_set_date(search, TRUE, min_date, max_date, FALSE);
+			break;
+
+		case DIALOGUE_DATE_AT_ANY_TIME_BUT:
+			datetime_copy_date(min_date, dialogue->date_min);
+			datetime_set_date(max_date, 0u, ((dialogue->date_min_status == DIALOGUE_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE) - 1u);
+			datetime_add_date(max_date, min_date);
+			search_set_date(search, FALSE, min_date, max_date, FALSE);
+			break;
+
+		case DIALOGUE_DATE_AFTER:
+			datetime_set_date(min_date, 0u, ((dialogue->date_min_status == DIALOGUE_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE));
+			datetime_add_date(min_date, dialogue->date_min);
+			datetime_set_date(max_date, 0xffu, 0xffffffffu);
+			search_set_date(search, TRUE, min_date, max_date, FALSE);
+			break;
+
+		case DIALOGUE_DATE_BEFORE:
+			datetime_set_date(min_date, 0u, 0u);
+			datetime_copy_date(max_date, dialogue->date_min);
+			search_set_date(search, TRUE, min_date, max_date, FALSE);
+			break;
+
+		case DIALOGUE_DATE_BETWEEN:
+			if (dialogue->date_max_status != DIALOGUE_DATE_INVALID) {
+				datetime_copy_date(min_date, dialogue->date_min);
+				datetime_set_date(max_date, 0u, ((dialogue->date_max_status == DIALOGUE_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE) - 1u);
+				datetime_add_date(max_date, dialogue->date_max);
+				search_set_date(search, TRUE, min_date, max_date, FALSE);
+			}
+			break;
+
+		case DIALOGUE_DATE_NOT_BETWEEN:
+			if (dialogue->date_max_status != DIALOGUE_DATE_INVALID) {
+				datetime_copy_date(min_date, dialogue->date_min);
+				datetime_set_date(max_date, 0u, ((dialogue->date_max_status == DIALOGUE_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE) - 1u);
+				datetime_add_date(max_date, dialogue->date_max);
+				search_set_date(search, FALSE, min_date, max_date, FALSE);
+			}
+			break;
+
+		case DIALOGUE_DATE_AT_ANY_TIME:
+			break;
+		}
+
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(min_date),
+				line, DIALOGUE_MAX_FILE_LINE, "%DY/%MN/%CE%YR.%24:%MI.%SE");
+		debug_printf("Min Date: '%s'", line);
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(max_date),
+				line, DIALOGUE_MAX_FILE_LINE, "%DY/%MN/%CE%YR.%24:%MI.%SE");
+		debug_printf("Max Date: '%s'", line);
 	}
 
 	if (dialogue->use_age && dialogue->age_mode != DIALOGUE_AGE_ANY_AGE) {
