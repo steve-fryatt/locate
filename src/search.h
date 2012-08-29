@@ -56,9 +56,10 @@ void search_set_options(struct search_block *search, osbool search_imagefs,
  * \param *search		The search to set the options for.
  * \param *filename		Pointer to the filename to match.
  * \param any_case		TRUE to match case insensitively; else FALSE.
+ * \param invert		TRUE to match files whose names don't match; else FALSE.
  */
 
-void search_set_filename(struct search_block *search, char *filename, osbool any_case);
+void search_set_filename(struct search_block *search, char *filename, osbool any_case, osbool invert);
 
 
 /**

@@ -1532,7 +1532,7 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 
 	if (strcmp(dialogue->filename, "") != 0 && strcmp(dialogue->filename, "*") != 0) {
 		strncpy(buffer, dialogue->filename, buffer_size);
-		search_set_filename(search, buffer, dialogue->ignore_case);
+		search_set_filename(search, buffer, dialogue->ignore_case, FALSE);
 	}
 
 	/* Set the size search options. */

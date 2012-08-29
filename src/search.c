@@ -91,6 +91,7 @@ struct search_block {
 	osbool			test_filename;					/**< TRUE to test the filename; FALSE to ignore.			*/
 	char			*filename;					/**< Pointer to a flex block with the filename to test; NULL if none.	*/
 	osbool			filename_any_case;				/**< TRUE if the filename should be tested case insenitively.		*/
+	osbool			filename_logic;					/**< The required result of filename comparisons.			*/
 
 	osbool			test_size;					/**< TRUE to test the file size; FALSE to ignore.			*/
 	osbool			size_logic;					/**< The required result of the size comparison.			*/
@@ -226,6 +227,7 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 	new->test_filename = FALSE;
 	new->filename = NULL;
 	new->filename_any_case = FALSE;
+	new->filename_logic = TRUE;
 
 	new->test_size = FALSE;
 	new->size_logic = TRUE;
@@ -328,14 +330,16 @@ void search_set_options(struct search_block *search, osbool search_imagefs,
  * \param *search		The search to set the options for.
  * \param *filename		Pointer to the filename to match.
  * \param any_case		TRUE to match case insensitively; else FALSE.
+ * \param invert		TRUE to match files whose names don't match; else FALSE.
  */
 
-void search_set_filename(struct search_block *search, char *filename, osbool any_case)
+void search_set_filename(struct search_block *search, char *filename, osbool any_case, osbool invert)
 {
 	if (search == NULL)
 		return;
 
 	search->test_filename = TRUE;
+	search->filename_logic = !invert;
 	flexutils_store_string((flex_ptr) &(search->filename), filename);
 	search->filename_any_case = any_case;
 }
@@ -732,7 +736,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 					/* If we're testing filename, does the name match? */
 
-					(!search->test_filename || string_wildcard_compare(search->filename, file_data->name, search->filename_any_case)) &&
+					(!search->test_filename || (string_wildcard_compare(search->filename, file_data->name, search->filename_any_case) == search->filename_logic)) &&
 
 					/* If we're testing filesize, does it fall into range? */
 
