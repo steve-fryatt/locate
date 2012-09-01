@@ -183,12 +183,6 @@ enum dialogue_date {
 	DIALOGUE_DATE_NOT_BETWEEN
 };
 
-enum dialogue_date_status {
-	DIALOGUE_DATE_INVALID = 0,
-	DIALOGUE_DATE_DAY,
-	DIALOGUE_DATE_TIME
-};
-
 enum dialogue_age {
 	DIALOGUE_AGE_ANY_AGE = 0,
 	DIALOGUE_AGE_EXACTLY,
@@ -250,9 +244,9 @@ struct dialogue_block {
 
 	enum dialogue_date		date_mode;				/**< The date comparison mode.				*/
 	os_date_and_time		date_min;				/**< The minimum date.					*/
-	enum dialogue_date_status	date_min_status;			/**< The status of the minimum date value.		*/
+	enum datetime_date_status	date_min_status;			/**< The status of the minimum date value.		*/
 	os_date_and_time		date_max;				/**< The maximum date.					*/
-	enum dialogue_date_status	date_max_status;			/**< The status of the maximum date value.		*/
+	enum datetime_date_status	date_max_status;			/**< The status of the maximum date value.		*/
 
 	enum dialogue_age		age_mode;				/**< The age comparison mode.				*/
 	unsigned			age_min;				/**< The minimum age.					*/
@@ -329,8 +323,6 @@ static void	dialogue_shade_contents_pane(void);
 static void	dialogue_write_filetype_list(char *buffer, size_t length, unsigned types[]);
 static osbool	dialogue_read_window(struct dialogue_block *dialogue);
 static osbool	dialogue_read_filetype_list(flex_ptr list, char *buffer);
-static enum	dialogue_date_status dialogue_read_date(char *text, os_date_and_time *date);
-static osbool	dialogue_test_numeric_value(char *text);
 static void	dialogue_redraw_window(void);
 static void	dialogue_click_handler(wimp_pointer *pointer);
 static osbool	dialogue_keypress_handler(wimp_key *key);
@@ -538,8 +530,8 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path)
 		new->date_min[i] = 0;
 		new->date_max[i] = 0;
 	}
-	new->date_min_status = DIALOGUE_DATE_INVALID;
-	new->date_max_status = DIALOGUE_DATE_INVALID;
+	new->date_min_status = DATETIME_DATE_INVALID;
+	new->date_max_status = DATETIME_DATE_INVALID;
 
 	new->age_mode = DIALOGUE_AGE_ANY_AGE;
 	new->age_min = 0;
@@ -781,16 +773,16 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 
 	event_set_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_MODE_MENU, dialogue->date_mode);
 	switch (dialogue->date_min_status) {
-	case DIALOGUE_DATE_INVALID:
+	case DATETIME_DATE_INVALID:
 		icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM, "");
 		break;
-	case DIALOGUE_DATE_DAY:
+	case DATETIME_DATE_DAY:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
 				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
 				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
 				DIALOGUE_DATE_FORMAT_DAY);
 		break;
-	case DIALOGUE_DATE_TIME:
+	case DATETIME_DATE_TIME:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
 				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
 				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
@@ -798,16 +790,16 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 		break;
 	}
 	switch (dialogue->date_max_status) {
-	case DIALOGUE_DATE_INVALID:
+	case DATETIME_DATE_INVALID:
 		icons_printf(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO, "");
 		break;
-	case DIALOGUE_DATE_DAY:
+	case DATETIME_DATE_DAY:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
 				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
 				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
 				DIALOGUE_DATE_FORMAT_DAY);
 		break;
-	case DIALOGUE_DATE_TIME:
+	case DATETIME_DATE_TIME:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
 				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
 				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
@@ -1056,10 +1048,10 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 	dialogue->use_age = icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE);
 
 	dialogue->date_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_MODE_MENU);
-	dialogue->date_min_status = dialogue_read_date(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
-			&(dialogue->date_min));
-	dialogue->date_max_status = dialogue_read_date(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
-			&(dialogue->date_max));
+	dialogue->date_min_status = datetime_read_date(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
+			dialogue->date_min);
+	dialogue->date_max_status = datetime_read_date(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
+			dialogue->date_max);
 
 	dialogue->age_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MODE_MENU);
 	dialogue->age_min_unit = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN_UNIT_MENU);
@@ -1173,95 +1165,6 @@ static osbool dialogue_read_filetype_list(flex_ptr ptr, char *buffer)
 	list[i] = 0xffffffffu;
 
 	return success;
-}
-
-
-/**
- * Parse a textual date into five-byte OS date values.
- *
- * \param *text			The text to be parsed.
- * \param *date			The location to store the resulting date.
- * \return			The status of the resulting date.
- */
-
-static enum dialogue_date_status dialogue_read_date(char *text, os_date_and_time *date)
-{
-	enum dialogue_date_status	result;
-	territory_ordinals		ordinals;
-	char				*copy, *day, *month, *year, *hour, *minute;
-
-	copy = strdup(text);
-	if (copy == NULL)
-		return DIALOGUE_DATE_INVALID;
-
-	day = strtok(copy, "/");
-	month = strtok(NULL, "/");
-	year = strtok(NULL, ".");
-	hour = strtok(NULL, ".:");
-	minute = strtok(NULL, "");
-
-	/* If day, month or year are invalid then it's not a date. */
-
-	if (!dialogue_test_numeric_value(day) || !dialogue_test_numeric_value(month) || !dialogue_test_numeric_value(year)) {
-		free(copy);
-		return DIALOGUE_DATE_INVALID;
-	}
-
-	ordinals.date = atoi(day);
-	ordinals.month = atoi(month);
-	ordinals.year = atoi(year);
-
-	/* 01 -> 80 == 2001 -> 2080; 81 -> 99 == 1981 -> 1999 */
-
-	if (ordinals.year >= 1 && ordinals.year <= 80)
-		ordinals.year += 2000;
-	else if (ordinals.year >= 81 && ordinals.year <= 99)
-		ordinals.year += 1900;
-
-	if (dialogue_test_numeric_value(hour) && dialogue_test_numeric_value(minute)) {
-		ordinals.hour = atoi(hour);
-		ordinals.minute = atoi(minute);
-		result = DIALOGUE_DATE_TIME;
-	} else {
-		ordinals.hour = 0;
-		ordinals.minute = 0;
-		result = DIALOGUE_DATE_DAY;
-	}
-
-	ordinals.centisecond = 0;
-	ordinals.second = 0;
-
-	free(copy);
-
-	if (xterritory_convert_ordinals_to_time(territory_CURRENT, date, &ordinals) != NULL)
-		result = DIALOGUE_DATE_INVALID;
-
-	return result;
-}
-
-
-/**
- * Test a string to make sure that it only contains decimal digits.
- *
- * \param *text			The string to test.
- * \return			TRUE if strink OK; else FALSE.
- */
-
-static osbool dialogue_test_numeric_value(char *text)
-{
-	int	i;
-	osbool	result = TRUE;
-
-	if (text == NULL)
-		return FALSE;
-
-	for (i = 0; i < strlen(text); i++)
-		if (!isdigit(text[i])) {
-			result = FALSE;
-			break;
-		}
-
-	return result;
 }
 
 
@@ -1590,27 +1493,27 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 
 	/* Set the datestamp search options. */
 
-	if (!dialogue->use_age && dialogue->date_mode != DIALOGUE_DATE_AT_ANY_TIME && dialogue->date_min_status != DIALOGUE_DATE_INVALID) {
+	if (!dialogue->use_age && dialogue->date_mode != DIALOGUE_DATE_AT_ANY_TIME && dialogue->date_min_status != DATETIME_DATE_INVALID) {
 		char				line[DIALOGUE_MAX_FILE_LINE];
 		os_date_and_time	min_date, max_date;
 
 		switch (dialogue->date_mode) {
 		case DIALOGUE_DATE_AT:
 			datetime_copy_date(min_date, dialogue->date_min);
-			datetime_set_date(max_date, 0u, ((dialogue->date_min_status == DIALOGUE_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE) - 1u);
+			datetime_set_date(max_date, 0u, ((dialogue->date_min_status == DATETIME_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE) - 1u);
 			datetime_add_date(max_date, min_date);
 			search_set_date(search, TRUE, min_date, max_date, FALSE);
 			break;
 
 		case DIALOGUE_DATE_AT_ANY_TIME_BUT:
 			datetime_copy_date(min_date, dialogue->date_min);
-			datetime_set_date(max_date, 0u, ((dialogue->date_min_status == DIALOGUE_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE) - 1u);
+			datetime_set_date(max_date, 0u, ((dialogue->date_min_status == DATETIME_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE) - 1u);
 			datetime_add_date(max_date, min_date);
 			search_set_date(search, FALSE, min_date, max_date, FALSE);
 			break;
 
 		case DIALOGUE_DATE_AFTER:
-			datetime_set_date(min_date, 0u, ((dialogue->date_min_status == DIALOGUE_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE));
+			datetime_set_date(min_date, 0u, ((dialogue->date_min_status == DATETIME_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE));
 			datetime_add_date(min_date, dialogue->date_min);
 			datetime_set_date(max_date, 0xffu, 0xffffffffu);
 			search_set_date(search, TRUE, min_date, max_date, FALSE);
@@ -1623,18 +1526,18 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 			break;
 
 		case DIALOGUE_DATE_BETWEEN:
-			if (dialogue->date_max_status != DIALOGUE_DATE_INVALID) {
+			if (dialogue->date_max_status != DATETIME_DATE_INVALID) {
 				datetime_copy_date(min_date, dialogue->date_min);
-				datetime_set_date(max_date, 0u, ((dialogue->date_max_status == DIALOGUE_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE) - 1u);
+				datetime_set_date(max_date, 0u, ((dialogue->date_max_status == DATETIME_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE) - 1u);
 				datetime_add_date(max_date, dialogue->date_max);
 				search_set_date(search, TRUE, min_date, max_date, FALSE);
 			}
 			break;
 
 		case DIALOGUE_DATE_NOT_BETWEEN:
-			if (dialogue->date_max_status != DIALOGUE_DATE_INVALID) {
+			if (dialogue->date_max_status != DATETIME_DATE_INVALID) {
 				datetime_copy_date(min_date, dialogue->date_min);
-				datetime_set_date(max_date, 0u, ((dialogue->date_max_status == DIALOGUE_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE) - 1u);
+				datetime_set_date(max_date, 0u, ((dialogue->date_max_status == DATETIME_DATE_DAY) ? DATETIME_1_DAY : DATETIME_1_MINUTE) - 1u);
 				datetime_add_date(max_date, dialogue->date_max);
 				search_set_date(search, FALSE, min_date, max_date, FALSE);
 			}
@@ -1869,14 +1772,14 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 	debug_printf("Date Mode: %d", dialogue->date_mode);
 	debug_printf("Min Date Status: %d", dialogue->date_min_status);
 	switch (dialogue->date_min_status) {
-	case DIALOGUE_DATE_INVALID:
+	case DATETIME_DATE_INVALID:
 		*line = '\0';
 		break;
-	case DIALOGUE_DATE_DAY:
+	case DATETIME_DATE_DAY:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
 				line, DIALOGUE_MAX_FILE_LINE, DIALOGUE_DATE_FORMAT_DAY);
 		break;
-	case DIALOGUE_DATE_TIME:
+	case DATETIME_DATE_TIME:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
 				line, DIALOGUE_MAX_FILE_LINE, DIALOGUE_DATE_FORMAT_TIME);
 		break;
@@ -1884,14 +1787,14 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 	debug_printf("Min Date: '%s'", line);
 	debug_printf("Max Date Status: %d", dialogue->date_max_status);
 	switch (dialogue->date_max_status) {
-	case DIALOGUE_DATE_INVALID:
+	case DATETIME_DATE_INVALID:
 		*line = '\0';
 		break;
-	case DIALOGUE_DATE_DAY:
+	case DATETIME_DATE_DAY:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
 				line, DIALOGUE_MAX_FILE_LINE, DIALOGUE_DATE_FORMAT_DAY);
 		break;
-	case DIALOGUE_DATE_TIME:
+	case DATETIME_DATE_TIME:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
 				line, DIALOGUE_MAX_FILE_LINE, DIALOGUE_DATE_FORMAT_TIME);
 		break;

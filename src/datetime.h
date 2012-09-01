@@ -22,6 +22,11 @@
 #define DATETIME_HALF_YEAR 1576800000u
 
 
+enum datetime_date_status {
+	DATETIME_DATE_INVALID = 0,
+	DATETIME_DATE_DAY,
+	DATETIME_DATE_TIME
+};
 
 /**
  * Add two os_date_and_time values together, storing the result in the first.
@@ -86,6 +91,17 @@ void datetime_copy_date(os_date_and_time out, os_date_and_time in);
  */
 
 void datetime_add_months(os_date_and_time date, int months);
+
+
+/**
+ * Parse a textual date into five-byte OS date values.
+ *
+ * \param *text			The text to be parsed.
+ * \param *date			The location to store the resulting date.
+ * \return			The status of the resulting date.
+ */
+
+enum datetime_date_status datetime_read_date(char *text, os_date_and_time date);
 
 #endif
 

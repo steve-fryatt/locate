@@ -11,16 +11,20 @@
 /* SFLib Header files. */
 
 #include "sflib/event.h"
+#include "sflib/icons.h"
 #include "sflib/windows.h"
 
 /* OSLib Header files. */
 
+#include "oslib/osword.h"
+#include "oslib/territory.h"
 #include "oslib/wimp.h"
 
 /* Application header files. */
 
 #include "settime.h"
 
+#include "datetime.h"
 #include "ihelp.h"
 #include "templates.h"
 
@@ -37,6 +41,8 @@
 #define SETTIME_ICON_YEAR_DOWN 8
 #define SETTIME_ICON_YEAR_UP 9
 #define SETTIME_ICON_SET_TIME 10
+#define SETTIME_ICON_TIME_FIELD 11
+#define SETTIME_ICON_TIME_COLON 12
 #define SETTIME_ICON_HOUR 13
 #define SETTIME_ICON_MINUTE 14
 #define SETTIME_ICON_HOUR_DOWN 15
@@ -45,12 +51,19 @@
 #define SETTIME_ICON_MINUTE_UP 18
 
 
-static wimp_w		settime_window = NULL;					/**< The handle of the dialogue box.				*/
+static wimp_menu			*settime_month_menu = NULL;		/**< The popup menu of months.					*/
 
-static wimp_w		settime_parent_window = NULL;				/**< The parent window handle.					*/
-static wimp_i		settime_parent_icon;					/**< The parent icon handle.					*/
+static wimp_w				settime_window = NULL;			/**< The handle of the dialogue box.				*/
+
+static wimp_w				settime_parent_window = NULL;		/**< The parent window handle.					*/
+static wimp_i				settime_parent_icon;			/**< The parent icon handle.					*/
+
+static os_date_and_time			settime_initial_date;			/**< The date set when the dialogue opened.			*/
+static enum datetime_date_status	settime_initial_status;			/**< The date status when the dialogue opened.			*/
 
 
+static void	settime_set_window(enum datetime_date_status, os_date_and_time date);
+static void	settime_redraw_window(void);
 static void	settime_click_handler(wimp_pointer *pointer);
 static osbool	settime_keypress_handler(wimp_key *key);
 
@@ -61,6 +74,8 @@ static osbool	settime_keypress_handler(wimp_key *key);
 
 void settime_initialise(void)
 {
+	settime_month_menu = templates_get_menu(TEMPLATES_MENU_MONTH);
+
 	settime_window = templates_create_window("SetTime");
 	ihelp_add_window(settime_window, "SetTime", NULL);
 	event_add_window_mouse_event(settime_window, settime_click_handler);
@@ -69,11 +84,24 @@ void settime_initialise(void)
 	event_add_window_icon_bump(settime_window, SETTIME_ICON_YEAR, SETTIME_ICON_YEAR_UP, SETTIME_ICON_YEAR_DOWN, 1901, 2156, 1);
 	event_add_window_icon_bump(settime_window, SETTIME_ICON_HOUR, SETTIME_ICON_HOUR_UP, SETTIME_ICON_HOUR_DOWN, 0, 23, 1);
 	event_add_window_icon_bump(settime_window, SETTIME_ICON_MINUTE, SETTIME_ICON_MINUTE_UP, SETTIME_ICON_MINUTE_DOWN, 0, 59, 1);
+	event_add_window_icon_popup(settime_window, SETTIME_ICON_MONTH_POPUP, settime_month_menu, SETTIME_ICON_MONTH, NULL);
 }
 
 
+/**
+ * Open the Set Time dialogue for a text icon, using the date and time given
+ * in the field (if recognised) to set the fields up.
+ *
+ * \param w			The window handle of the parent dialogue.
+ * \param i			The icon handle to take the date from.
+ * \param *pointer		The current position of the pointer.
+ */
+
 void settime_open(wimp_w w, wimp_i i, wimp_pointer *pointer)
 {
+	oswordreadclock_utc_block	now;
+
+
 	if (pointer == NULL)
 		return;
 
@@ -83,9 +111,28 @@ void settime_open(wimp_w w, wimp_i i, wimp_pointer *pointer)
 	settime_parent_window = w;
 	settime_parent_icon = i;
 
+	settime_initial_status = datetime_read_date(icons_get_indirected_text_addr(w, i), settime_initial_date);
+
+	if (settime_initial_status == DATETIME_DATE_INVALID) {
+		now.op = oswordreadclock_OP_UTC;
+		oswordreadclock_utc(&now);
+
+		datetime_copy_date(settime_initial_date, now.utc);
+		settime_initial_status = DATETIME_DATE_DAY;
+	}
+
+	settime_set_window(settime_initial_status, settime_initial_date);
 	windows_open_centred_at_pointer(settime_window, pointer);
+	icons_put_caret_at_end(settime_window, SETTIME_ICON_DATE);
 }
 
+
+/**
+ * Notify that a window has been closed.  If it is the Set Time dialogue's
+ * current parent, then the dialogue is closed and its contents abandoned.
+ *
+ * \param w			The handle of the window being closed.
+ */
 
 void settime_close(wimp_w w)
 {
@@ -95,6 +142,57 @@ void settime_close(wimp_w w)
 	}
 }
 
+
+/**
+ * Fill the Set Time dialogue with date and time values.
+ *
+ * \param status		The date status to use.
+ * \param date			The date values to place in the dialogue.
+ */
+
+static void settime_set_window(enum datetime_date_status status, os_date_and_time date)
+{
+	territory_ordinals		ordinals;
+
+
+	territory_convert_time_to_ordinals(territory_CURRENT, (const os_date_and_time *) date, &ordinals);
+
+	icons_printf(settime_window, SETTIME_ICON_DATE, "%d", ordinals.date);
+	icons_printf(settime_window, SETTIME_ICON_YEAR, "%d", ordinals.year);
+	event_set_window_icon_popup_selection(settime_window, SETTIME_ICON_MONTH_POPUP, ordinals.month - 1);
+
+	icons_set_selected(settime_window, SETTIME_ICON_SET_TIME, status == DATETIME_DATE_TIME);
+
+	icons_printf(settime_window, SETTIME_ICON_HOUR, "%02d", ordinals.hour);
+	icons_printf(settime_window, SETTIME_ICON_MINUTE, "%02d", ordinals.minute);
+
+	icons_set_group_shaded_when_off(settime_window, SETTIME_ICON_SET_TIME, 8,
+			SETTIME_ICON_TIME_FIELD, SETTIME_ICON_TIME_COLON,
+			SETTIME_ICON_HOUR, SETTIME_ICON_HOUR_DOWN, SETTIME_ICON_HOUR_UP,
+			SETTIME_ICON_MINUTE, SETTIME_ICON_MINUTE_DOWN, SETTIME_ICON_MINUTE_UP);
+
+}
+
+
+/**
+ * Force a refresh of all the updatable fields in the dialogue.
+ */
+
+static void settime_redraw_window(void)
+{
+	wimp_set_icon_state(settime_window, SETTIME_ICON_DATE, 0, 0);
+	wimp_set_icon_state(settime_window, SETTIME_ICON_MONTH, 0, 0);
+	wimp_set_icon_state(settime_window, SETTIME_ICON_YEAR, 0, 0);
+	wimp_set_icon_state(settime_window, SETTIME_ICON_HOUR, 0, 0);
+	wimp_set_icon_state(settime_window, SETTIME_ICON_MINUTE, 0, 0);
+}
+
+
+
+static void settime_write_back_time(void)
+{
+
+}
 
 
 /**
@@ -123,16 +221,21 @@ static void settime_click_handler(wimp_pointer *pointer)
 			break;
 
 		case SETTIME_ICON_CANCEL:
-			settime_close(settime_parent_window);
-			//if (pointer->buttons == wimp_CLICK_SELECT) {
-			//	if (dialogue_data != NULL)
-			//		file_destroy(dialogue_data->file);
-			//	settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
-			//	dialogue_close_window();
-			//} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			//	dialogue_set_window(dialogue_data);
-			//	dialogue_redraw_window();
-			//}
+			if (pointer->buttons == wimp_CLICK_SELECT) {
+				settime_close(settime_parent_window);
+			} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+				settime_set_window(settime_initial_status, settime_initial_date);
+				settime_redraw_window();
+				icons_replace_caret_in_window(settime_window);
+			}
+			break;
+
+		case SETTIME_ICON_SET_TIME:
+			icons_set_group_shaded_when_off(settime_window, SETTIME_ICON_SET_TIME, 8,
+					SETTIME_ICON_TIME_FIELD, SETTIME_ICON_TIME_COLON,
+					SETTIME_ICON_HOUR, SETTIME_ICON_HOUR_DOWN, SETTIME_ICON_HOUR_UP,
+					SETTIME_ICON_MINUTE, SETTIME_ICON_MINUTE_DOWN, SETTIME_ICON_MINUTE_UP);
+			icons_replace_caret_in_window(settime_window);
 			break;
 		}
 	}

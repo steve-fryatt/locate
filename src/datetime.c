@@ -6,6 +6,10 @@
 
 /* ANSI C Header files. */
 
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+
 /* Acorn C Header files. */
 
 /* SFLib Header files. */
@@ -20,6 +24,8 @@
 
 #include "datetime.h"
 
+
+static osbool	datetime_test_numeric_value(char *text);
 
 /**
  * Add two os_date_and_time values together, storing the result in the first.
@@ -181,5 +187,94 @@ void datetime_add_months(os_date_and_time date, int months)
 		ordinals.date = days_in_month;
 
 	territory_convert_ordinals_to_time(territory_CURRENT, (os_date_and_time *) date, &ordinals);
+}
+
+
+/**
+ * Parse a textual date into five-byte OS date values.
+ *
+ * \param *text			The text to be parsed.
+ * \param *date			The location to store the resulting date.
+ * \return			The status of the resulting date.
+ */
+
+enum datetime_date_status datetime_read_date(char *text, os_date_and_time date)
+{
+	enum datetime_date_status	result;
+	territory_ordinals		ordinals;
+	char				*copy, *day, *month, *year, *hour, *minute;
+
+	copy = strdup(text);
+	if (copy == NULL)
+		return DATETIME_DATE_INVALID;
+
+	day = strtok(copy, "/");
+	month = strtok(NULL, "/");
+	year = strtok(NULL, ".");
+	hour = strtok(NULL, ".:");
+	minute = strtok(NULL, "");
+
+	/* If day, month or year are invalid then it's not a date. */
+
+	if (!datetime_test_numeric_value(day) || !datetime_test_numeric_value(month) || !datetime_test_numeric_value(year)) {
+		free(copy);
+		return DATETIME_DATE_INVALID;
+	}
+
+	ordinals.date = atoi(day);
+	ordinals.month = atoi(month);
+	ordinals.year = atoi(year);
+
+	/* 01 -> 80 == 2001 -> 2080; 81 -> 99 == 1981 -> 1999 */
+
+	if (ordinals.year >= 1 && ordinals.year <= 80)
+		ordinals.year += 2000;
+	else if (ordinals.year >= 81 && ordinals.year <= 99)
+		ordinals.year += 1900;
+
+	if (datetime_test_numeric_value(hour) && datetime_test_numeric_value(minute)) {
+		ordinals.hour = atoi(hour);
+		ordinals.minute = atoi(minute);
+		result = DATETIME_DATE_TIME;
+	} else {
+		ordinals.hour = 0;
+		ordinals.minute = 0;
+		result = DATETIME_DATE_DAY;
+	}
+
+	ordinals.centisecond = 0;
+	ordinals.second = 0;
+
+	free(copy);
+
+	if (xterritory_convert_ordinals_to_time(territory_CURRENT, (os_date_and_time *) date, &ordinals) != NULL)
+		result = DATETIME_DATE_INVALID;
+
+	return result;
+}
+
+
+/**
+ * Test a string to make sure that it only contains decimal digits.
+ *
+ * \param *text			The string to test.
+ * \return			TRUE if strink OK; else FALSE.
+ */
+
+static osbool datetime_test_numeric_value(char *text)
+{
+	int	i;
+	osbool	result = TRUE;
+
+	if (text == NULL)
+		return FALSE;
+
+	for (i = 0; i < strlen(text); i++)
+		if (!isdigit(text[i])) {
+			result = FALSE;
+			break;
+		}
+
+	return result;
 }
 
