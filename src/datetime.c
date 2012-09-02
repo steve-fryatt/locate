@@ -26,6 +26,8 @@
 
 
 static osbool	datetime_test_numeric_value(char *text);
+static int	datetime_days_in_month(int month, int year);
+static int	datetime_adjust_two_digit_year(int year);
 
 /**
  * Add two os_date_and_time values together, storing the result in the first.
@@ -144,7 +146,7 @@ void datetime_copy_date(os_date_and_time out, os_date_and_time in)
 
 void datetime_add_months(os_date_and_time date, int months)
 {
-	int			years, days_in_month;
+	int			years, days;
 	territory_ordinals	ordinals;
 
 	territory_convert_time_to_ordinals(territory_CURRENT, (const os_date_and_time *) date, &ordinals);
@@ -166,25 +168,12 @@ void datetime_add_months(os_date_and_time date, int months)
 
 	ordinals.year += years;
 
-	switch (ordinals.month) {
-	case 4:
-	case 6:
-	case 9:
-	case 11:
-		days_in_month = 30;
-		break;
+	/* Correct the number of days in the month. */
 
-	case 2:
-		days_in_month = (((ordinals.year % 4) == 0) && ((ordinals.year % 100) != 0)) ? 29 : 28;
-		break;
+	days = datetime_days_in_month(ordinals.month, ordinals.year);
 
-	default:
-		days_in_month = 31;
-		break;
-	}
-
-	if (ordinals.date > days_in_month)
-		ordinals.date = days_in_month;
+	if (ordinals.date > days)
+		ordinals.date = days;
 
 	territory_convert_ordinals_to_time(territory_CURRENT, (os_date_and_time *) date, &ordinals);
 }
@@ -201,7 +190,6 @@ void datetime_add_months(os_date_and_time date, int months)
 enum datetime_date_status datetime_read_date(char *text, os_date_and_time date)
 {
 	enum datetime_date_status	result;
-	territory_ordinals		ordinals;
 	char				*copy, *day, *month, *year, *hour, *minute;
 
 	copy = strdup(text);
@@ -214,38 +202,72 @@ enum datetime_date_status datetime_read_date(char *text, os_date_and_time date)
 	hour = strtok(NULL, ".:");
 	minute = strtok(NULL, "");
 
-	/* If day, month or year are invalid then it's not a date. */
+	result = datetime_assemble_date(atoi(month), day, year, hour, minute, date);
 
-	if (!datetime_test_numeric_value(day) || !datetime_test_numeric_value(month) || !datetime_test_numeric_value(year)) {
-		free(copy);
+	free(copy);
+
+	return result;
+}
+
+
+/**
+ * Create a date from day, month, year, hour and minute components. Month is
+ * supplied numerically; the remaining parameters are supplied as text strings
+ * which must be validated.
+ *
+ * \param month			The month value, in numeric form.
+ * \param *day			The day of the month, in string form.
+ * \param *year			The year, in string form.
+ * \param *hour			The hour, in string form, or NULL.
+ * \param *minute		The minute, in string form, or NULL.
+ * \param date			The location to store the resulting date.
+ * \return			The status of the resulting date.
+ */
+
+enum datetime_date_status datetime_assemble_date(int month, char *day, char *year, char *hour, char *minute, os_date_and_time date)
+{
+	territory_ordinals		ordinals;
+	enum datetime_date_status	result = DATETIME_DATE_INVALID;
+
+	/* Process the date; if we can't get this, then exit. */
+
+	if (month < 1 || month > 12 || !datetime_test_numeric_value(day) || !datetime_test_numeric_value(year))
 		return DATETIME_DATE_INVALID;
-	}
 
 	ordinals.date = atoi(day);
-	ordinals.month = atoi(month);
-	ordinals.year = atoi(year);
+	ordinals.month = month;
+	ordinals.year = datetime_adjust_two_digit_year(atoi(year));
 
-	/* 01 -> 80 == 2001 -> 2080; 81 -> 99 == 1981 -> 1999 */
+	/* Process the time; if we can't get this, then settle for a date. */
 
-	if (ordinals.year >= 1 && ordinals.year <= 80)
-		ordinals.year += 2000;
-	else if (ordinals.year >= 81 && ordinals.year <= 99)
-		ordinals.year += 1900;
-
-	if (datetime_test_numeric_value(hour) && datetime_test_numeric_value(minute)) {
-		ordinals.hour = atoi(hour);
-		ordinals.minute = atoi(minute);
-		result = DATETIME_DATE_TIME;
-	} else {
+	if (!datetime_test_numeric_value(hour) || !datetime_test_numeric_value(minute)) {
 		ordinals.hour = 0;
 		ordinals.minute = 0;
 		result = DATETIME_DATE_DAY;
+	} else {
+		ordinals.hour = atoi(hour);
+		ordinals.minute = atoi(minute);
+		result = DATETIME_DATE_TIME;
 	}
+
+	/* Times can't be set to the second or centisecond. */
 
 	ordinals.centisecond = 0;
 	ordinals.second = 0;
 
-	free(copy);
+	/* Validate some of the data. */
+
+	if (ordinals.year < 1900 || ordinals.year > 2248)
+		return DATETIME_DATE_INVALID;
+
+	if (ordinals.date < 1 || ordinals.date > datetime_days_in_month(ordinals.month, ordinals.year))
+		return DATETIME_DATE_INVALID;
+
+	if (ordinals.hour < 0 || ordinals.hour > 23)
+		return DATETIME_DATE_INVALID;
+
+	if (ordinals.minute < 0 || ordinals.minute > 59)
+		return DATETIME_DATE_INVALID;
 
 	if (xterritory_convert_ordinals_to_time(territory_CURRENT, (os_date_and_time *) date, &ordinals) != NULL)
 		result = DATETIME_DATE_INVALID;
@@ -276,5 +298,60 @@ static osbool datetime_test_numeric_value(char *text)
 		}
 
 	return result;
+}
+
+
+/**
+ * Return the number of days in a given month in a given year.
+ *
+ * \param month			The month number (1 - 12).
+ * \param year			The year to test in.
+ * \return			The number of days in the month.
+ */
+
+static int datetime_days_in_month(int month, int year)
+{
+	int	days;
+
+	switch (month) {
+	case 4:
+	case 6:
+	case 9:
+	case 11:
+		days = 30;
+		break;
+
+	case 2:
+		days = (((year % 4) == 0) && ((year % 100) != 0)) ? 29 : 28;
+		break;
+
+	default:
+		days = 31;
+		break;
+	}
+
+	return days;
+}
+
+
+/**
+ * Adjust two-digit years into a sensible range.
+ *
+ * Years 01 -> 80 => 2001 -> 2080
+ * Years 81 -> 99 => 1981 -> 1999
+ * Other years remain unchanged.
+ *
+ * \param year			The year to be adjusted.
+ * \return			The adjusted year.
+ */
+
+static int datetime_adjust_two_digit_year(int year)
+{
+	if (year >= 1 && year <= 80)
+		year += 2000;
+	else if (year >= 81 && year <= 99)
+		year += 1900;
+
+	return year;
 }
 

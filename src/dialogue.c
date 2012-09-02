@@ -150,9 +150,6 @@
 #define DIALOGUE_CONTENTS_ICON_IGNORE_CASE 4
 #define DIALOGUE_CONTENTS_ICON_CTRL_CHARS 5
 
-#define DIALOGUE_DATE_FORMAT_DAY "%DY/%MN/%CE%YR"
-#define DIALOGUE_DATE_FORMAT_TIME "%DY/%MN/%CE%YR.%24:%MI"
-
 #define DIALOGUE_MAX_FILE_LINE 1024
 
 #define MAX_BUFFER(current, size) (((size) > (current)) ? (size) : (current))
@@ -780,13 +777,13 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
 				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
 				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
-				DIALOGUE_DATE_FORMAT_DAY);
+				DATETIME_DATE_FORMAT_DAY);
 		break;
 	case DATETIME_DATE_TIME:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
 				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
 				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM),
-				DIALOGUE_DATE_FORMAT_TIME);
+				DATETIME_DATE_FORMAT_TIME);
 		break;
 	}
 	switch (dialogue->date_max_status) {
@@ -797,13 +794,13 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
 				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
 				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
-				DIALOGUE_DATE_FORMAT_DAY);
+				DATETIME_DATE_FORMAT_DAY);
 		break;
 	case DATETIME_DATE_TIME:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
 				icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
 				icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
-				DIALOGUE_DATE_FORMAT_TIME);
+				DATETIME_DATE_FORMAT_TIME);
 		break;
 	}
 
@@ -1777,11 +1774,11 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 		break;
 	case DATETIME_DATE_DAY:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
-				line, DIALOGUE_MAX_FILE_LINE, DIALOGUE_DATE_FORMAT_DAY);
+				line, DIALOGUE_MAX_FILE_LINE, DATETIME_DATE_FORMAT_DAY);
 		break;
 	case DATETIME_DATE_TIME:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_min),
-				line, DIALOGUE_MAX_FILE_LINE, DIALOGUE_DATE_FORMAT_TIME);
+				line, DIALOGUE_MAX_FILE_LINE, DATETIME_DATE_FORMAT_TIME);
 		break;
 	}
 	debug_printf("Min Date: '%s'", line);
@@ -1792,11 +1789,11 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 		break;
 	case DATETIME_DATE_DAY:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
-				line, DIALOGUE_MAX_FILE_LINE, DIALOGUE_DATE_FORMAT_DAY);
+				line, DIALOGUE_MAX_FILE_LINE, DATETIME_DATE_FORMAT_DAY);
 		break;
 	case DATETIME_DATE_TIME:
 		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(dialogue->date_max),
-				line, DIALOGUE_MAX_FILE_LINE, DIALOGUE_DATE_FORMAT_TIME);
+				line, DIALOGUE_MAX_FILE_LINE, DATETIME_DATE_FORMAT_TIME);
 		break;
 	}
 	debug_printf("Max Date: '%s'", line);

@@ -21,6 +21,9 @@
 #define DATETIME_15_DAYS 129600000u
 #define DATETIME_HALF_YEAR 1576800000u
 
+#define DATETIME_DATE_FORMAT_DAY "%DY/%MN/%CE%YR"
+#define DATETIME_DATE_FORMAT_TIME "%DY/%MN/%CE%YR.%24:%MI"
+
 
 enum datetime_date_status {
 	DATETIME_DATE_INVALID = 0,
@@ -102,6 +105,23 @@ void datetime_add_months(os_date_and_time date, int months);
  */
 
 enum datetime_date_status datetime_read_date(char *text, os_date_and_time date);
+
+
+/**
+ * Create a date from day, month, year, hour and minute components. Month is
+ * supplied numerically; the remaining parameters are supplied as text strings
+ * which must be validated.
+ *
+ * \param month			The month value, in numeric form.
+ * \param *day			The day of the month, in string form.
+ * \param *year			The year, in string form.
+ * \param *hour			The hour, in string form, or NULL.
+ * \param *minute		The minute, in string form, or NULL.
+ * \param date			The location to store the resulting date.
+ * \return			The status of the resulting date.
+ */
+
+enum datetime_date_status datetime_assemble_date(int month, char *day, char *year, char *hour, char *minute, os_date_and_time date);
 
 #endif
 
