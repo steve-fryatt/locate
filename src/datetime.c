@@ -25,6 +25,10 @@
 #include "datetime.h"
 
 
+#define DATETIME_DATE_FORMAT_DAY "%DY/%MN/%CE%YR"
+#define DATETIME_DATE_FORMAT_TIME "%DY/%MN/%CE%YR.%24:%MI"
+
+
 static osbool	datetime_test_numeric_value(char *text);
 static int	datetime_days_in_month(int month, int year);
 static int	datetime_adjust_two_digit_year(int year);
@@ -273,6 +277,37 @@ enum datetime_date_status datetime_assemble_date(int month, char *day, char *yea
 		result = DATETIME_DATE_INVALID;
 
 	return result;
+}
+
+
+/**
+ * Write a date into a text buffer, formatting it according to its status.
+ *
+ * \param date			The date to be written.
+ * \param status		The status of the date.
+ * \param *buffer		A pointer to the buffer to take the date.
+ * \param length		The length of the buffer, in bytes.
+ */
+
+void datetime_write_date(os_date_and_time date, enum datetime_date_status status, char *buffer, size_t length)
+{
+	if (date == NULL || buffer == NULL)
+		return;
+
+	switch (status) {
+	case DATETIME_DATE_INVALID:
+		if (length >= 1)
+			*buffer = '\0';
+		break;
+	case DATETIME_DATE_DAY:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) date,
+				buffer, length, DATETIME_DATE_FORMAT_DAY);
+		break;
+	case DATETIME_DATE_TIME:
+		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) date,
+				buffer, length, DATETIME_DATE_FORMAT_TIME);
+		break;
+	}
 }
 
 

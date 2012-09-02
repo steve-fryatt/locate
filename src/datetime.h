@@ -21,9 +21,6 @@
 #define DATETIME_15_DAYS 129600000u
 #define DATETIME_HALF_YEAR 1576800000u
 
-#define DATETIME_DATE_FORMAT_DAY "%DY/%MN/%CE%YR"
-#define DATETIME_DATE_FORMAT_TIME "%DY/%MN/%CE%YR.%24:%MI"
-
 
 enum datetime_date_status {
 	DATETIME_DATE_INVALID = 0,
@@ -122,6 +119,18 @@ enum datetime_date_status datetime_read_date(char *text, os_date_and_time date);
  */
 
 enum datetime_date_status datetime_assemble_date(int month, char *day, char *year, char *hour, char *minute, os_date_and_time date);
+
+
+/**
+ * Write a date into a text buffer, formatting it according to its status.
+ *
+ * \param date			The date to be written.
+ * \param status		The status of the date.
+ * \param *buffer		A pointer to the buffer to take the date.
+ * \param length		The length of the buffer, in bytes.
+ */
+
+void datetime_write_date(os_date_and_time date, enum datetime_date_status status, char *buffer, size_t length);
 
 #endif
 

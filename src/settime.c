@@ -188,10 +188,43 @@ static void settime_redraw_window(void)
 }
 
 
+/**
+ * Write the date and time from the dialogue back to the parent icon.
+ *
+ * \return			TRUE if successful; FALSE if not.
+ */
 
-static void settime_write_back_time(void)
+static osbool settime_write_back_time(void)
 {
+	int				month;
+	enum datetime_date_status	result;
+	os_date_and_time		date;
 
+
+	month = event_get_window_icon_popup_selection(settime_window, SETTIME_ICON_MONTH_POPUP) + 1;
+
+	result = datetime_assemble_date(month,
+			icons_get_indirected_text_addr(settime_window, SETTIME_ICON_DATE),
+			icons_get_indirected_text_addr(settime_window, SETTIME_ICON_YEAR),
+			icons_get_indirected_text_addr(settime_window, SETTIME_ICON_HOUR),
+			icons_get_indirected_text_addr(settime_window, SETTIME_ICON_MINUTE),
+			date);
+
+	if (result == DATETIME_DATE_INVALID)
+		return FALSE;
+
+	if (!icons_get_selected(settime_window, SETTIME_ICON_SET_TIME))
+		result = DATETIME_DATE_DAY;
+
+	datetime_copy_date(settime_initial_date, date);
+	settime_initial_status = result;
+
+	datetime_write_date(date, result,
+			icons_get_indirected_text_addr(settime_parent_window, settime_parent_icon),
+			icons_get_indirected_text_length(settime_parent_window, settime_parent_icon));
+	wimp_set_icon_state(settime_parent_window, settime_parent_icon, 0, 0);
+
+	return TRUE;
 }
 
 
@@ -209,15 +242,10 @@ static void settime_click_handler(wimp_pointer *pointer)
 	if (pointer->w == settime_window) {
 		switch ((int) pointer->i) {
 		case SETTIME_ICON_SET:
-			//if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
-			//	dialogue_read_window(dialogue_data);
-			//	dialogue_start_search(dialogue_data);
-
-			//	if (pointer->buttons == wimp_CLICK_SELECT) {
-			//		settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
-			//		dialogue_close_window();
-			//	}
-			//}
+			if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
+				if (settime_write_back_time() && pointer->buttons == wimp_CLICK_SELECT)
+					settime_close(settime_parent_window);
+			}
 			break;
 
 		case SETTIME_ICON_CANCEL:
