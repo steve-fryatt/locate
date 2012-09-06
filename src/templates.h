@@ -12,20 +12,21 @@
  */
 
 enum templates_menus {
-	TEMPLATES_MENU_ICONBAR = 0,						/**< The Iconbar Menu.			*/
-	TEMPLATES_MENU_SEARCH,							/**< The Search Window Menu		*/
-	TEMPLATES_MENU_RESULTS,							/**< The Results Window Menu.		*/
+	TEMPLATES_MENU_ICONBAR = 0,						/**< The Iconbar Menu.				*/
+	TEMPLATES_MENU_SEARCH,							/**< The Search Window Menu			*/
+	TEMPLATES_MENU_RESULTS,							/**< The Results Window Menu.			*/
 	TEMPLATES_MENU_RESULTS_DISPLAY,
 	TEMPLATES_MENU_RESULTS_SAVE,
-	TEMPLATES_MENU_SIZE_MODE,						/**< The Size Mode PopUp Menu.		*/
-	TEMPLATES_MENU_SIZE_UNIT,						/**< The Size Unit PopUp Menu.		*/
-	TEMPLATES_MENU_DATE_MODE,						/**< The Date Mode PopUp Menu.		*/
-	TEMPLATES_MENU_AGE_MODE,						/**< The Age Mode PopUp Menu.		*/
-	TEMPLATES_MENU_AGE_UNIT,						/**< The Age Unit PopUp Menu.		*/
-	TEMPLATES_MENU_TYPE_MODE,						/**< The Type Mode PopUp Menu.		*/
-	TEMPLATES_MENU_CONTENTS_MODE,						/**< The Content Mode PopUp Menu.	*/
-	TEMPLATES_MENU_MONTH,							/**< The Month PopUp Menu.		*/
-	TEMPLATES_MENU_MAX_EXTENT						/**< Determine the number of entries.	*/
+	TEMPLATES_MENU_SIZE_MODE,						/**< The Size Mode PopUp Menu.			*/
+	TEMPLATES_MENU_SIZE_UNIT,						/**< The Size Unit PopUp Menu.			*/
+	TEMPLATES_MENU_DATE_MODE,						/**< The Date Mode PopUp Menu.			*/
+	TEMPLATES_MENU_AGE_MODE,						/**< The Age Mode PopUp Menu.			*/
+	TEMPLATES_MENU_AGE_UNIT,						/**< The Age Unit PopUp Menu.			*/
+	TEMPLATES_MENU_TYPE_MODE,						/**< The Type Mode PopUp Menu.			*/
+	TEMPLATES_MENU_CONTENTS_MODE,						/**< The Content Mode PopUp Menu.		*/
+	TEMPLATES_MENU_MONTH,							/**< The Month PopUp Menu.			*/
+	TEMPLATES_MENU_TYPES,							/**< The Filetype Menu (built on demand).	*/
+	TEMPLATES_MENU_MAX_EXTENT						/**< Determine the number of entries.		*/
 };
 
 

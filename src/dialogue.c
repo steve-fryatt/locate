@@ -44,6 +44,7 @@
 #include "search.h"
 #include "settime.h"
 #include "templates.h"
+#include "typemenu.h"
 
 
 /* Search Dialogue panes. */
@@ -305,6 +306,7 @@ static wimp_menu		*dialogue_date_mode_menu = NULL;		/**< The Date Mode popup men
 static wimp_menu		*dialogue_age_mode_menu = NULL;			/**< The Age Mode popup menu.				*/
 static wimp_menu		*dialogue_age_unit_menu = NULL;			/**< The Age Unit popup menu.				*/
 static wimp_menu		*dialogue_type_mode_menu = NULL;		/**< The Type Mode popup menu.				*/
+static wimp_menu		*dialogue_type_list_menu = NULL;		/**< The Filetype List popup menu.			*/
 static wimp_menu		*dialogue_contents_mode_menu = NULL;		/**< The Contents Mode popup menu.			*/
 
 
@@ -323,13 +325,14 @@ static osbool	dialogue_read_filetype_list(flex_ptr list, char *buffer);
 static void	dialogue_redraw_window(void);
 static void	dialogue_click_handler(wimp_pointer *pointer);
 static osbool	dialogue_keypress_handler(wimp_key *key);
+static void	dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void	dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
+static void	dialogue_menu_close_handler(wimp_w w, wimp_menu *menu);
 static osbool	dialogue_icon_drop_handler(wimp_message *message);
 static void	dialogue_start_search(struct dialogue_block *dialogue);
 static int	dialogue_scale_size(unsigned base, enum dialogue_size_unit unit, osbool top);
 static void	dialogue_scale_age(os_date_and_time date, unsigned base, enum dialogue_age_unit unit, int round);
 static void	dialogue_dump_settings(struct dialogue_block *dialogue);
-
 
 
 /**
@@ -410,9 +413,13 @@ void dialogue_initialise(void)
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_TYPE], "Search.Type", NULL);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_keypress_handler);
+	event_add_window_menu_prepare(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_prepare_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_selection_handler);
+	event_add_window_menu_close(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_close_handler);
 	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_MODE_MENU,
 			dialogue_type_mode_menu, DIALOGUE_TYPE_ICON_MODE, "TypeMode");
+	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE_MENU,
+			dialogue_type_mode_menu, -1, NULL);
 
 	/* Initialise the attributes pane. */
 
@@ -1271,6 +1278,24 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 }
 
 
+/**
+ * Process menu prepare events in the Search window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *pointer	The pointer position, or NULL for a re-open.
+ */
+
+static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
+{
+	if (pointer == NULL || pointer->w != dialogue_panes[DIALOGUE_PANE_TYPE] || pointer->i != DIALOGUE_TYPE_ICON_TYPE_MENU)
+		return;
+
+	dialogue_type_list_menu = typemenu_build();
+	event_set_menu_block(dialogue_type_list_menu);
+	templates_set_menu(TEMPLATES_MENU_TYPES, dialogue_type_list_menu);
+}
+
 
 /**
  * Process menu selections in the Search window.
@@ -1282,6 +1307,8 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection)
 {
+	unsigned	*typelist;
+
 	if (menu == dialogue_size_mode_menu)
 		dialogue_shade_size_pane();
 	else if (menu == dialogue_date_mode_menu || menu == dialogue_age_mode_menu)
@@ -1290,6 +1317,39 @@ static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp
 		dialogue_shade_type_pane();
 	else if (menu == dialogue_contents_mode_menu)
 		dialogue_shade_contents_pane();
+	else if (menu == dialogue_type_list_menu) {
+		if (flex_alloc((flex_ptr) &typelist, sizeof(unsigned)) == 0)
+			return;
+
+		if (dialogue_read_filetype_list((flex_ptr) &typelist, icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE))) {
+			typemenu_process_selection(selection->items[0], (flex_ptr) &typelist);
+
+			dialogue_write_filetype_list(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE),
+					icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE),
+					typelist);
+
+			wimp_set_icon_state(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE, 0, 0);
+		}
+
+		dialogue_shade_type_pane();
+
+		flex_free((flex_ptr) &typelist);
+	}
+}
+
+
+/**
+ * Process menu close events in the Search window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ */
+
+static void dialogue_menu_close_handler(wimp_w w, wimp_menu *menu)
+{
+//	fontlist_destroy();
+//	report_format_font_menu = NULL;
+//	report_format_font_icon = -1;
 }
 
 

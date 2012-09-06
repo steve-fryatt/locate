@@ -223,4 +223,3 @@ unsigned fileicon_get_special_icon(enum fileicon_icons icon, osbool *small)
 
 	return fileicon_specials[icon].name;
 }
-
