@@ -65,7 +65,6 @@ wimp_menu *typemenu_build(void)
 	char		buffer[TYPEMENU_NAME_LENGTH], *sprite_base, *var_name;
 	os_var_type	type;
 	os_error	*error;
-	osbool		small;
 
 	/* Collect a full set of types from the system. */
 
@@ -87,7 +86,9 @@ wimp_menu *typemenu_build(void)
 	typemenu_types[typemenu_entries].name[TYPEMENU_NAME_LENGTH - 1] = '\0';
 
 	typemenu_types[typemenu_entries].validation[0] = 'S';
-	strncpy(typemenu_types[typemenu_entries].validation + 1, sprite_base + fileicon_get_special_icon(FILEICON_UNTYPED, &small), TYPEMENU_VALIDATION_LENGTH - 1);
+	strncpy(typemenu_types[typemenu_entries].validation + 1,
+			sprite_base + fileicon_get_special_icon(FILEICON_UNTYPED,
+			&(typemenu_types[typemenu_entries].small)), TYPEMENU_VALIDATION_LENGTH - 1);
 	typemenu_types[typemenu_entries].validation[TYPEMENU_VALIDATION_LENGTH - 1] = '\0';
 
 	typemenu_types[typemenu_entries].type = 0x1000u;
