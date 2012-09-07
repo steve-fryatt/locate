@@ -235,7 +235,6 @@ static void fileicon_find_sprite(struct fileicon_icon *icon, char *small, char *
 		if (error == NULL) {
 			icon->status = FILEICON_LARGE;
 			icon->name = textdump_store(fileicon_text, large);
-
 			return;
 		}
 	}
