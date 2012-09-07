@@ -203,7 +203,7 @@ wimp_menu *typemenu_build(void)
 
 static int typemenu_qsort_compare(const void* a, const void *b)
 {
-	struct typemenu_data *first = a, *second = b;
+	struct typemenu_data *first = (struct typemenu_data *) a, *second = (struct typemenu_data *) b;
 
 	return string_nocase_strcmp(first->name, second->name);
 }
