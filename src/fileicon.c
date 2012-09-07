@@ -52,6 +52,8 @@ static struct fileicon_icon		fileicon_types[4096];			/**< Array of details for t
 static struct fileicon_icon		fileicon_specials[FILEICON_MAX_ICONS];	/**< Array of details for the special icons.				*/
 
 
+static void	fileicon_find_sprite(struct fileicon_icon *icon, char *small, char *large);
+
 
 /**
  * Initialise the fileicon module, set up storage and sort out icons for the
@@ -79,17 +81,14 @@ void fileicon_initialise(void)
 		fileicon_specials[i].name = TEXTDUMP_NULL;
 	}
 
-	fileicon_specials[FILEICON_UNKNOWN].status = FILEICON_SMALL;
-	fileicon_specials[FILEICON_UNKNOWN].name = textdump_store(fileicon_text, "small_xxx");
+	fileicon_find_sprite(fileicon_specials + FILEICON_UNKNOWN, "small_xxx", "file_xxx");
+	fileicon_find_sprite(fileicon_specials + FILEICON_DIRECTORY, "small_dir", "directory");
+	fileicon_find_sprite(fileicon_specials + FILEICON_APPLICATION, "small_app", "application");
+	fileicon_find_sprite(fileicon_specials + FILEICON_UNTYPED, "small_lxa", "file_lxa");
 
-	fileicon_specials[FILEICON_DIRECTORY].status = FILEICON_SMALL;
-	fileicon_specials[FILEICON_DIRECTORY].name = textdump_store(fileicon_text, "small_dir");
-
-	fileicon_specials[FILEICON_APPLICATION].status = FILEICON_SMALL;
-	fileicon_specials[FILEICON_APPLICATION].name = textdump_store(fileicon_text, "small_app");
-
-	fileicon_specials[FILEICON_UNTYPED].status = FILEICON_SMALL;
-	fileicon_specials[FILEICON_UNTYPED].name = textdump_store(fileicon_text, "small_lxa");
+	/* The error sprite is in our own sprite area, so won't show up in searches
+	 * of the Wimp Sprite Pool.
+	 */
 
 	fileicon_specials[FILEICON_ERROR].status = FILEICON_SMALL;
 	fileicon_specials[FILEICON_ERROR].name = textdump_store(fileicon_text, "error");
@@ -132,12 +131,9 @@ char *fileicon_get_base(void)
 
 unsigned fileicon_get_type_icon(unsigned type, char *name, osbool *small)
 {
-	os_error	*error;
-	char		sprite[20];
+	char		smallname[20], largename[20];
 
 	/* Deal with special cases first. */
-
-	debug_printf("Looking up filetype 0x%x", type);
 
 	if (type > 0xfffu) {
 		switch (type) {
@@ -166,38 +162,21 @@ unsigned fileicon_get_type_icon(unsigned type, char *name, osbool *small)
 		if (small != NULL)
 			*small = (fileicon_types[type].status == FILEICON_SMALL) ? TRUE : FALSE;
 		return fileicon_types[type].name;
-		break;
 
 	case FILEICON_NONE:
 		return fileicon_get_special_icon(FILEICON_UNKNOWN, small);
-		break;
 
 	default:
-		snprintf(sprite, sizeof(sprite), "small_%3x", type);
-		error = xwimpspriteop_read_sprite_info(sprite, NULL, NULL, NULL, NULL);
+		snprintf(smallname, sizeof(smallname), "small_%3x", type);
+		snprintf(largename, sizeof(largename), "file_%3x", type);
 
-		if (error == NULL) {
-			fileicon_types[type].status = FILEICON_SMALL;
-			fileicon_types[type].name = textdump_store(fileicon_text, sprite);
+		fileicon_find_sprite(fileicon_types + type, smallname, largename);
+		if (fileicon_types[type].status != FILEICON_NONE) {
 			if (small != NULL)
-				*small = TRUE;
-
+				*small = (fileicon_types[type].status == FILEICON_SMALL) ? TRUE : FALSE;
 			return fileicon_types[type].name;
 		}
-
-		snprintf(sprite, sizeof(sprite), "file_%3x", type);
-		error = xwimpspriteop_read_sprite_info(sprite, NULL, NULL, NULL, NULL);
-
-		if (error == NULL) {
-			fileicon_types[type].status = FILEICON_LARGE;
-			fileicon_types[type].name = textdump_store(fileicon_text, sprite);
-			if (small != NULL)
-				*small = FALSE;
-
-			return fileicon_types[type].name;
-		}
-
-		fileicon_types[type].status = FILEICON_NONE;
+		break;
 	}
 
 	return fileicon_get_special_icon(FILEICON_UNKNOWN, small);
@@ -223,3 +202,44 @@ unsigned fileicon_get_special_icon(enum fileicon_icons icon, osbool *small)
 
 	return fileicon_specials[icon].name;
 }
+
+
+/**
+ * Identify an icon for a filetype, setting the supplied record accordingly.
+ *
+ * \param *icon			The icon record to update.
+ * \param *small		The name of the small icon to be used.
+ * \param *large		The name of the large icon to be used.
+ */
+
+static void fileicon_find_sprite(struct fileicon_icon *icon, char *small, char *large)
+{
+	os_error	*error;
+
+	if (icon == NULL)
+		return;
+
+	if (small != NULL) {
+		error = xwimpspriteop_read_sprite_info(small, NULL, NULL, NULL, NULL);
+
+		if (error == NULL) {
+			icon->status = FILEICON_SMALL;
+			icon->name = textdump_store(fileicon_text, small);
+			return;
+		}
+	}
+
+	if (large != NULL) {
+		error = xwimpspriteop_read_sprite_info(large, NULL, NULL, NULL, NULL);
+
+		if (error == NULL) {
+			icon->status = FILEICON_LARGE;
+			icon->name = textdump_store(fileicon_text, large);
+
+			return;
+		}
+	}
+
+	icon->status = FILEICON_NONE;
+}
+
