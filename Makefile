@@ -99,8 +99,8 @@ READMEHDR := Header
 MENUSRC := menudef
 
 OBJS := choices.o dataxfer.o datetime.o dialogue.o file.o fileicon.o		\
-	flexutils.o iconbar.o ihelp.o main.o results.o search.o settime.o 	\
-	templates.o textdump.o typemenu.o
+	flexutils.o iconbar.o ihelp.o main.o objdb.o results.o search.o		\
+	settime.o templates.o textdump.o typemenu.o
 
 
 # Build everything, but don't package it for release.

@@ -36,6 +36,7 @@
 
 #include "dialogue.h"
 #include "ihelp.h"
+#include "objdb.h"
 #include "results.h"
 #include "search.h"
 #include "templates.h"
@@ -47,6 +48,7 @@
 struct file_block {
 	struct dialogue_block		*dialogue;				/**< The dialogue settings related to the file.		*/
 	struct search_block		*search;				/**< The search operation related to the file.		*/
+	struct objdb_block		*objects;				/**< The object database related to the file.		*/
 	struct results_window		*results;				/**< The results window related to the file.		*/
 
 	struct file_block		*next;
@@ -83,6 +85,7 @@ struct file_block *file_create(void)
 
 	new->dialogue = NULL;
 	new->search = NULL;
+	new->objects = NULL;
 	new->results = NULL;
 
 	return new;
@@ -115,7 +118,7 @@ void file_create_dialogue(wimp_pointer *pointer, char *path)
 
 
 /**
- * Create a new search and results window for the file.
+ * Create a new search, object database and results window for the file.
  *
  * \param *file			The file to create the objects for.
  * \param *paths		The path(s) to search.
@@ -130,6 +133,14 @@ struct search_block *file_create_search(struct file_block *file, char *paths)
 
 	debug_printf("Starting to create file");
 
+	file->objects = objdb_create(file);
+	if (file->objects == NULL) {
+		file_destroy(file);
+		return NULL;
+	}
+
+	debug_printf("Objects: 0x%x", file->objects);
+
 	file->results = results_create(file, NULL);
 	if (file->results == NULL) {
 		file_destroy(file);
@@ -138,7 +149,7 @@ struct search_block *file_create_search(struct file_block *file, char *paths)
 
 	debug_printf("Results: 0x%x", file->results);
 
-	file->search = search_create(file, file->results, paths);
+	file->search = search_create(file, file->objects, file->results, paths);
 	if (file->search == NULL) {
 		file_destroy(file);
 		return NULL;
@@ -172,7 +183,7 @@ void file_create_results(void)
 		return;
 	}
 
-	new->search = search_create(new, new->results, "ADFS::4.$,ADFS::4.$.Transient,ADFS::4.$.Test");
+	new->search = search_create(new, NULL, new->results, "ADFS::4.$,ADFS::4.$.Transient,ADFS::4.$.Test");
 	if (new->search == NULL) {
 		file_destroy(new);
 		return;
@@ -228,6 +239,9 @@ void file_destroy(struct file_block *block)
 
 	if (block->search != NULL)
 		search_destroy(block->search);
+
+	if (block->objects != NULL)
+		objdb_destroy(block->objects);
 
 	if (block->dialogue != NULL)
 		dialogue_destroy(block->dialogue);

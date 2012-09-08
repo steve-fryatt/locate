@@ -37,6 +37,7 @@
 #include "search.h"
 
 #include "flexutils.h"
+#include "objdb.h"
 #include "results.h"
 
 
@@ -65,6 +66,7 @@ struct search_stack {
 
 struct search_block {
 	struct file_block	*file;						/**< The file to which the search belongs.				*/
+	struct objdb_block	*objects;					/**< The object database to store data in.				*/
 	struct results_window	*results;					/**< Results module to output results to.				*/
 
 	osbool			active;						/**< TRUE if the search is active; else FALSE.				*/
@@ -138,13 +140,14 @@ static unsigned		search_drop_stack(struct search_block *search);
  * Create a new search.
  *
  * \param *file			The file block to which the search belongs.
+ * \param *objects		The object database to store information in.
  * \param *results		The results window to which output should be
  *				directed.
  * \param *path			The path(s) to search, comma-separated.
  * \return			The search handle, or NULL on failure.
  */
 
-struct search_block *search_create(struct file_block *file, struct results_window *results, char *path)
+struct search_block *search_create(struct file_block *file, struct objdb_block *objects, struct results_window *results, char *path)
 {
 	struct search_block	*new = NULL;
 	osbool			mem_ok = TRUE;
@@ -205,6 +208,7 @@ struct search_block *search_create(struct file_block *file, struct results_windo
 	/* Initialise the search contents. */
 
 	new->file = file;
+	new->objects = objects;
 	new->results = results;
 
 	new->active = FALSE;
@@ -653,8 +657,6 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	if (search == NULL || !search->active)
 		return TRUE;
 
-	debug_printf("Entering search poll 0x%x", search);
-
 	/* If there's no stack set up, the search must have ended. */
 
 	if (search->stack_level == 0) {
@@ -667,7 +669,6 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	stack = search->stack_level - 1;
 
 	while (stack != SEARCH_NULL && (os_read_monotonic_time() < end_time)) {
-		debug_printf("In Stack: %u, Filename: '%s', Read: %d, context: %d, next: %d", stack, search->stack[stack].filename, search->stack[stack].read, search->stack[stack].context, search->stack[stack].next);
 
 		/* If there are no outstanding entries in the current buffer, call
 		 * OS_GBPB 10 to get another set of file details.
@@ -684,15 +685,11 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				strcat(filename, search->stack[i].filename);
 			}
 
-			debug_printf("Search path: '%s'", filename);
-
 			error = xosgbpb_dir_entries_info(filename, (osgbpb_info_list *) search->stack[stack].info, 1000, search->stack[stack].context,
 					SEARCH_BLOCK_SIZE, "*", &(search->stack[stack].read), &(search->stack[stack].context));
 
 			search->stack[stack].next = 0;
 			search->stack[stack].data_offset = 0;
-
-			debug_printf("Out Read: %d, context: %d, next: %d", search->stack[stack].read, search->stack[stack].context, search->stack[stack].next);
 		}
 
 		/* Handle any errors thrown by the OS_GBPB call by dropping back out of
@@ -703,7 +700,6 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 			search->error_count++;
 
 			stack = search_drop_stack(search);
-			debug_printf("Up out of folder: stack %u", stack);
 
 			results_add_error(search->results, error->errmess, filename);
 
@@ -713,6 +709,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 		/* Process the buffered details. */
 
 		while ((os_read_monotonic_time() < end_time) && (search->stack[stack].next < search->stack[stack].read)) {
+			objdb_add_file(search->objects, OBJDB_NULL_KEY, (osgbpb_info *) ((unsigned) search->stack[stack].info + search->stack[stack].data_offset));
+
 			file_data = (osgbpb_info *) ((unsigned) search->stack[stack].info + search->stack[stack].data_offset);
 
 			/* Work out a filetype using the convention 0x000-0xfff, 0x1000, 0x2000, 0x3000. */
@@ -726,11 +724,10 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 			else
 				search->stack[stack].filetype = (file_data->load_addr & osfile_FILE_TYPE) >> osfile_FILE_TYPE_SHIFT;
 
-			debug_printf("Looping %d of %d with offset %u to address 0x%x for file '%s' of type 0x%x", search->stack[stack].next, search->stack[stack].read, search->stack[stack].data_offset, file_data, file_data->name, search->stack[stack].filetype);
-
 			/* Test the object that we have found, starting by making sure that the object type is one that we want. */
 
-			if (((((search->stack[stack].filetype >= 0x000 && search->stack[stack].filetype <= 0xfff) || (search->stack[stack].filetype == osfile_TYPE_UNTYPED)) && search->include_files) ||
+			if (((((search->stack[stack].filetype >= 0x000 && search->stack[stack].filetype <= 0xfff) ||
+					(search->stack[stack].filetype == osfile_TYPE_UNTYPED)) && search->include_files) ||
 					((search->stack[stack].filetype == osfile_TYPE_DIR) && search->include_directories) ||
 					((search->stack[stack].filetype == osfile_TYPE_APPLICATION) && search->include_applications)) &&
 
@@ -747,9 +744,11 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 					(!search->test_date || (search->stack[stack].filetype == osfile_TYPE_UNTYPED) ||
 							(((((file_data->load_addr & 0xffu) > search->minimum_date_hi) ||
-									(((file_data->load_addr & 0xffu) == search->minimum_date_hi) && (file_data->exec_addr >= search->minimum_date_lo))) &&
+									(((file_data->load_addr & 0xffu) == search->minimum_date_hi) &&
+									(file_data->exec_addr >= search->minimum_date_lo))) &&
 							(((file_data->load_addr & 0xffu) < search->maximum_date_hi) ||
-									(((file_data->load_addr & 0xffu) == search->maximum_date_hi) && (file_data->exec_addr <= search->maximum_date_lo)))) == search->date_logic)) &&
+									(((file_data->load_addr & 0xffu) == search->maximum_date_hi) &&
+									(file_data->exec_addr <= search->maximum_date_lo)))) == search->date_logic)) &&
 
 					/* If we're testing filetype and the type falls between 0x000 and 0xfff, is it set in the bitmask? */
 
@@ -797,7 +796,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				stack = search_add_stack(search);
 
 				strncpy(search->stack[stack].filename, leafname, SEARCH_MAX_FILENAME);
-				debug_printf("Down into folder: stack %u", stack);
+
 				continue;
 			}
 		}
@@ -808,7 +807,6 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 		if ((search->stack[stack].next >= search->stack[stack].read) && (search->stack[stack].context == -1)) {
 			stack = search_drop_stack(search);
-			debug_printf("Up out of folder: stack %u", stack);
 
 			continue;
 		}
@@ -845,8 +843,6 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	}
 
 	results_reformat(search->results, FALSE);
-
-	debug_printf("Exiting search poll 0x%x", search);
 
 	return TRUE;
 }

@@ -9,6 +9,7 @@
 
 #include "oslib/fileswitch.h"
 
+#include "objdb.h"
 #include "results.h"
 
 struct search_block;
@@ -18,13 +19,14 @@ struct search_block;
  * Create a new search.
  *
  * \param *file			The file block to which the search belongs.
+ * \param *objects		The object database to store information in.
  * \param *results		The results window to which output should be
  *				directed.
  * \param *path			The path(s) to search, comma-separated.
  * \return			The search handle, or NULL on failure.
  */
 
-struct search_block *search_create(struct file_block *file, struct results_window *results, char *path);
+struct search_block *search_create(struct file_block *file, struct objdb_block *objects, struct results_window *results, char *path);
 
 
 /**

@@ -53,6 +53,7 @@
 #include "fileicon.h"
 #include "iconbar.h"
 #include "ihelp.h"
+#include "objdb.h"
 #include "results.h"
 #include "search.h"
 #include "settime.h"
