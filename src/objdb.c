@@ -73,15 +73,15 @@ struct object
 };
 
 
-static struct object		*objdb_list = NULL;			/**< Array of application data.					*/
+//static struct object		*objdb_list = NULL;			/**< Array of application data.					*/
 
-static int				objdb_apps = 0;				/**< The number of applications stored in the database.		*/
-static int				objdb_allocation = 0;			/**< The number of applications for which space is allocated.	*/
+//static int				objdb_apps = 0;				/**< The number of applications stored in the database.		*/
+//static int				objdb_allocation = 0;			/**< The number of applications for which space is allocated.	*/
 
-static unsigned				objdb_key = 0;				/**< Track new unique primary keys.				*/
+//static unsigned				objdb_key = 0;				/**< Track new unique primary keys.				*/
 
 
-static int	objdb_find(unsigned key);
+static int	objdb_find(struct objdb_block *handle, unsigned key);
 static int	objdb_new(struct objdb_block *handle);
 static void	objdb_delete(struct objdb_block *handle, int index);
 
@@ -324,61 +324,67 @@ osbool objdb_save_file(char *leaf_name)
 /**
  * Create a new, empty entry in the database and return its key.
  *
+ * \param *handle		The database in which to create a new key.
  * \return			The new key, or OBJDB_NULL_KEY.
  */
 
-unsigned objdb_create_key(void)
+unsigned objdb_create_key(struct objdb_block *handle)
 {
 	unsigned	key = OBJDB_NULL_KEY;
-	int		index = objdb_new();
+	int		index = objdb_new(handle);
 
-	if (index != -1)
-		key = objdb_list[index].key;
+	if (handle != NULL && index != -1)
+		key = handle->list[index].key;
 
 	return key;
 }
 
 
 /**
- * Delete an enrty from the database.
+ * Delete an entry from the database.
  *
- * \param key			The key of the enrty to delete.
+ * \param *handle		The database which to delete the entry.
+ * \param key			The key of the entry to delete.
  */
 
-void objdb_delete_key(unsigned key)
+void objdb_delete_key(struct objdb_block *handle, unsigned key)
 {
 	int		index;
 
-	if (key == OBJDB_NULL_KEY)
+	if (handle == NULL || key == OBJDB_NULL_KEY)
 		return;
 
-	index = objdb_find(key);
+	index = objdb_find(handle, key);
 
 	if (index != -1)
-		objdb_delete(index);
+		objdb_delete(handle, index);
 }
 
 
 /**
  * Given a database key, return the next key from the database.
  *
+ * \param *handle		The database to iterate through.
  * \param key			The current key, or OBJDB_NULL_KEY to start sequence.
  * \return			The next key, or OBJDB_NULL_KEY.
  */
 
-unsigned objdb_get_next_key(unsigned key)
+unsigned objdb_get_next_key(struct objdb_block *handle, unsigned key)
 {
 	int index;
 
-	if (key == OBJDB_NULL_KEY && objdb_apps > 0)
-		return objdb_list[0].key;
+	if (handle == NULL)
+		return OBJDB_NULL_KEY;
 
-	index = objdb_find(key);
+	if (key == OBJDB_NULL_KEY && handle->objects > 0)
+		return handle->list[0].key;
 
-	return (index != -1 && index < (objdb_apps - 1)) ? objdb_list[index + 1].key : OBJDB_NULL_KEY;
+	index = objdb_find(handle, key);
+
+	return (index != -1 && index < (handle->objects - 1)) ? handle->list[index + 1].key : OBJDB_NULL_KEY;
 }
 
-
+#if 0
 /**
  * Given a key, return details of the button associated with the application.
  * Any parameters passed as NULL will not be returned. String pointers will only
@@ -470,17 +476,23 @@ osbool objdb_set_button_info(unsigned key, int x_pos, int y_pos, char *name, cha
 
 	return TRUE;
 }
+#endif
+
 
 /**
  * Find the index of an application based on its key.
  *
+ * \param *handle		The database in which to locate the object.
  * \param key			The key to locate.
  * \return			The current index, or -1 if not found.
  */
 
-static int objdb_find(unsigned key)
+static int objdb_find(struct objdb_block *handle, unsigned key)
 {
 	int index;
+
+	if (handle == NULL)
+		return -1;
 
 	/* We know that keys are allocated in ascending order, possibly
 	 * with gaps in the sequence.  Therefore we can hit the list
@@ -488,12 +500,12 @@ static int objdb_find(unsigned key)
 	 * we pass the key we're looking for.
 	 */
 
-	index = (key >= objdb_apps) ? objdb_apps - 1 : key;
+	index = (key >= handle->objects) ? handle->objects - 1 : key;
 
-	while (index >= 0 && objdb_list[index].key > key)
+	while (index >= 0 && handle->list[index].key > key)
 		index--;
 
-	if (index != -1 && objdb_list[index].key != key)
+	if (index != -1 && handle->list[index].key != key)
 		index = -1;
 
 	return index;
@@ -510,8 +522,6 @@ static int objdb_find(unsigned key)
 
 static int objdb_new(struct objdb_block *handle)
 {
-
-
 	if (handle == NULL)
 		return -1;
 

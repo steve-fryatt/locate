@@ -80,29 +80,32 @@ osbool objdb_save_file(char *leaf_name);
 /**
  * Create a new, empty entry in the database and return its key.
  *
+ * \param *handle		The database in which to create a new key.
  * \return			The new key, or OBJDB_NULL_KEY.
  */
 
-unsigned objdb_create_key(void);
+unsigned objdb_create_key(struct objdb_block *handle);
 
 
 /**
  * Delete an entry from the database.
  *
- * \param key			The key of the enrty to delete.
+ * \param *handle		The database which to delete the entry.
+ * \param key			The key of the entry to delete.
  */
 
-void objdb_delete_key(unsigned key);
+void objdb_delete_key(struct objdb_block *handle, unsigned key);
 
 
 /**
  * Given a database key, return the next key from the database.
  *
+ * \param *handle		The database to iterate through.
  * \param key			The current key, or OBJDB_NULL_KEY to start sequence.
  * \return			The next key, or OBJDB_NULL_KEY.
  */
 
-unsigned objdb_get_next_key(unsigned key);
+unsigned objdb_get_next_key(struct objdb_block *handle, unsigned key);
 
 
 /**
@@ -123,8 +126,8 @@ unsigned objdb_get_next_key(unsigned key);
  * \return			TRUE if an entry was found; else FALSE.
  */
 
-osbool objdb_get_button_info(unsigned key, int *x_pos, int *y_pos, char **name, char **sprite,
-		char **command, osbool *local_copy, osbool *filer_boot);
+//osbool objdb_get_button_info(unsigned key, int *x_pos, int *y_pos, char **name, char **sprite,
+//		char **command, osbool *local_copy, osbool *filer_boot);
 
 
 /**
@@ -141,8 +144,8 @@ osbool objdb_get_button_info(unsigned key, int *x_pos, int *y_pos, char **name, 
  * \return			TRUE if an entry was updated; else FALSE.
  */
 
-osbool objdb_set_button_info(unsigned key, int x_pos, int y_pos, char *name, char *sprite,
-		char *command, osbool local_copy, osbool filer_boot);
+//osbool objdb_set_button_info(unsigned key, int x_pos, int y_pos, char *name, char *sprite,
+//		char *command, osbool local_copy, osbool filer_boot);
 
 #endif
 
