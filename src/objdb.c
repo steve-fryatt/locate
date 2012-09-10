@@ -41,10 +41,10 @@
 #include "textdump.h"
 
 
-#define OBJDB_ALLOC_CHUNK 10
+#define OBJDB_ALLOC_CHUNK 100
 
 /**
- * Application data structure -- Implementation.
+ * Data structure for an object database instance.
  */
 
 struct objdb_block
@@ -60,16 +60,22 @@ struct objdb_block
 	unsigned		key;						/**< Track new unique primary keys.				*/
 };
 
+/**
+ * Data structure for a filing system object.
+ */
+
 struct object
 {
 	unsigned		key;						/**< Primary key to index database entries.			*/
 
-	bits			load_addr;
-	bits			exec_addr;
-	unsigned		size;
-	fileswitch_attr		attributes;
-	fileswitch_object_type	type;
-	unsigned		name;
+	unsigned		parent;						/**< The key of the parent object, or OBJDB_NULL_KEY.		*/
+
+	bits			load_addr;					/**< The load address of the object.				*/
+	bits			exec_addr;					/**< The execution address of the object.			*/
+	unsigned		size;						/**< The size of the object in bytes.				*/
+	fileswitch_attr		attributes;					/**< The file attributes of the object.				*/
+	fileswitch_object_type	type;						/**< The fileswitch object type of the object.			*/
+	unsigned		name;						/**< Textdump offset to the name of the object.			*/
 };
 
 
@@ -175,18 +181,59 @@ void objdb_destroy(struct objdb_block *handle)
  */
 
 
+/**
+ * Add a search root to an object database.
+ *
+ * \param *handle		The handle of the database to add the root to.
+ * \param *path			The path of the root to be added.
+ * \return			The key of the new object.
+ */
+
+unsigned objdb_add_root(struct objdb_block *handle, char *path)
+{
+	int	index = objdb_new(handle);
+
+	if (handle == NULL || path == NULL || index == -1)
+		return OBJDB_NULL_KEY;
+
+	handle->list[index].parent = OBJDB_NULL_KEY;
+	handle->list[index].name = textdump_store(handle->text, path);
+
+	debug_printf("\\YAdding root details for %s with key %u", path, handle->list[index].key);
+
+	return handle->list[index].key;
+}
+
+
+/**
+ * Store a file in the object database, using its OS_GBPB file descriptor block
+ * to supply the information.
+ *
+ * \param *handle		The handle of the database to add the file to.
+ * \param parent		The key of the parent object in the database.
+ * \param *file			The file data to be added.
+ * \return			The key of the new object.
+ */
+
 unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info *file)
 {
+	int	index = objdb_new(handle);
 
-	textdump_store(handle->text, file->name);
+	if (handle == NULL || file == NULL || index == -1)
+		return OBJDB_NULL_KEY;
 
+	handle->list[index].parent = parent;
 
+	handle->list[index].load_addr = file->load_addr;
+	handle->list[index].exec_addr = file->exec_addr;
+	handle->list[index].size = file->size;
+	handle->list[index].attributes = file->attr;
+	handle->list[index].type = file->obj_type;
+	handle->list[index].name = textdump_store(handle->text, file->name);
 
+	debug_printf("\\YAdding file details for %s to %u with key %u", file->name, parent, handle->list[index].key);
 
-
-	debug_printf("Adding file details for %s", file->name);
-
-	return OBJDB_NULL_KEY;
+	return handle->list[index].key;
 }
 
 

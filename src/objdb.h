@@ -41,9 +41,26 @@ struct objdb_block *objdb_create(struct file_block *file);
 void objdb_destroy(struct objdb_block *handle);
 
 
+/**
+ * Add a search root to an object database.
+ *
+ * \param *handle		The handle of the database to add the root to.
+ * \param *path			The path of the root to be added.
+ * \return			The key of the new object.
+ */
+
+unsigned objdb_add_root(struct objdb_block *handle, char *path);
 
 
-
+/**
+ * Store a file in the object database, using its OS_GBPB file descriptor block
+ * to supply the information.
+ *
+ * \param *handle		The handle of the database to add the file to.
+ * \param parent		The key of the parent object in the database.
+ * \param *file			The file data to be added.
+ * \return			The key of the new object.
+ */
 
 unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info *file);
 
