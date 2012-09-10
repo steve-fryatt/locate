@@ -654,6 +654,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	osgbpb_info		*file_data = (osgbpb_info *) copy;
 	char			filename[4996], leafname[SEARCH_MAX_FILENAME];
 
+	// \TODO -- The allocation of copy[] is ugly.
+
 
 	if (search == NULL || !search->active)
 		return TRUE;
@@ -713,7 +715,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 			/* Take a copy of the current file data into static memory, so that any pointers that we
 			 * use on it remain valid even if the flex heap moved around.
 			 *
-			 * At the head of the function, file_data = copy.
+			 * At the head of the function, file_data = copy, so we can now access the block via a
+			 * sensible data type.
 			 */
 
 			original = search->stack[stack].info + search->stack[stack].data_offset;
