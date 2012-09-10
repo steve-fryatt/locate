@@ -177,35 +177,14 @@ void objdb_destroy(struct objdb_block *handle)
 
 unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info *file)
 {
-	byte		*original = (byte *) file, *copy;
-	int		size = 20, p = 0;
-	osgbpb_info	*data;
 
-
-	/* Get the size of the data, and copy it to an immovable block in case
-	 * the original was on the flex heap.
-	 */
-
-	while (original[size++] != '\0');
-
-	data = malloc(size * sizeof(byte));
-	if (data == NULL)
-		return OBJDB_NULL_KEY;
-
-	copy = (byte *) data;
-
-	for (p = 0; p < size; p++)
-		copy[p] = original[p];
-
-	textdump_store(handle->text, data->name);
+	textdump_store(handle->text, file->name);
 
 
 
 
 
-	debug_printf("Adding file details for %s", data->name);
-
-	free(data);
+	debug_printf("Adding file details for %s", file->name);
 
 	return OBJDB_NULL_KEY;
 }

@@ -650,7 +650,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	os_error		*error;
 	int			i;
 	unsigned		stack;
-	osgbpb_info		*file_data;
+	byte			*original, copy[SEARCH_BLOCK_SIZE];
+	osgbpb_info		*file_data = (osgbpb_info *) copy;
 	char			filename[4996], leafname[SEARCH_MAX_FILENAME];
 
 
@@ -709,9 +710,27 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 		/* Process the buffered details. */
 
 		while ((os_read_monotonic_time() < end_time) && (search->stack[stack].next < search->stack[stack].read)) {
-			objdb_add_file(search->objects, OBJDB_NULL_KEY, (osgbpb_info *) ((unsigned) search->stack[stack].info + search->stack[stack].data_offset));
+			/* Take a copy of the current file data into static memory, so that any pointers that we
+			 * use on it remain valid even if the flex heap moved around.
+			 *
+			 * At the head of the function, file_data = copy.
+			 */
 
-			file_data = (osgbpb_info *) ((unsigned) search->stack[stack].info + search->stack[stack].data_offset);
+			original = search->stack[stack].info + search->stack[stack].data_offset;
+
+			for (i = 0; i < 20 || original[i] != '\0'; i++)
+				copy[i] = original[i];
+
+			copy[i] = '\0';
+
+			/* Update the data offsets for the next file. */
+
+			search->stack[stack].data_offset += ((i + 4) & 0xfffffffc);
+			search->stack[stack].next++;
+
+			/* Add the file to the database. */
+
+			objdb_add_file(search->objects, OBJDB_NULL_KEY, file_data);
 
 			/* Work out a filetype using the convention 0x000-0xfff, 0x1000, 0x2000, 0x3000. */
 
@@ -775,16 +794,6 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 				results_add_file(search->results, filename, search->stack[stack].filetype);
 			}
-
-			/* Refind the file data, as it could have moved if the flex heap shuffled.
-			 *
-			 * Update the data offsets for the next file.
-			 */
-
-			file_data = (osgbpb_info *) ((unsigned) search->stack[stack].info + search->stack[stack].data_offset);
-
-			search->stack[stack].data_offset += ((24 + strlen(file_data->name)) & 0xfffffffc);
-			search->stack[stack].next++;
 
 			/* If the object is a folder, recurse down into it. */
 
