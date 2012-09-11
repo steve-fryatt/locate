@@ -363,6 +363,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 	char			*text, *fileicon;
 	char			validation[255];
 	char			truncation[1024]; // \TODO -- Allocate properly.
+	os_t			start_time;
 
 	res = (struct results_window *) event_get_window_user_data(redraw->w);
 
@@ -389,6 +390,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 	ox = redraw->box.x0 - redraw->xscroll;
 	oy = redraw->box.y1 - redraw->yscroll;
+
+	start_time = os_read_monotonic_time();
 
 	while (more) {
 		top = (oy - redraw->clip.y1 - RESULTS_TOOLBAR_HEIGHT) / RESULTS_LINE_HEIGHT;
@@ -433,6 +436,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 		more = wimp_get_rectangle(redraw);
 	}
+
+	debug_printf("Redraw complete in %u centiseconds", os_read_monotonic_time() - start_time);
 }
 
 
