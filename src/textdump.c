@@ -172,7 +172,7 @@ unsigned textdump_store(struct textdump_block *handle, char *text)
 
 		if (offset != TEXTDUMP_NULL) {
 			debug_printf("Found in hash %d", hash);
-			return offset;
+			return offset + sizeof(unsigned);
 		}
 
 		debug_printf("sizeof(struct textdump_header) = %u", sizeof(struct textdump_header));
