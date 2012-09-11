@@ -80,14 +80,6 @@ struct object
 };
 
 
-//static struct object		*objdb_list = NULL;			/**< Array of application data.					*/
-
-//static int				objdb_apps = 0;				/**< The number of applications stored in the database.		*/
-//static int				objdb_allocation = 0;			/**< The number of applications for which space is allocated.	*/
-
-//static unsigned				objdb_key = 0;				/**< Track new unique primary keys.				*/
-
-
 static int	objdb_find(struct objdb_block *handle, unsigned key);
 static int	objdb_new(struct objdb_block *handle);
 static void	objdb_delete(struct objdb_block *handle, int index);
