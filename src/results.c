@@ -88,12 +88,6 @@ enum results_line_flags {
 };
 
 
-/** A file information block. */
-
-struct results_file {
-	unsigned		filename;					/**< Text offset to the filename.					*/
-};
-
 /** A line definition for the results window. */
 
 struct results_line {
@@ -131,12 +125,6 @@ struct results_window {
 	unsigned		display_lines;					/**< The number of lines currently indexed into the window.		*/
 
 	osbool			full_info;					/**< TRUE if full info mode is on; else FALSE.				*/
-
-	/* File data storage. */
-
-	struct results_file	*files;						/**< The array of file data for the window.				*/
-	unsigned		files_count;					/**< The number of files stored for the window.				*/
-	unsigned		files_size;					/**< The number of file data blocks currently claimed.			*/
 
 	/* Generic text string storage. */
 
@@ -225,7 +213,6 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 
 	if (new != NULL) {
 		new->redraw = NULL;
-		new->files = NULL;
 		new->text = NULL;
 		new->objects = NULL;
 	}
@@ -248,9 +235,6 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	if (mem_ok) {
 		if (flex_alloc((flex_ptr) &(new->redraw), RESULTS_ALLOC_REDRAW * sizeof(struct results_line)) == 0)
 			mem_ok = FALSE;
-
-		if (flex_alloc((flex_ptr) &(new->files), RESULTS_ALLOC_FILES * sizeof(struct results_file)) == 0)
-			mem_ok = FALSE;
 	}
 
 	if (mem_ok) {
@@ -265,8 +249,6 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	if (!mem_ok) {
 		if (new != NULL && new->redraw != NULL)
 			flex_free((flex_ptr) &(new->redraw));
-		if (new != NULL && new->files != NULL)
-			flex_free((flex_ptr) &(new->files));
 		if (new != NULL && new->text != NULL)
 			textdump_destroy(new->text);
 
@@ -294,9 +276,6 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	new->display_lines = 0;
 
 	new->full_info = TRUE;
-
-	new->files_size = RESULTS_ALLOC_FILES;
-	new->files_count = 0;
 
 	new->format_width = results_window_def->visible.x1 - results_window_def->visible.x0;
 
@@ -496,7 +475,6 @@ void results_destroy(struct results_window *handle)
 	wimp_delete_window(handle->status);
 
 	flex_free((flex_ptr) &(handle->redraw));
-	flex_free((flex_ptr) &(handle->files));
 
 	if (handle->text != NULL)
 		textdump_destroy(handle->text);
@@ -643,7 +621,6 @@ void results_add_error(struct results_window *handle, char *message, char *path)
 
 void results_add_file(struct results_window *handle, unsigned key)
 {
-	unsigned	file, info, data, fileblock;
 	unsigned	line, offv;
 	osbool		small;
 	unsigned	type;
@@ -671,34 +648,6 @@ void results_add_file(struct results_window *handle, unsigned key)
 	handle->redraw[line].sprite = offv;
 	if (!small)
 		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
-
-/*
-	fileblock = results_add_fileblock(handle);
-	if (fileblock == RESULTS_NULL)
-		return;
-
-	file = results_add_line(handle, TRUE);
-	if (file == RESULTS_NULL)
-		return;
-
-	data = textdump_store(handle->text, text);
-
-	handle->redraw[file].type = (data == RESULTS_NULL) ? RESULTS_LINE_NONE : RESULTS_LINE_FILENAME;
-	handle->redraw[file].parent = file;
-	handle->redraw[file].text = data;
-	handle->redraw[file].file = fileblock;
-
-	info = results_add_line(handle, TRUE);
-	if (info == RESULTS_NULL)
-		return;
-
-	data = textdump_store(handle->text, text);
-
-	handle->redraw[info].type = (data == RESULTS_NULL) ? RESULTS_LINE_NONE : RESULTS_LINE_FILEINFO;
-	handle->redraw[info].parent = file;
-	handle->redraw[info].text = RESULTS_NULL;
-	handle->redraw[info].file = fileblock;
-*/
 }
 
 
@@ -835,35 +784,4 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 
 	return offset;
 }
-
-#if 0
-/**
- * Claim a new line from the file array, allocating more memory if required,
- * set it up and return its offset.
- *
- * \param *handle		The handle of the results window.
- * \return			The offset of the new file, or RESULTS_NULL.
- */
-
-static unsigned results_add_fileblock(struct results_window *handle)
-{
-	if (handle == NULL)
-		return RESULTS_NULL;
-
-	/* Make sure that there is enough space in the block to take the new
-	 * line, allocating more if required.
-	 */
-
-	if (handle->files_count >= handle->files_size) {
-		if (flex_extend((flex_ptr) &(handle->files), (handle->files_size + RESULTS_ALLOC_FILES) * sizeof(struct results_file)) == 0)
-			return RESULTS_NULL;
-
-		handle->files_size += RESULTS_ALLOC_FILES;
-	}
-
-	/* Get the new line. */
-
-	return handle->files_count++;
-}
-#endif
 
