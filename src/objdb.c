@@ -245,17 +245,41 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 
 osbool objdb_get_name(struct objdb_block *handle, unsigned key, char *buffer, size_t len)
 {
-	int	index = objdb_find(handle, key);
-	char	*name;
+	int		index, indexes[256], i;
+	char		*base, *from, *to;
 
-	if (handle == NULL || buffer == NULL || index == -1)
+	if (handle == NULL || buffer == NULL)
 		return FALSE;
 
-	name = textdump_get_base(handle->text) + handle->list[index].name;
+	i = 0;
 
-	strncpy(buffer, name, len);
+	do {
+		index = (key != OBJDB_NULL_KEY) ? objdb_find(handle, key) : -1;
 
-	return (buffer[len - 1] == '\0') ? TRUE : FALSE;
+		if (index != -1) {
+			indexes[i++] = index;
+			key = handle->list[index].parent;
+		}
+	} while (index != -1 && i < (sizeof(indexes) / sizeof(int)));
+
+	base = textdump_get_base(handle->text);
+
+	to = buffer;
+	buffer += (len - 1);
+
+	while (i > 0) {
+		from = base + handle->list[indexes[--i]].name;
+
+		while (to < buffer && *from != '\0')
+			*(to++) = *(from++);
+
+		if (i > 0)
+			*(to++) = '.';
+	}
+
+	*to = '\0';
+
+	return TRUE;
 }
 
 

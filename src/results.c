@@ -400,8 +400,16 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 				strcpy(validation + 1, fileicon + line->sprite);
 
-				objdb_get_name(res->objects, line->file, truncation, sizeof(truncation));
-				icon[RESULTS_ICON_FILE].data.indirected_text.text = truncation;
+				objdb_get_name(res->objects, line->file, truncation + 3, sizeof(truncation) - 3);
+				if (line->truncate > 0) {
+					truncation[line->truncate] = '.';
+					truncation[line->truncate + 1] = '.';
+					truncation[line->truncate + 2] = '.';
+					icon[RESULTS_ICON_FILE].data.indirected_text.text = truncation + line->truncate;
+				} else {
+					icon[RESULTS_ICON_FILE].data.indirected_text.text = truncation + 3;
+				}
+
 				icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_FG_COLOUR;
 				icon[RESULTS_ICON_FILE].flags |= line->colour << wimp_ICON_FG_COLOUR_SHIFT;
 				if (line->flags & RESULTS_FLAG_HALFSIZE)
@@ -411,9 +419,6 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 				wimp_plot_icon(&(icon[RESULTS_ICON_FILE]));
 				break;
-
-
-				//objdb_get_name(handle->objects, key, name, sizeof(name));
 
 
 			case RESULTS_LINE_TEXT:
@@ -678,12 +683,31 @@ void results_reformat(struct results_window *handle, osbool all)
 
 	for (line = (all) ? 0 : handle->formatted_lines; line < handle->redraw_lines; line++) {
 		switch (handle->redraw[line].type) {
+		case RESULTS_LINE_FILENAME:
+			objdb_get_name(handle->objects, handle->redraw[line].file, truncate + 3, sizeof(truncate) - 3);
+
+			if (wimptextop_string_width(truncate + 3, 0) <= width)
+				break;
+
+			length = strlen(truncate + 3);
+			pos = 0;
+
+			while (pos < length &&
+					wimptextop_string_width(truncate + pos, 0) > width) {
+					*(truncate + pos + 3) = '.';
+					pos++;
+			}
+
+			if (pos > 0)
+				handle->redraw[line].truncate = pos;
+			break;
+
 		case RESULTS_LINE_TEXT:
 			if (wimptextop_string_width(text + handle->redraw[line].text, 0) <= width)
 				break;
 
 			strcpy(truncate + 3, text + handle->redraw[line].text);
-			length = strlen(truncate) - 3;
+			length = strlen(truncate + 3);
 			pos = 0;
 
 			while (pos < length &&
