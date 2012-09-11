@@ -31,23 +31,34 @@
 #define TEXTDUMP_ALLOCATION 1024						/**< The default allocation block size.					*/
 
 struct textdump_block {
-	char			*text;						/**< The general text string dump.					*/
+	byte			*text;						/**< The general text string dump.					*/
+	unsigned		*hash;						/**< The hash table, or NULL if none.					*/
 	unsigned		free;						/**< Offset to the first free character in the text dump.		*/
 	unsigned		size;						/**< The current claimed size of the text dump.				*/
 	unsigned		allocation;					/**< The allocation block size of the text dump.			*/
+	unsigned		hashes;						/**< The size of the hash table, or 0 if none.				*/
 };
 
+struct textdump_header {
+	unsigned		next;						/**< Offset to the next entry in the hash chain.			*/
+	char			text[UNKNOWN];					/**< The stored text string.						*/
+};
+
+
+static int	textdump_make_hash(struct textdump_block *handle, char *text);
 
 /**
  * Initialise a text storage block.
  *
  * \param allocation		The allocation block size, or 0 for the default.
+ * \param hash			The size of the duplicate hash table, or 0 for none.
  * \return			The block handle, or NULL on failure.
  */
 
-struct textdump_block *textdump_create(unsigned allocation)
+struct textdump_block *textdump_create(unsigned allocation, unsigned hash)
 {
 	struct textdump_block	*new;
+	int			i;
 
 	new = heap_alloc(sizeof(struct textdump_block));
 	if (new == NULL)
@@ -59,7 +70,28 @@ struct textdump_block *textdump_create(unsigned allocation)
 	new->free = 0;
 	new->size = new->allocation;
 
-	if (flex_alloc((flex_ptr) &(new->text), new->allocation * sizeof(char)) == 0) {
+	new->hashes = hash;
+	new->hash = NULL;
+
+	/* If a hash table has been requested, claim and initialise the storage. */
+
+	if (hash > 0) {
+		new->hash = heap_alloc(hash * sizeof(unsigned));
+
+		if (new->hash == NULL) {
+			heap_free(new);
+			return NULL;
+		}
+
+		for (i = 0; i < hash; i++)
+			new->hash[i] = TEXTDUMP_NULL;
+	}
+
+	/* Claim the memory for the dump itself. */
+
+	if (flex_alloc((flex_ptr) &(new->text), new->allocation * sizeof(byte)) == 0) {
+		if (new->hash != NULL)
+			heap_free(new->hash);
 		heap_free(new);
 		return NULL;
 	}
@@ -82,6 +114,9 @@ void textdump_destroy(struct textdump_block *handle)
 	if (handle->text != NULL)
 		flex_free((flex_ptr) &(handle->text));
 
+	if (handle->hash != NULL)
+		heap_free(handle->hash);
+
 	heap_free(handle);
 }
 
@@ -99,7 +134,7 @@ char *textdump_get_base(struct textdump_block *handle)
 	if (handle == NULL)
 		return NULL;
 
-	return handle->text;
+	return (char *) handle->text;
 }
 
 
@@ -116,14 +151,36 @@ unsigned textdump_store(struct textdump_block *handle, char *text)
 {
 	int		length, blocks;
 	unsigned	offset;
+	int		hash = -1;
 
 	if (handle == NULL || text == NULL)
 		return TEXTDUMP_NULL;
 
 	// \TODO -- Remove debug code!
-	debug_printf("\\BText dump '%s'", text);
+	debug_printf("\\BText dump '%s' into 0x%x", text, handle);
 
-	length = strlen(text) + 1;
+	if (handle->hash != NULL) {
+		hash = textdump_make_hash(handle, text);
+
+		debug_printf("Searching in hash %d", hash);
+
+		offset = handle->hash[hash];
+
+		while (offset != TEXTDUMP_NULL &&
+				strcmp(((struct textdump_header *) (handle->text + offset))->text, text) != 0)
+			offset = ((struct textdump_header *) (handle->text + offset))->next;
+
+		if (offset != TEXTDUMP_NULL) {
+			debug_printf("Found in hash %d", hash);
+			return offset;
+		}
+
+		debug_printf("sizeof(struct textdump_header) = %u", sizeof(struct textdump_header));
+
+		length = (strlen(text) + sizeof(struct textdump_header)) & 0xfffffffc;
+	} else {
+		length = strlen(text) + 1;
+	}
 
 	// \TODO -- Remove debug code!
 	debug_printf("Length %d (including terminator)", length);
@@ -145,12 +202,42 @@ unsigned textdump_store(struct textdump_block *handle, char *text)
 
 	offset = handle->free;
 
-	strcpy(handle->text + handle->free, text);
+	if (handle->hash != NULL && hash != -1) {
+		((struct textdump_header *) (handle->text + offset))->next = handle->hash[hash];
+		handle->hash[hash] = offset;
+		offset += sizeof(unsigned);
+	}
+
+	strcpy((char *) (handle->text + offset), text);
+
 	handle->free += length;
 
 	// \TODO -- Remove debug code!
 	debug_printf("Stored at offset %u, free from %u", offset, handle->free);
 
 	return offset;
+}
+
+
+/**
+ * Create a hash for a given text string in a given text dump.
+ *
+ * \param *handle		The handle of the relevant text dump.
+ * \param *text			Pointer to the string to hash.
+ * \return			The calculated hash, or -1.
+ */
+
+static int textdump_make_hash(struct textdump_block *handle, char *text)
+{
+	int hash = 0, length, i;
+
+	if (handle == NULL || text == NULL)
+		return -1;
+
+	length = strlen(text);
+	for (i = 0; i < length; i++)
+		hash += text[i];
+
+	return hash % handle->hashes;
 }
 

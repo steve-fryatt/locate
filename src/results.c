@@ -247,7 +247,7 @@ struct results_window *results_create(struct file_block *file, char *title)
 	}
 
 	if (mem_ok) {
-		if ((new->text = textdump_create(RESULTS_ALLOC_TEXT)) == NULL)
+		if ((new->text = textdump_create(RESULTS_ALLOC_TEXT, 0)) == NULL)
 			mem_ok = FALSE;
 	}
 

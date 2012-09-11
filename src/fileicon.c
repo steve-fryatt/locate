@@ -64,7 +64,7 @@ void fileicon_initialise(void)
 {
 	int	i;
 
-	fileicon_text = textdump_create(0);
+	fileicon_text = textdump_create(0, 0);
 
 	if (fileicon_text == NULL)
 		return;
