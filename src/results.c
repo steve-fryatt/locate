@@ -104,8 +104,8 @@ struct results_line {
 	unsigned		parent;						/**< The parent line for a group (points to itself for the parent).	*/
 
 	unsigned		text;						/**< Text offset for text-based lines (RESULTS_NULL if not used).	*/
-	unsigned		file;						/**< File offset for file-based lines.					*/
 	unsigned		sprite;						/**< Text offset for the display icon's sprite name.			*/
+	unsigned		file;						/**< Object key for file objects.					*/
 
 	unsigned		truncate;					/**< Non-zero indicates first character of text to be displayed.	*/
 	wimp_colour		colour;						/**< The foreground colour of the text.					*/
@@ -167,7 +167,7 @@ static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
 static void	results_update_extent(struct results_window *handle);
 static unsigned	results_add_line(struct results_window *handle, osbool show);
-static unsigned	results_add_fileblock(struct results_window *handle);
+//static unsigned	results_add_fileblock(struct results_window *handle);
 
 
 /* Line position calculations.
@@ -415,6 +415,28 @@ static void results_redraw_handler(wimp_draw *redraw)
 			line = &(res->redraw[res->redraw[y].index]);
 
 			switch (line->type) {
+			case RESULTS_LINE_FILENAME:
+				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
+				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
+
+				strcpy(validation + 1, fileicon + line->sprite);
+
+				objdb_get_name(res->objects, line->file, truncation, sizeof(truncation));
+				icon[RESULTS_ICON_FILE].data.indirected_text.text = truncation;
+				icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_FG_COLOUR;
+				icon[RESULTS_ICON_FILE].flags |= line->colour << wimp_ICON_FG_COLOUR_SHIFT;
+				if (line->flags & RESULTS_FLAG_HALFSIZE)
+					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
+				else
+					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
+
+				wimp_plot_icon(&(icon[RESULTS_ICON_FILE]));
+				break;
+
+
+				//objdb_get_name(handle->objects, key, name, sizeof(name));
+
+
 			case RESULTS_LINE_TEXT:
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
@@ -622,9 +644,8 @@ void results_add_error(struct results_window *handle, char *message, char *path)
 void results_add_file(struct results_window *handle, unsigned key)
 {
 	unsigned	file, info, data, fileblock;
-	unsigned	line, offv, offt;
+	unsigned	line, offv;
 	osbool		small;
-	char		name[256];
 	unsigned	type;
 
 	if (handle == NULL)
@@ -634,19 +655,19 @@ void results_add_file(struct results_window *handle, unsigned key)
 	if (line == RESULTS_NULL)
 		return;
 
-	objdb_get_name(handle->objects, key, name, sizeof(name));
+	//objdb_get_name(handle->objects, key, name, sizeof(name));
 	type = objdb_get_filetype(handle->objects, key);
 
 	debug_printf("Returned filetype 0x%x", type);
 
-	offt = textdump_store(handle->text, name);
+	//offt = textdump_store(handle->text, name);
 	offv = fileicon_get_type_icon(type, "", &small);
 
-	if (offt == TEXTDUMP_NULL || offv == TEXTDUMP_NULL)
+	if (offv == TEXTDUMP_NULL)
 		return;
 
-	handle->redraw[line].type = RESULTS_LINE_TEXT;
-	handle->redraw[line].text = offt;
+	handle->redraw[line].type = RESULTS_LINE_FILENAME;
+	handle->redraw[line].file = key;
 	handle->redraw[line].sprite = offv;
 	if (!small)
 		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
@@ -802,7 +823,7 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 	handle->redraw[offset].flags = RESULTS_FLAG_NONE;
 	handle->redraw[offset].parent = RESULTS_NULL;
 	handle->redraw[offset].text = RESULTS_NULL;
-	handle->redraw[offset].file = RESULTS_NULL;
+	handle->redraw[offset].file = OBJDB_NULL_KEY;
 	handle->redraw[offset].sprite = RESULTS_NULL;
 	handle->redraw[offset].truncate = 0;
 	handle->redraw[offset].colour = wimp_COLOUR_BLACK;
@@ -815,7 +836,7 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 	return offset;
 }
 
-
+#if 0
 /**
  * Claim a new line from the file array, allocating more memory if required,
  * set it up and return its offset.
@@ -844,4 +865,5 @@ static unsigned results_add_fileblock(struct results_window *handle)
 
 	return handle->files_count++;
 }
+#endif
 
