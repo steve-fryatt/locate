@@ -8,6 +8,7 @@
 #define LOCATE_RESULTS
 
 #include "file.h"
+#include "objdb.h"
 
 struct results_window;
 
@@ -25,12 +26,13 @@ void results_initialise(osspriteop_area *sprites);
  * Create and open a new results window.
  *
  * \param *file			The file block to which the window belongs.
+ * \param *objects		The object database from which file data should be taken.
  * \param *title		The title to use for the window, or NULL to allocate
  *				an empty buffer of TITLE_LENGTH.
  * \return			The results window handle, or NULL on failure.
  */
 
-struct results_window *results_create(struct file_block *file, char *title);
+struct results_window *results_create(struct file_block *file, struct objdb_block *objects, char *title);
 
 
 /**
@@ -90,11 +92,10 @@ void results_add_error(struct results_window *handle, char *message, char *path)
  * Add a file to the end of the results window.
  *
  * \param *handle		The handle of the results window to update.
- * \param *name			The complete filename.
- * \param type			The type of the file.
+ * \param key			The database key for the file.
  */
 
-void results_add_file(struct results_window *handle, char *name, unsigned type);
+void results_add_file(struct results_window *handle, unsigned key);
 
 
 /**

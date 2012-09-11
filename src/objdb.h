@@ -70,6 +70,33 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 
 
 
+/**
+ * Return the pathname of an object in the database.
+ *
+ * \param *handle		The database to look in.
+ * \param key			The key of the object to be returned.
+ * \param *buffer		Pointer to a buffer to hold the name.
+ * \param len			The size of the supplied buffer.
+ * \return			TRUE if successful; else FALSE.
+ */
+
+osbool objdb_get_name(struct objdb_block *handle, unsigned key, char *buffer, size_t len);
+
+
+/**
+ * Return the filetype of an object in the database.
+ *
+ * \param *handle		The database to look in.
+ * \param key			The key of the object to be returned.
+ * \return			The filetype, or 0xffffffffu.
+ */
+
+unsigned objdb_get_filetype(struct objdb_block *handle, unsigned key);
+
+
+
+
+
 
 
 

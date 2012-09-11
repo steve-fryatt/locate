@@ -16,6 +16,7 @@
 /* OSLib header files. */
 
 #include "oslib/os.h"
+#include "oslib/osfile.h"
 #include "oslib/osgbpb.h"
 
 /* SF-Lib header files. */
@@ -236,6 +237,63 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 	return handle->list[index].key;
 }
 
+
+
+
+
+/**
+ * Return the pathname of an object in the database.
+ *
+ * \param *handle		The database to look in.
+ * \param key			The key of the object to be returned.
+ * \param *buffer		Pointer to a buffer to hold the name.
+ * \param len			The size of the supplied buffer.
+ * \return			TRUE if successful; else FALSE.
+ */
+
+osbool objdb_get_name(struct objdb_block *handle, unsigned key, char *buffer, size_t len)
+{
+	int	index = objdb_find(handle, key);
+	char	*name;
+
+	if (handle == NULL || buffer == NULL || index == -1)
+		return FALSE;
+
+	name = textdump_get_base(handle->text) + handle->list[index].name;
+
+	strncpy(buffer, name, len);
+
+	return (buffer[len - 1] == '\0') ? TRUE : FALSE;
+}
+
+
+/**
+ * Return the filetype of an object in the database.
+ *
+ * \param *handle		The database to look in.
+ * \param key			The key of the object to be returned.
+ * \return			The filetype, or 0xffffffffu.
+ */
+
+unsigned objdb_get_filetype(struct objdb_block *handle, unsigned key)
+{
+	int	index = objdb_find(handle, key);
+	char	*name;
+
+	if (handle == NULL || index == -1)
+		return 0xffffffffu;
+
+	name = textdump_get_base(handle->text) + handle->list[index].name;
+
+	if (handle->list[index].type == fileswitch_IS_DIR && name[0] == '!')
+		return osfile_TYPE_APPLICATION;
+	else if (handle->list[index].type == fileswitch_IS_DIR)
+		return osfile_TYPE_DIR;
+	else if ((handle->list[index].load_addr & 0xfff00000u) != 0xfff00000u)
+		return osfile_TYPE_UNTYPED;
+	else
+		return (handle->list[index].load_addr & osfile_FILE_TYPE) >> osfile_FILE_TYPE_SHIFT;
+}
 
 
 

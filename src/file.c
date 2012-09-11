@@ -141,7 +141,7 @@ struct search_block *file_create_search(struct file_block *file, char *paths)
 
 	debug_printf("Objects: 0x%x", file->objects);
 
-	file->results = results_create(file, NULL);
+	file->results = results_create(file, file->objects, NULL);
 	if (file->results == NULL) {
 		file_destroy(file);
 		return NULL;
@@ -177,7 +177,7 @@ void file_create_results(void)
 
 	sprintf(title, "Results block 0x%x", (int) new); // \TODO -- Remove
 
-	new->results = results_create(new, title);
+	new->results = results_create(new, NULL, title);
 	if (new->results == NULL) {
 		file_destroy(new);
 		return;

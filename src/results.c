@@ -38,6 +38,7 @@
 
 #include "fileicon.h"
 #include "ihelp.h"
+#include "objdb.h"
 #include "templates.h"
 #include "textdump.h"
 
@@ -141,6 +142,10 @@ struct results_window {
 
 	struct textdump_block	*text;						/**< The general text string dump.					*/
 
+	/* Object database. */
+
+	struct objdb_block	*objects;					/**< The object database associated with the search results.		*/
+
 	/* Window handles */
 
 	wimp_w			window;						/**< The window handle.							*/
@@ -199,12 +204,13 @@ void results_initialise(osspriteop_area *sprites)
  * Create and open a new results window.
  *
  * \param *file			The file block to which the window belongs.
+ * \param *objects		The object database from which file data should be taken.
  * \param *title		The title to use for the window, or NULL to allocate
  *				an empty buffer of TITLE_LENGTH.
  * \return			The results window handle, or NULL on failure.
  */
 
-struct results_window *results_create(struct file_block *file, char *title)
+struct results_window *results_create(struct file_block *file, struct objdb_block *objects, char *title)
 {
 	struct results_window	*new = NULL;
 	char			*title_block = FALSE;
@@ -221,6 +227,7 @@ struct results_window *results_create(struct file_block *file, char *title)
 		new->redraw = NULL;
 		new->files = NULL;
 		new->text = NULL;
+		new->objects = NULL;
 	}
 
 	if (mem_ok) {
@@ -277,6 +284,7 @@ struct results_window *results_create(struct file_block *file, char *title)
 	/* Populate the data in the block. */
 
 	new->file = file;
+	new->objects = objects;
 
 	new->redraw_size = RESULTS_ALLOC_REDRAW;
 	new->redraw_lines = 0;
@@ -468,7 +476,8 @@ void results_destroy(struct results_window *handle)
 	flex_free((flex_ptr) &(handle->redraw));
 	flex_free((flex_ptr) &(handle->files));
 
-	textdump_destroy(handle->text);
+	if (handle->text != NULL)
+		textdump_destroy(handle->text);
 
 	heap_free(title);
 	heap_free(status);
@@ -607,15 +616,16 @@ void results_add_error(struct results_window *handle, char *message, char *path)
  * Add a file to the end of the results window.
  *
  * \param *handle		The handle of the results window to update.
- * \param *name			The complete filename.
- * \param type			The type of the file.
+ * \param key			The database key for the file.
  */
 
-void results_add_file(struct results_window *handle, char *name, unsigned type)
+void results_add_file(struct results_window *handle, unsigned key)
 {
 	unsigned	file, info, data, fileblock;
 	unsigned	line, offv, offt;
 	osbool		small;
+	char		name[256];
+	unsigned	type;
 
 	if (handle == NULL)
 		return;
@@ -623,6 +633,11 @@ void results_add_file(struct results_window *handle, char *name, unsigned type)
 	line = results_add_line(handle, TRUE);
 	if (line == RESULTS_NULL)
 		return;
+
+	objdb_get_name(handle->objects, key, name, sizeof(name));
+	type = objdb_get_filetype(handle->objects, key);
+
+	debug_printf("Returned filetype 0x%x", type);
 
 	offt = textdump_store(handle->text, name);
 	offv = fileicon_get_type_icon(type, "", &small);

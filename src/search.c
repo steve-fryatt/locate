@@ -807,7 +807,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				strcat(filename, ".");
 				strcat(filename, file_data->name);
 
-				results_add_file(search->results, filename, search->stack[stack].filetype);
+				results_add_file(search->results, object_key);
 			}
 
 			/* If the object is a folder, recurse down into it. */
