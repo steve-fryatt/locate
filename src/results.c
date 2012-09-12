@@ -146,6 +146,8 @@ struct results_window {
 static wimp_window			*results_window_def = NULL;		/**< Definition for the main results window.				*/
 static wimp_window			*results_status_def = NULL;		/**< Definition for the results status pane.				*/
 
+static wimp_menu			*results_window_menu = NULL;		/**< The results window menu.						*/
+
 static osspriteop_area			*results_sprite_area = NULL;		/**< The application sprite area.					*/
 
 
@@ -176,6 +178,8 @@ static unsigned	results_add_line(struct results_window *handle, osbool show);
 
 void results_initialise(osspriteop_area *sprites)
 {
+	results_window_menu = templates_get_menu(TEMPLATES_MENU_RESULTS);
+
 	results_window_def = templates_load_window("Results");
 	results_window_def->icon_count = 0;
 
@@ -306,6 +310,8 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 
 	event_add_window_redraw_event(new->window, results_redraw_handler);
 	event_add_window_close_event(new->window, results_close_handler);
+	event_add_window_menu(new->window, results_window_menu);
+	event_add_window_menu(new->status, results_window_menu);
 
 	windows_open(new->window);
 	windows_open_nested_as_footer(new->status, new->window, status_height);

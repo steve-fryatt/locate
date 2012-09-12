@@ -366,6 +366,7 @@ void dialogue_initialise(void)
 	icons_printf(dialogue_window, DIALOGUE_ICON_SEARCH_PATH, "");
 	free(def);
 	ihelp_add_window(dialogue_window, "Search", NULL);
+	event_add_window_menu(dialogue_window, dialogue_menu);
 	event_add_window_mouse_event(dialogue_window, dialogue_click_handler);
 	event_add_window_key_event(dialogue_window, dialogue_keypress_handler);
 	event_add_window_menu_selection(dialogue_window, dialogue_menu_selection_handler);
@@ -379,6 +380,7 @@ void dialogue_initialise(void)
 
 	dialogue_panes[DIALOGUE_PANE_SIZE] = templates_create_window("SizePane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_SIZE], "Search.Size", NULL);
+	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_keypress_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_selection_handler);
@@ -393,6 +395,7 @@ void dialogue_initialise(void)
 
 	dialogue_panes[DIALOGUE_PANE_DATE] = templates_create_window("DatePane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_DATE], "Search.Date", NULL);
+	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_keypress_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_menu_selection_handler);
@@ -411,6 +414,7 @@ void dialogue_initialise(void)
 
 	dialogue_panes[DIALOGUE_PANE_TYPE] = templates_create_window("TypePane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_TYPE], "Search.Type", NULL);
+	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_keypress_handler);
 	event_add_window_menu_prepare(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_prepare_handler);
@@ -425,6 +429,7 @@ void dialogue_initialise(void)
 
 	dialogue_panes[DIALOGUE_PANE_ATTRIBUTES] = templates_create_window("AttribPane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], "Search.Attributes", NULL);
+	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_keypress_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_menu_selection_handler);
@@ -443,6 +448,7 @@ void dialogue_initialise(void)
 
 	dialogue_panes[DIALOGUE_PANE_CONTENTS] = templates_create_window("ContentPane");
 	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_CONTENTS], "Search.Contents", NULL);
+	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_keypress_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_menu_selection_handler);
