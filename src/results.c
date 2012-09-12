@@ -27,6 +27,7 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/windows.h"
 #include "sflib/debug.h"
@@ -68,6 +69,25 @@
 #define RESULTS_ICON_INFO 1
 
 #define RESULTS_ICON_STATUS 1
+
+/* Results Window Menu. */
+
+#define RESULTS_MENU_DISPLAY 0
+#define RESULTS_MENU_SAVE 1
+#define RESULTS_MENU_SELECT_ALL 2
+#define RESULTS_MENU_CLEAR_SELECTION 3
+#define RESULTS_MENU_OBJECT_INFO 4
+#define RESULTS_MENU_OPEN_PARENT 5
+#define RESULTS_MENU_COPY_NAMES 6
+#define RESULTS_MENU_MODIFY_SEARCH 7
+#define RESULTS_MENU_STOP_SEARCH 8
+
+#define RESULTS_MENU_DISPLAY_PATH_ONLY 0
+#define RESULTS_MENU_DISPLAY_FULL_INFO 1
+
+#define RESULTS_MENU_SAVE_RESULTS 0
+#define RESULTS_MENU_SAVE_PATH_NAMES 1
+#define RESULTS_MENU_SAVE_SEARCH_OPTIONS 2
 
 
 /* Data structures. */
@@ -153,6 +173,8 @@ static osspriteop_area			*results_sprite_area = NULL;		/**< The application spri
 
 /* Local function prototypes. */
 
+static void	results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+static void	results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
 static void	results_update_extent(struct results_window *handle);
@@ -311,12 +333,98 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	event_add_window_redraw_event(new->window, results_redraw_handler);
 	event_add_window_close_event(new->window, results_close_handler);
 	event_add_window_menu(new->window, results_window_menu);
+	event_add_window_menu_prepare(new->window, results_menu_prepare);
+	event_add_window_menu_selection(new->window, results_menu_selection);
+
 	event_add_window_menu(new->status, results_window_menu);
+	event_add_window_menu_prepare(new->status, results_menu_prepare);
+	event_add_window_menu_selection(new->status, results_menu_selection);
 
 	windows_open(new->window);
 	windows_open_nested_as_footer(new->status, new->window, status_height);
 
 	return new;
+}
+
+
+/**
+ * Close and destroy a results window.
+ *
+ * \param *handle		The handle of the results window to destroy.
+ */
+
+void results_destroy(struct results_window *handle)
+{
+	char	*title, *status;
+
+	if (handle == NULL)
+		return;
+
+	title = windows_get_indirected_title_addr(handle->window);
+	status = icons_get_indirected_text_addr(handle->status, RESULTS_ICON_STATUS);
+
+	ihelp_remove_window(handle->window);
+	event_delete_window(handle->window);
+	wimp_delete_window(handle->window);
+
+	ihelp_remove_window(handle->window);
+	event_delete_window(handle->status);
+	wimp_delete_window(handle->status);
+
+	flex_free((flex_ptr) &(handle->redraw));
+
+	if (handle->text != NULL)
+		textdump_destroy(handle->text);
+
+	heap_free(title);
+	heap_free(status);
+	heap_free(handle);
+}
+
+
+/**
+ * Prepare the results menu for (re)-opening.
+ *
+ * \param  w			The handle of the menu's parent window.
+ * \param  *menu		Pointer to the menu being opened.
+ * \param  *pointer		Pointer to the Wimp Pointer event block.
+ */
+
+static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
+{
+	struct results_window	*handle = event_get_window_user_data(w);
+
+	if (handle == NULL)
+		return;
+
+	menus_shade_entry(results_window_menu, RESULTS_MENU_STOP_SEARCH, !file_search_active(handle->file));
+}
+
+
+/**
+ * Handle selections from the results menu.
+ *
+ * \param  w			The window to which the menu belongs.
+ * \param  *menu		Pointer to the menu itself.
+ * \param  *selection		Pointer to the Wimp menu selction block.
+ */
+
+static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection)
+{
+	struct results_window	*handle = event_get_window_user_data(w);
+	wimp_pointer		pointer;
+	os_error		*error;
+
+	if (handle == NULL)
+		return;
+
+	wimp_get_pointer_info(&pointer);
+
+	switch(selection->items[0]) {
+	case RESULTS_MENU_STOP_SEARCH:
+		file_stop_search(handle->file);
+		break;
+	}
 }
 
 
@@ -453,41 +561,6 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 		more = wimp_get_rectangle(redraw);
 	}
-}
-
-
-/**
- * Close and destroy a results window.
- *
- * \param *handle		The handle of the results window to destroy.
- */
-
-void results_destroy(struct results_window *handle)
-{
-	char	*title, *status;
-
-	if (handle == NULL)
-		return;
-
-	title = windows_get_indirected_title_addr(handle->window);
-	status = icons_get_indirected_text_addr(handle->status, RESULTS_ICON_STATUS);
-
-	ihelp_remove_window(handle->window);
-	event_delete_window(handle->window);
-	wimp_delete_window(handle->window);
-
-	ihelp_remove_window(handle->window);
-	event_delete_window(handle->status);
-	wimp_delete_window(handle->status);
-
-	flex_free((flex_ptr) &(handle->redraw));
-
-	if (handle->text != NULL)
-		textdump_destroy(handle->text);
-
-	heap_free(title);
-	heap_free(status);
-	heap_free(handle);
 }
 
 

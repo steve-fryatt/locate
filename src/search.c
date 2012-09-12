@@ -625,6 +625,19 @@ osbool search_poll_required(void)
 
 
 /**
+ * Test to see if a given search is active.
+ *
+ * \param *search		The search to test.
+ * \return			TRUE if active; else FALSE.
+ */
+
+osbool search_is_active(struct search_block *search)
+{
+	return (search == NULL || !search->active) ? FALSE : TRUE;
+}
+
+
+/**
  * Run any active searches in a Null poll.
  */
 

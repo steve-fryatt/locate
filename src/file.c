@@ -262,3 +262,32 @@ void file_destroy_all(void)
 		file_destroy(file_files);
 }
 
+
+/**
+ * Identify whether a file has a search active.
+ *
+ * \param *file			The file to be tested.
+ * \return			TRUE if it has an active search; else FALSE.
+ */
+
+osbool file_search_active(struct file_block *file)
+{
+	if (file == NULL)
+		return FALSE;
+
+	return search_is_active(file->search);
+}
+
+
+/**
+ * Stop any active search associated with a file.
+ *
+ * \param *file			The file to be stopped.
+ */
+
+void file_stop_search(struct file_block *file)
+{
+	if (file != NULL && file->search != NULL)
+		search_stop(file->search);
+}
+
