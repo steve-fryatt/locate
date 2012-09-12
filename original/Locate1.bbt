@@ -1,0 +1,5032 @@
+REM >!RunImage
+REM
+REM Locate
+REM (C) Stephen Fryatt, 2001
+REM
+REM Version 0.89a
+REM 6 June 2004
+:
+LIBRARY "BASIC:WimpLib2"
+LIBRARY "BASIC:String"
+LIBRARY "BASIC:Icon"
+LIBRARY "BASIC:Date"
+LIBRARY "BASIC:Window"
+LIBRARY "BASIC:Config"
+LIBRARY "BASIC:WimpError"
+LIBRARY "BASIC:WimpSprite"
+LIBRARY "BASIC:URL"
+:
+SYS "OS_GetEnv" TO command_line$
+:
+PROCwimp_error_initialise("Locate","!locate")
+ON ERROR dummy%=FNwimp_error : END
+:
+PROCinitialise
+:
+ON ERROR SYS "OS_Byte",229,1,0 : quit%=(FNwimp_error=2)
+:
+WHILE NOT quit%
+ PROCpoll(poll_mask%,TRUE)
+ENDWHILE
+:
+PROCclose_down
+:
+END
+:
+REM ====================================================================================================================
+REM Wimp poll and event handlers
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCpoll(mask%,null%)
+:
+LOCAL time%,block%
+:
+SYS "OS_ReadMonotonicTime" TO time%
+:
+SYS "Wimp_PollIdle",mask%,b%,time%+5 TO reason%
+:
+CASE reason% OF
+ WHEN 0     : IF null% AND send_data_load% THEN PROCsend_data_load
+ WHEN 1     : PROCredraw_window
+ WHEN 2     : IF !b%=search_window% THEN PROCmove_search_pane(b%)
+              block%=FNget_results_data_block(!b%)
+              IF block%<>-1 THEN PROCmove_results_pane(b%,block%!32)
+              SYS "Wimp_OpenWindow",,b%
+              IF !b%=search_window% THEN PROCmove_search_pane(b%)
+              IF block%<>-1 THEN PROCmove_results_pane(b%,block%!32)
+ WHEN 3     : SYS "Wimp_CloseWindow",,b%
+              IF searching_window_handle%=!b% THEN
+               searching_window_handle%=-1
+               abort_search%=-1
+              ELSE
+               PROCfind_and_delete_results_window(!b%)
+              ENDIF
+ WHEN 6     : PROCmouse_click
+ WHEN 7     : PROCuser_drag_box
+ WHEN 8     : PROCkey_press
+ WHEN 9     : PROCmenu_selection
+ WHEN 17,18 : PROCwimp_message
+ WHEN 19    : PROCfailed_wimp_message
+ENDCASE
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCredraw_window
+:
+LOCAL data_block%
+:
+data_block%=FNget_results_data_block(!b%)
+:
+IF data_block%<>-1 THEN
+ B%=b%
+ C%=results_icon_def%
+ D%=data_block%
+ SYS "Wimp_RedrawWindow",,B% TO A%
+ CALL main_code%+window_redraw%
+ELSE
+ ERROR 255,FNmessage_trans("BadRdrwHndl")
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCmouse_click
+CASE b%!12 OF
+ WHEN -2 : CASE b%!8 OF
+   WHEN 64 : PROCstart_drag_box(b%!12,b%!16)
+   WHEN 4  : PROCopen_search_window(!b%,b%!4,default_search_options%)
+   WHEN 2  : PROCset_menu_state(icon_bar_menu%,1,FALSE,search_history_list%!4=0)
+             PROCdisplay_bar_menu(icon_bar_menu%,4,2,!b%)
+   WHEN 1  : IF search_history_list%!4>0 THEN
+              PROCopen_history_search(search_history_list%,0)
+             ELSE
+              PROCopen_search_window(!b%,b%!4,default_search_options%)
+             ENDIF
+  ENDCASE
+ WHEN search_window%
+  IF b%!8=2 THEN
+   PROCinit_save_box_texts
+   PROCdisplay_menu(search_window_menu%,!b%,b%!4)
+  ELSE
+   CASE b%!16 OF
+    WHEN 0 : CASE b%!8 OF
+     WHEN 4 : PROCclose_search_window : PROCterminate_plugin : PROCquit_after_plugin
+     WHEN 1 : PROCreset_search_window
+    ENDCASE
+    WHEN 1 : IF b%!8=4 THEN PROCclose_search_window : PROCsearch(FNget_current_search_options) : PROCterminate_plugin
+    WHEN 6,7,8,9,10 : IF b%!8=1 THEN PROCset_icon_selected(search_window%,b%!16,TRUE)
+                      SYS "Wimp_GetCaretPosition",,q%
+                      IF !q%=search_panes%(search_pane%) THEN PROCput_caret_at_end(search_window%,4)
+                      PROCclose_window(search_panes%(search_pane%))
+                      PROCopen_search_pane(b%!16-6,0,0)
+    WHEN 11 : CASE b%!8 OF
+      WHEN 4  : next_dir%=0
+                REPEAT
+                 index_dir$=FNenumerate_index_dirs(FNicon_indirection(search_window%,20), next_dir%)
+                 IF index_dir$<> "" THEN OSCLI("%Filer_OpenDir "+index_dir$)
+                UNTIL next_dir%=-1
+      WHEN 64 : PROCstart_drag_box(b%!12,b%!16)
+     ENDCASE
+    WHEN 13 : PROCopen_search_pane(search_pane%,0,-1)
+   ENDCASE
+  ENDIF
+ WHEN search_panes%(0)
+  IF b%!8=2 THEN
+   PROCinit_save_box_texts
+   PROCdisplay_menu(search_window_menu%,!b%,b%!4)
+  ELSE
+   CASE b%!16 OF
+     WHEN 1 : PROCtick_menu_item(size_logic_menu%,search_size_logic%)
+              PROCdisplay_icon_menu(size_logic_menu%,search_panes%(0),1)
+     WHEN 4 : PROCtick_menu_item(size_units_menu%,search_size_units1%)
+              PROCdisplay_icon_menu(size_units_menu%,search_panes%(0),4) : size_units_icon%=1
+     WHEN 8 : PROCtick_menu_item(size_units_menu%,search_size_units2%)
+              PROCdisplay_icon_menu(size_units_menu%,search_panes%(0),8) : size_units_icon%=2
+    ENDCASE
+  ENDIF
+ WHEN search_panes%(1)
+  IF b%!8=2 THEN
+   PROCinit_save_box_texts
+   PROCdisplay_menu(search_window_menu%,!b%,b%!4)
+  ELSE
+   CASE b%!16 OF
+     WHEN 0,1 : FOR loop%=2 TO 21
+                 PROCset_icon_deleted(search_panes%(1),loop%,(b%!16=0 AND loop%>9) OR (b%!16=1 AND loop%<10))
+                NEXT loop%
+                PROCforce_window_redraw(search_panes%(1))
+                IF b%!8=1 THEN PROCset_icon_selected(search_panes%(1),b%!16,TRUE)
+                PROCsearch_window_caret_clear
+     WHEN 4 : PROCtick_menu_item(date_logic_menu%,search_date_logic%)
+              PROCdisplay_icon_menu(date_logic_menu%,search_panes%(1),4)
+     WHEN 6,9 : PROCopen_time_window(b%!16-1,!b%,b%!4,FALSE)
+     WHEN 12 : PROCtick_menu_item(age_logic_menu%,search_age_logic%)
+               PROCdisplay_icon_menu(age_logic_menu%,search_panes%(1),12)
+     WHEN 15 : PROCtick_menu_item(age_units_menu%,search_age_units1%)
+               PROCdisplay_icon_menu(age_units_menu%,search_panes%(1),15) : age_units_icon%=1
+     WHEN 20 : PROCtick_menu_item(age_units_menu%,search_age_units2%)
+               PROCdisplay_icon_menu(age_units_menu%,search_panes%(1),20) : age_units_icon%=2
+    ENDCASE
+  ENDIF
+ WHEN search_panes%(2)
+  IF b%!8=2 THEN
+   PROCinit_save_box_texts
+   PROCdisplay_menu(search_window_menu%,!b%,b%!4)
+  ELSE
+   CASE b%!16 OF
+     WHEN 0 : FOR loop%=3 TO 6
+               PROCset_icon_shaded(search_panes%(2),loop%,NOT FNicon_selected(search_panes%(2),0) OR (loop%>=5 AND search_type_logic%=0))
+              NEXT loop%
+              PROCsearch_window_caret_clear
+     WHEN 4 : PROCtick_menu_item(type_logic_menu%,search_type_logic%)
+              PROCdisplay_icon_menu(type_logic_menu%,search_panes%(2),4)
+     WHEN 6 : file_type_menu%=FNbuild_file_type_menu(b%!8=4)
+              PROCdisplay_icon_menu(file_type_menu%,search_panes%(2),6)
+    ENDCASE
+  ENDIF
+ WHEN search_panes%(3)
+  IF b%!8=2 THEN
+   PROCinit_save_box_texts
+   PROCdisplay_menu(search_window_menu%,!b%,b%!4)
+  ELSE
+   CASE b%!16 OF
+     WHEN 0,3,6,9,12 : PROCset_icon_shaded(search_panes%(3),b%!16+1,NOT FNicon_selected(search_panes%(3),b%!16))
+                       PROCset_icon_shaded(search_panes%(3),b%!16+2,NOT FNicon_selected(search_panes%(3),b%!16))
+     OTHERWISE : IF b%!8=1 THEN PROCset_icon_selected(search_panes%(3),b%!16,TRUE)
+    ENDCASE
+  ENDIF
+ WHEN search_panes%(4)
+  IF b%!8=2 THEN
+   PROCinit_save_box_texts
+   PROCdisplay_menu(search_window_menu%,!b%,b%!4)
+  ELSE
+   CASE b%!16 OF
+     WHEN 2 : PROCtick_menu_item(content_logic_menu%,search_content_logic%)
+              PROCdisplay_icon_menu(content_logic_menu%,search_panes%(4),2)
+    ENDCASE
+  ENDIF
+ WHEN time_window% : CASE b%!16 OF
+   WHEN 0 : CASE b%!8 OF
+     WHEN 4 : PROCclose_window(time_window%)
+     WHEN 1 : PROCopen_time_window(set_date_icon%,0,0,TRUE)
+    ENDCASE
+   WHEN 1 : PROCset_time : IF b%!8=4 THEN PROCclose_window(time_window%)
+   WHEN 2 : PROCtick_menu_item(month_menu%,set_date_month%-1)
+            PROCdisplay_icon_menu(month_menu%,time_window%,2)
+   WHEN 5,6 : PROCbump_icon(time_window%,4,(b%!16=6 AND b%!8=4) OR (b%!16=5 AND b%!8=1),1,days_in_month%(set_date_month%),0)
+   WHEN 8,9 : PROCbump_icon(time_window%,7,(b%!16=9 AND b%!8=4) OR (b%!16=8 AND b%!8=1),0,9999,4)
+   WHEN 15,16 : PROCbump_icon(time_window%,13,(b%!16=16 AND b%!8=4) OR (b%!16=15 AND b%!8=1),0,23,2)
+   WHEN 17,18 : PROCbump_icon(time_window%,14,(b%!16=18 AND b%!8=4) OR (b%!16=17 AND b%!8=1),0,59,2)
+   WHEN 10 : PROCshade_time(FNicon_selected(time_window%,10))
+  ENDCASE
+ WHEN choices_window% : CASE b%!16 OF
+   WHEN 0 : CASE b%!8 OF
+     WHEN 4 : PROCset_choices(FALSE) : PROCclose_window(choices_window%)
+     WHEN 1 : PROCset_choices(FALSE)
+    ENDCASE
+   WHEN 1 : CASE b%!8 OF
+     WHEN 4 : PROCset_choices(TRUE) : PROCclose_window(choices_window%)
+     WHEN 1 : PROCset_choices(TRUE)
+    ENDCASE
+   WHEN 2 : CASE b%!8 OF
+     WHEN 4 : PROCclose_window(choices_window%)
+     WHEN 1 : PROCopen_choices_window(!b%,b%!4)
+    ENDCASE
+  ENDCASE
+ WHEN save_window% : CASE b%!16 OF
+   WHEN 0 : PROCsave_direct_to_disc(results_window_menu_ptr%)
+   WHEN 1 : PROCdisplay_menu(-1,0,0)
+   WHEN 3 : IF b%!8=64 THEN PROCstart_drag_box(b%!12,b%!16)
+   WHEN 4 : PROCset_save_window_select
+  ENDCASE
+ WHEN history_add_window% : CASE b%!16 OF
+   WHEN 2 : PROCremove_pending_history_entry
+   WHEN 3 : PROCadd_pending_history_entry
+  ENDCASE
+ WHEN pause_window% : CASE b%!16 OF
+   WHEN 2 : search_pause_continue%=TRUE
+   WHEN 3 : search_pause_abort%=TRUE
+  ENDCASE
+ WHEN info_window% : CASE b%!16 OF
+   WHEN 8 : PROClaunch_url(FNmessage_trans("SupportURL")) : PROCdisplay_menu(-1,0,0)
+  ENDCASE
+ OTHERWISE : PROCresults_window_click
+ENDCASE
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCkey_press
+CASE !b% OF
+ WHEN search_window%,search_panes%(0),search_panes%(1),search_panes%(2),search_panes%(4) : CASE b%!24 OF
+    WHEN 13 : PROCclose_search_window : PROCsearch(FNget_current_search_options) : PROCterminate_plugin
+    WHEN 27 : PROCclose_search_window : PROCterminate_plugin : PROCquit_after_plugin
+    WHEN &18E,&18F,&18A,&19A : PROCsearch_window_keypress
+    OTHERWISE : SYS "Wimp_ProcessKey",b%!24
+   ENDCASE
+ WHEN save_window% : CASE b%!24 OF
+   WHEN 13 : PROCsave_direct_to_disc(results_window_menu_ptr%)
+   OTHERWISE : SYS "Wimp_ProcessKey",b%!24
+  ENDCASE
+ WHEN choices_window% : CASE b%!24 OF
+   WHEN 13 : PROCset_choices(FALSE) :  PROCclose_window(choices_window%)
+   OTHERWISE : SYS "Wimp_ProcessKey",b%!24
+  ENDCASE
+ WHEN history_add_window% : CASE b%!24 OF
+   WHEN 13 : PROCadd_pending_history_entry
+   WHEN 27 : PROCremove_pending_history_entry
+   OTHERWISE : SYS "Wimp_ProcessKey",b%!24
+  ENDCASE
+ WHEN time_window% : CASE b%!24 OF
+   WHEN 13 : PROCset_time : PROCclose_window(time_window%)
+   WHEN 27 : PROCclose_window(time_window%)
+  ENDCASE
+ OTHERWISE : SYS "Wimp_ProcessKey",b%!24
+ENDCASE
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCmenu_selection
+:
+LOCAL re_open%,loop%
+:
+SYS "Wimp_GetPointerInfo",,q%
+re_open%=(q%!8=1)
+:
+CASE menu_up% OF
+ WHEN icon_bar_menu% : CASE !b% OF
+   WHEN 0 : OSCLI("%Filer_Run Locate:!Help")
+   WHEN 1 : IF b%!4>-1 THEN PROCopen_history_search(search_history_list%,b%!4)
+            IF re_open% THEN
+             PROCgrey_out_history_menu(search_history_menu%)
+            ELSE
+             IF search_history_menu% THEN
+              PROCfree_block(heap_handle%,search_history_menu%)
+              search_history_menu%=0
+             ENDIF
+            ENDIF
+   WHEN 2 : PROCopen_choices_window(!q%,q%!4)
+   WHEN 3 : quit%=TRUE
+  ENDCASE
+ WHEN results_window_menu% : CASE !b% OF
+   WHEN 0 : IF b%!4<>-1 THEN PROCtoggle_full_info(results_window_menu_ptr%,b%!4=1)
+   WHEN 2 : PROCselect_all(results_window_menu_ptr%)
+   WHEN 3 : PROCclear_selection(results_window_menu_ptr%)
+   WHEN 5 : PROCopen_selection_parent(results_window_menu_ptr%)
+   WHEN 6 : PROCcopy_to_clipboard(results_window_menu_ptr%)
+   WHEN 7 : PROCopen_search_window(!q%,q%!4,results_window_menu_ptr%!16)
+   WHEN 8 : abort_search%=TRUE
+  ENDCASE
+  IF (NOT re_open%) AND results_select_by_menu% THEN PROCclear_selection(results_window_menu_ptr%)
+  PROCset_results_menu_state(results_window_menu_ptr%)
+ WHEN size_logic_menu%
+  $FNicon_indirection(search_panes%(0),2)=FNnumbered_message_trans("SizeLogic",!b%)
+  PROCforce_icon_redraw(search_panes%(0),2)
+  search_size_logic%=!b%
+  FOR loop%=3 TO 9
+   PROCset_icon_state(search_panes%(0),loop%,0,(!b%<=4 AND loop%>=6) OR !b%=0,0)
+  NEXT loop%
+  PROCtick_menu_item(size_logic_menu%,search_size_logic%)
+  PROCsearch_window_caret_clear
+ WHEN size_units_menu% : CASE size_units_icon% OF
+   WHEN 1 : $FNicon_indirection(search_panes%(0),5)=FNnumbered_message_trans("SizeUnits",!b%)
+            PROCforce_icon_redraw(search_panes%(0),5)
+            search_size_units1%=!b%
+            PROCtick_menu_item(size_units_menu%,search_size_units1%)
+   WHEN 2 : $FNicon_indirection(search_panes%(0),9)=FNnumbered_message_trans("SizeUnits",!b%)
+            PROCforce_icon_redraw(search_panes%(0),9)
+            search_size_units2%=!b%
+            PROCtick_menu_item(size_units_menu%,search_size_units2%)
+  ENDCASE
+ WHEN date_logic_menu%
+  $FNicon_indirection(search_panes%(1),3)=FNnumbered_message_trans("DateLogic",!b%)
+  PROCforce_icon_redraw(search_panes%(1),3)
+  search_date_logic%=!b%
+  FOR loop%=5 TO 9
+   PROCset_icon_shaded(search_panes%(1),loop%,(!b%<=4 AND loop%>=7) OR !b%=0)
+  NEXT loop%
+  PROCtick_menu_item(date_logic_menu%,search_date_logic%)
+  PROCsearch_window_caret_clear
+ WHEN month_menu%
+  set_date_month%=!b%+1
+  $FNicon_indirection(time_window%,3)=FNnumbered_message_trans("Month",set_date_month%)
+  PROCforce_icon_redraw(time_window%,3)
+  PROCtick_menu_item(month_menu%,!b%)
+  IF VAL($FNicon_indirection(time_window%,4))>days_in_month%(set_date_month%) THEN
+   $FNicon_indirection(time_window%,4)=STR$(days_in_month%(set_date_month%))
+   PROCforce_icon_redraw(time_window%,4)
+  ENDIF
+ WHEN age_logic_menu%
+  $FNicon_indirection(search_panes%(1),11)=FNnumbered_message_trans("AgeLogic",!b%)
+  PROCforce_icon_redraw(search_panes%(1),11)
+  search_age_logic%=!b%
+  FOR loop%=13 TO 21
+   PROCset_icon_shaded(search_panes%(1),loop%,(!b%<=4 AND loop%>=17) OR !b%=0)
+  NEXT loop%
+  PROCtick_menu_item(age_logic_menu%,search_age_logic%)
+  PROCsearch_window_caret_clear
+ WHEN age_units_menu% : CASE age_units_icon% OF
+   WHEN 1 : $FNicon_indirection(search_panes%(1),14)=FNnumbered_message_trans("AgeUnits",!b%)
+            PROCforce_icon_redraw(search_panes%(1),14)
+            search_age_units1%=!b%
+            PROCtick_menu_item(age_units_menu%,search_age_units1%)
+   WHEN 2 : $FNicon_indirection(search_panes%(1),19)=FNnumbered_message_trans("AgeUnits",!b%)
+            PROCforce_icon_redraw(search_panes%(1),19)
+            search_age_units2%=!b%
+            PROCtick_menu_item(age_units_menu%,search_age_units2%)
+  ENDCASE
+ WHEN type_logic_menu%
+  $FNicon_indirection(search_panes%(2),3)=FNnumbered_message_trans("TypeLogic",!b%)
+  PROCforce_icon_redraw(search_panes%(2),3)
+  search_type_logic%=!b%
+  FOR loop%=3 TO 6
+   PROCset_icon_shaded(search_panes%(2),loop%,(NOT FNicon_selected(search_panes%(2),0)) OR (loop%>=5 AND search_type_logic%=0))
+  NEXT loop%
+  PROCtick_menu_item(type_logic_menu%,search_type_logic%)
+  PROCsearch_window_caret_clear
+ WHEN file_type_menu%
+  IF (LEN($FNicon_indirection(search_panes%(2),5))+LEN($FNmenu_indirection(file_type_menu%,!b%)))<254 THEN
+   IF $FNicon_indirection(search_panes%(2),5)="" THEN
+    $FNicon_indirection(search_panes%(2),5)=$FNmenu_indirection(file_type_menu%,!b%)
+   ELSE
+    $FNicon_indirection(search_panes%(2),5)+=","+$FNmenu_indirection(file_type_menu%,!b%)
+   ENDIF
+   PROCforce_icon_redraw(search_panes%(2),5)
+   IF FNis_caret_in_icon(search_panes%(2),5) THEN PROCput_caret_at_end(search_panes%(2),5)
+  ELSE
+   PROCwimp_report(FNmessage_trans("TypeBufFull"),2,%10,"")
+  ENDIF
+  IF NOT re_open% THEN
+   PROCfree_block(heap_handle%,file_type_menu%)
+   file_type_menu%=0
+  ENDIF
+ WHEN content_logic_menu%
+  $FNicon_indirection(search_panes%(4),1)=FNnumbered_message_trans("ContentLogic",!b%)
+  PROCforce_icon_redraw(search_panes%(4),1)
+  search_content_logic%=!b%
+  FOR loop%=3 TO 5
+   PROCset_icon_shaded(search_panes%(4),loop%,search_content_logic%=0)
+  NEXT loop%
+  PROCtick_menu_item(content_logic_menu%,search_content_logic%)
+  PROCsearch_window_caret_clear
+ WHEN search_history_menu%
+  PROCopen_history_search(!b%)
+  IF NOT re_open% THEN
+   PROCfree_block(heap_handle%,search_history_menu%)
+   search_history_menu%=0
+  ENDIF
+ENDCASE
+:
+IF re_open% THEN PROCdisplay_menu(menu_up%,0,0) ELSE menu_up%=-1 : results_window_menu_ptr%=-1
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCwimp_message
+:
+REM Respond to WIMP messages from other tasks.
+:
+CASE b%!16 OF
+ WHEN &0     : quit%=TRUE
+ WHEN &2     : CASE drag_window_handle% OF
+                WHEN search_window%,-2 : IF b%!36<>-1 THEN
+                                          PROCadd_path_to_search_list(search_window%,20,FNzero_string(b%+44),-1,TRUE)
+                                         ENDIF
+                WHEN save_window%   : PROCsave_results_to_disc
+               ENDCASE
+ WHEN &3     : IF (b%!20=search_window% AND b%!24=20) OR (b%!20=choices_window% AND b%!24=6) THEN
+                PROCadd_path_to_search_list(b%!20,b%!24,FNzero_string(b%+44),b%!40,FALSE)
+               ENDIF
+               IF b%!20=-2 THEN
+                IF b%!40=&1A1 THEN
+                 PROCload_data_file(FNzero_string(b%+44),TRUE)
+                ELSE
+                 PROCopen_dir_search_window(FNzero_string(b%+44),b%!40)
+                ENDIF
+               ENDIF
+ WHEN &5     : IF b%!40=&1A1 THEN PROCload_data_file(FNzero_string(b%+44),TRUE)
+ WHEN &6     : IF drag_window_handle%=save_window% THEN PROCsave_results_in_ram
+ WHEN &F     : IF global_clipboard%<>-1 AND b%!4<>task_handle% THEN
+                PROCfree_block(heap_handle%,global_clipboard%)
+                global_clipboard%=-1
+               ENDIF
+ WHEN &10    : IF global_clipboard%<>-1 THEN PROCsend_clipboard_data
+ WHEN &403   : filer_action_directory$=FNzero_string(b%+20) : filer_action_status%=2
+ WHEN &404   : selection_list$=FNzero_string(b%+20)
+               WHILE selection_list$<>""
+                space_index%=INSTR(selection_list$," ")
+                IF space_index%>0 THEN
+                 next_object$=LEFT$(selection_list$, space_index%-1)
+                 selection_list$=FNstrip_surrounding_whitespace(MID$(selection_list$, space_index%+1))
+                ELSE
+                 next_object$=FNstrip_surrounding_whitespace(selection_list$)
+                 selection_list$=""
+                ENDIF
+                next_object$=filer_action_directory$+"."+next_object$
+                SYS "OS_File",23,next_object$ TO ,,,,,,object_type%
+                IF object_type%>=&1000 THEN PROCadd_path_to_search_buffer(filer_action_path%,FNread_int_config("PathBufSize"),next_object$,FALSE)
+               ENDWHILE
+ WHEN &405   : IF b%!20=9 AND filer_action_status%<>1 THEN
+                IF filer_action_status%=2 THEN
+                 IF ?filer_action_path%=0 THEN $filer_action_path%=filer_action_directory$
+                 filer_action_parent_handle%=b%!4
+                 filer_action_options%=FNset_default_search_options(filer_action_path%,FNzero_string(b%+28))
+                 PROCfree_block(heap_handle%,filer_action_path%)
+                 IF FNread_opt_config("SearchWindAsPlugin") THEN
+                  SYS "Wimp_GetPointerInfo",,q%
+                  PROCopen_search_window(!q%,q%!4,filer_action_options%)
+                 ELSE
+                  PROCsearch(filer_action_options%) : PROCterminate_plugin
+                 ENDIF
+                ELSE
+                 b%!12=b%!8
+                 SYS "Wimp_SendMessage",17,b%,b%!4
+                 filer_action_path%=FNclaim_block(heap_handle%,FNread_int_config("PathBufSize"))
+                 ?filer_action_path%=0
+                 filer_action_directory$=""
+                 filer_action_status%=1
+                ENDIF
+               ENDIF
+ WHEN &502   : PROCsend_interactive_help
+ WHEN &400C0 : PROCsubmenu_warning
+ WHEN &400C9 : CASE b%!20 OF
+                WHEN file_type_menu% : PROCfree_block(heap_handle%,file_type_menu%) : file_type_menu%=0
+                WHEN search_history_menu%,icon_bar_menu% : IF search_history_menu% THEN
+                                                            PROCfree_block(heap_handle%,search_history_menu%)
+                                                            search_history_menu%=0
+                                                           ENDIF
+                WHEN results_window_menu%
+                 IF results_select_by_menu% THEN PROCclear_selection(results_window_menu_ptr%)
+                 results_window_menu_ptr%=-1
+               ENDCASE
+               menu_up%=-1
+ WHEN &400CF : PROCrescan_font_widths
+ WHEN &4E383 : PROCurl_bounce(b%)
+ENDCASE
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCterminate_plugin
+IF filer_action_status%=2 AND (NOT quit%) THEN
+ !q%=20
+ q%!12=0
+ q%!16=&400C3
+ SYS "Wimp_SendMessage",17,q%,filer_action_parent_handle%
+ENDIF
+filer_action_status%=0
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCquit_after_plugin
+IF quit_after_plugin% AND !results_window_list%=0 AND current_search_options%=0 THEN quit%=TRUE
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCfailed_wimp_message
+:
+CASE b%!16 OF
+ WHEN &7     : PROCend_ram_transfer
+ WHEN &4AF80 : PROCurl_bounce(b%)
+ENDCASE
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCuser_drag_box
+:
+REM This deals with both the save and search icon drags.
+:
+LOCAL top_icon%,bottom_icon%,icon%
+:
+IF dragging_box% THEN
+ IF wimp_auto_scroll% THEN SYS "Wimp_AutoScroll",0
+ dragging_box%=FALSE
+ :
+ !q%=drag_data_block%!8
+ SYS "Wimp_GetWindowState",,q%
+ :
+ IF b%!4>b%!12 THEN SWAP b%!4,b%!12 : REM Swap top and bottom if the box was dragged upwards.
+ :
+ REM Need to tidy up and correct this bit to do sensible things with the vari-height sections.
+ :
+ top_icon%=((q%!16-b%!12)-q%!24) DIV drag_data_block%!40
+ IF (((q%!16-b%!12)-q%!24) MOD drag_data_block%!40)>=results_icon_height% THEN top_icon%+=1
+ bottom_icon%=((q%!16-b%!4)-q%!24) DIV drag_data_block%!40
+ IF ((q%!16-b%!4)-q%!24) MOD drag_data_block%!40<=4 THEN bottom_icon%-=1
+ :
+ IF drag_button%=64 THEN
+  PROCclear_selection(drag_data_block%)
+ ELSE
+  PROCtoggle_selection(drag_data_block%,top_icon%)
+ ENDIF
+ :
+ FOR icon%=top_icon% TO bottom_icon%
+  PROCtoggle_selection(drag_data_block%,icon%)
+ NEXT icon%
+ELSE
+ IF drag_a_sprite% THEN SYS "DragASprite_Stop"
+ :
+ SYS "Wimp_GetPointerInfo",,b%+1000
+ b%!1020=b%!1012
+ b%!1024=b%!1016
+ b%!1028=b%!1000
+ b%!1032=b%!1004
+ b%!1036=0
+ REMb%!1000=64
+ b%!1012=0
+ b%!1016=1
+ CASE drag_window_handle% OF
+  WHEN search_window%,-2 : $(b%+1044)="NULL"+CHR$(0)
+                           b%!1036=0
+                           b%!1040=-1
+                           b%!1000=52
+                           SYS "Wimp_SendMessage",18,b%+1000,b%!1020,b%!1024
+  WHEN save_window% :   CASE data_save_type% OF
+                         WHEN 0 : save_data_block%=FNbuild_data_save_block(results_window_menu_ptr%)
+                         WHEN 1 : save_data_block%=FNbuild_text_save_block(results_window_menu_ptr%,TRUE)
+                         WHEN 2 : save_data_block%=FNbuild_search_save_block(results_window_menu_ptr%)
+                         WHEN 3 : save_data_block%=FNbuild_search_save_block(-1)
+                        ENDCASE
+                        $(b%+1044)=FNleaf_name($FNicon_indirection(save_window%,2))+CHR$(0)
+                        b%!1036=!save_data_block%  : REM File size
+                        b%!1040=save_data_block%!8 : REM File type
+                        b%!1000=(48+LEN($(b%+1044))) AND (NOT %11)
+                        SYS "Wimp_SendMessage",18,b%+1000,b%!1020,b%!1024
+  OTHERWISE : data_load_block%=drag_data_block%
+              data_load_item%=0
+              data_load_errors%=0
+              data_load_buffer%=FNclaim_block(heap_handle%,256)
+              :
+              data_load_buffer%!12=0
+              data_load_buffer%!16=3
+              data_load_buffer%!20=b%!1020
+              data_load_buffer%!24=b%!1024
+              data_load_buffer%!28=b%!1028
+              data_load_buffer%!32=b%!1032
+              :
+              IF data_load_block%!12>1 THEN poll_mask%=&03CB0 : send_data_load%=TRUE
+              PROCsend_data_load
+ ENDCASE
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCsend_data_load
+:
+REM On each call, the next selected item in the current results window is found and a
+REM Message_DataLoad is sent out.  Called on Poll_Idle events.
+:
+LOCAL redraw_list%,file_name$,type%,load%,length%
+:
+redraw_list%=data_load_block%!4
+:
+WHILE data_load_item%<data_load_block%!12 AND (redraw_list%!(data_load_item%*32+8) AND &100)=0
+ data_load_item%+=1
+ENDWHILE
+:
+IF data_load_item%<data_load_block%!12 THEN
+ file_name$=$(data_load_block%+redraw_list%!(data_load_item%*32))
+ SYS "XOS_File",17,file_name$ TO type%,,load%,,length%
+ IF type%=0 THEN
+  data_load_errors%+=1
+  redraw_list%!(data_load_item%*32+8)=redraw_list%!(data_load_item%*32+8) OR &200
+  PROCredraw_results_icon(data_load_block%,data_load_item%)
+ ELSE
+  data_load_buffer%!36=length%
+  data_load_buffer%!40=(load% AND &FFF00)>>8
+  $(data_load_buffer%+44)=file_name$
+  !data_load_buffer%=(48+LEN(file_name$)) AND (NOT %11)
+  SYS "Wimp_SendMessage",18,data_load_buffer%,data_load_buffer%!20,data_load_buffer%!24
+ ENDIF
+ data_load_item%+=1
+ELSE
+ poll_mask%=&03CB1 : send_data_load%=FALSE
+ PROCfree_block(heap_handle%,data_load_buffer%)
+ IF data_load_errors%>0 THEN PROCwimp_report(FNmessage_trans("NotThereDrag"),2,%10,"")
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCsubmenu_warning
+:
+CASE menu_up% OF
+ WHEN results_window_menu% : CASE b%!32 OF
+   WHEN 1 : PROCchange_search_window_contents(data_save_type%, b%!36)
+            SYS "Wimp_CreateSubMenu",,b%!20,b%!24,b%!28
+   WHEN 4 : PROCset_object_info(results_window_menu_ptr%) : SYS "Wimp_CreateSubMenu",,b%!20,b%!24,b%!28
+  ENDCASE
+ WHEN search_window_menu% : CASE b%!32 OF
+   WHEN 0 : PROCchange_search_window_contents(data_save_type%, 3)
+            SYS "Wimp_CreateSubMenu",,b%!20,b%!24,b%!28
+  ENDCASE
+ WHEN icon_bar_menu% : CASE b%!32 OF
+   WHEN 1 : search_history_menu%=FNbuild_search_history_menu(search_history_list%)
+            IF search_history_menu% THEN
+             icon_bar_menu%!56=search_history_menu%
+             SYS "Wimp_CreateSubMenu",,search_history_menu%,b%!24,b%!28
+            ENDIF
+  ENDCASE
+ENDCASE
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+REM Initialisation and termination
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCinitialise
+:
+REM Initialise the program, including the WIMP.
+:
+LOCAL wimp_version%,wimp_needed%,loop%,resource_path$,flags%
+:
+REM Set up the global data blocks and the parameters needed for WIMP registration.  Find the correct territory
+REM resources and load the Messages file.
+:
+DIM b% 4000, q% 255, a% 255
+:
+$b%="TASK"
+TASK=!b%
+:
+resource_path$=FNterritory_resources("<Locate$Dir>.Resources")
+:
+DIM message_block% 16
+SYS "MessageTrans_FileInfo",,resource_path$+"Messages" TO flags%,,message_size%
+DIM message_buffer% message_size%
+SYS "MessageTrans_OpenFile",message_block%,resource_path$+"Messages",message_buffer%
+:
+task_name$=FNmessage_trans("TaskName")
+task_sprite$=FNmessage_trans("TaskSpr")
+PROCwimp_error_initialise(task_name$,task_sprite$)
+wimp_needed%=310
+:
+REM Choose what messages we accept from the WIMP.
+:
+!q%=  &2     : REM Message_DataSaveAck
+q%!4= &3     : REM Message_DataLoad
+q%!8= &5     : REM Message_DataOpen
+q%!12=&6     : REM Message_RAMFetch
+q%!16=&F     : REM Message_ClaimEntity
+q%!20=&10    : REM Message_DataRequest
+q%!24=&403   : REM Message_FilerSelectionDirectory
+q%!28=&404   : REM Message_FilerAddSelection
+q%!32=&405   : REM Message_FilerAction
+q%!36=&406   : REM Message_FilerControlAction
+q%!40=&502   : REM Message_HelpRequest
+q%!44=&400C0 : REM Message_MenuWarning
+q%!48=&400C9 : REM Message_MenusDeleted
+q%!52=&400CF : REM Message_FontChanged
+q%!56=&4AF80 : REM Message_ANTOpenURL
+q%!60=&4E383 : REM Message_URIReturnResult
+q%!64=&0     : REM Message_Quit
+:
+SYS "Wimp_Initialise",wimp_needed%,TASK,task_name$,q% TO wimp_version%,task_handle%
+:
+REM Check that various SWIs are present.
+:
+SYS "XOS_SWINumberFromString",,"Wimp_TextOp" TO ;flags%
+wimp_text_op%=(flags% AND 1)=0
+SYS "XOS_SWINumberFromString",,"Wimp_AutoScroll" TO ;flags%
+wimp_auto_scroll%=(flags% AND 1)=0
+SYS "XOS_SWINumberFromString",,"DragASprite_Start" TO ;flags%
+drag_a_sprite%=(flags% AND 1)=0
+SYS "XOS_SWINumberFromString",,"OS_HeapSort32" TO ;flags%
+os_heapsort32%=(flags% AND 1)=0
+SYS "OS_Byte",161,28 TO ,,cmos_28%
+IF (cmos_28% AND %10)=0 THEN drag_a_sprite%=FALSE
+:
+REM Set up the data area and the global variables.
+:
+quit%=FALSE
+menu_up%=0
+poll_mask%=&03CB1
+:
+REM The heap handling code, and the heap itself
+:
+SYS "OS_File",20,"Locate:HeapCode" TO code_type%,,,,heap_code_size%
+IF code_type%=0 THEN ERROR 255,FNmessage_trans("NoHeapCode")
+SYS "OS_File",20,"Locate:Code" TO code_type%,,,,main_code_size%
+IF code_type%=0 THEN ERROR 255,FNmessage_trans("NoCode")
+DIM heap_code% heap_code_size%+main_code_size%
+main_code%=heap_code%+heap_code_size%
+SYS "OS_File",255,"Locate:HeapCode",heap_code%
+SYS "OS_File",255,"Locate:Code",main_code%
+:
+create_heap%=0
+remove_heap%=4
+claim_block%=8
+extend_block%=12
+block_size%=16
+free_block%=20
+:
+window_redraw%=0
+add_date_value%=4
+search_files%=8
+check_file%=12
+string_compare%=16
+format_text_35%=20
+format_text_31%=24
+subtract_date%=28
+:
+DIM heap_handle% 28
+PROCcreate_heap(heap_handle%,task_name$,16*1024*1024,0)
+:
+REM Set up the options
+:
+PROCinitialise_config(13,task_name$)
+PROCinit_str_config("SearchPath","ADFS::4.$")
+PROCinit_int_config("PathBufSize",4095)
+PROCinit_opt_config("Multitask",TRUE)
+PROCinit_opt_config("ImageFS",FALSE)
+PROCinit_opt_config("SuppressErrors",TRUE)
+PROCinit_int_config("HistorySize",10)
+PROCinit_opt_config("ConfirmHistoryAdd",TRUE)
+PROCinit_opt_config("FileMenuSprites",FALSE)
+PROCinit_opt_config("ScrollResults",TRUE)
+PROCinit_int_config("OSGBPBReadSize",1000)
+PROCinit_opt_config("QuitAsPlugin",FALSE)
+PROCinit_opt_config("SearchWindAsPlugin",FALSE)
+PROCinit_opt_config("FullInfoDisplay",FALSE)
+:
+choices_load$="Choices:Locate.Choices"
+SYS "XOS_File",17,choices_load$ TO choices_type% ;flags%
+IF (flags% AND 1)<>0 OR choices_type%<>1 THEN choices_load$="Locate:Choices"
+choices_save$=FNload_config_file(choices_load$)
+:
+$a%=FNread_str_config("SearchPath")
+default_search_options%=FNset_default_search_options(a%,"")
+current_search_options%=0
+:
+REM Set up the main indirected data blocks and load the window templates.
+:
+ind_data_size%=6000
+DIM ind_data% ind_data_size%
+DIM results_window_def% 400, results_pane_def% 200
+DIM search_panes%(4)
+search_pane%=0
+:
+PROCopen_templates(resource_path$+"Templates")
+PROCload_template("Search",b%,ind_data%,ind_data_size%,-1)
+b%!748=FNclaim_block(heap_handle%,FNread_int_config("PathBufSize"))
+b%!756=FNread_int_config("PathBufSize")
+SYS "Wimp_CreateWindow",,b% TO search_window%
+PROCload_template("SizePane",b%,ind_data%,ind_data_size%,-1)
+SYS "Wimp_CreateWindow",,b% TO search_panes%(0)
+PROCload_template("DatePane",b%,ind_data%,ind_data_size%,-1)
+SYS "Wimp_CreateWindow",,b% TO search_panes%(1)
+PROCload_template("TypePane",b%,ind_data%,ind_data_size%,-1)
+SYS "Wimp_CreateWindow",,b% TO search_panes%(2)
+PROCload_template("AttribPane",b%,ind_data%,ind_data_size%,-1)
+SYS "Wimp_CreateWindow",,b% TO search_panes%(3)
+PROCload_template("ContentPane",b%,ind_data%,ind_data_size%,-1)
+SYS "Wimp_CreateWindow",,b% TO search_panes%(4)
+PROCload_template("SetTime",b%,ind_data%,ind_data_size%,-1)
+SYS "Wimp_CreateWindow",,b% TO time_window%
+PROCload_template("ProgInfo",b%,ind_data%,ind_data_size%,-1)
+SYS "Wimp_CreateWindow",,b% TO info_window%
+PROCload_template("ObjectInfo",b%,ind_data%,ind_data_size%,-1)
+SYS "Wimp_CreateWindow",,b% TO object_info_window%
+PROCload_template("Choices",b%,ind_data%,ind_data_size%,-1)
+REMb%!300=FNclaim_block(heap_handle%,FNread_int_config("PathBufSize"))
+REMb%!308=FNread_int_config("PathBufSize")
+SYS "Wimp_CreateWindow",,b% TO choices_window%
+PROCload_template("SaveAs",b%,ind_data%,ind_data_size%,-1)
+SYS "Wimp_CreateWindow",,b% TO save_window%
+PROCload_template("Paused",b%,ind_data%,ind_data_size%,-1)
+SYS "Wimp_CreateWindow",,b% TO pause_window%
+PROCload_template("HistoryAdd",b%,ind_data%,ind_data_size%,-1)
+SYS "Wimp_CreateWindow",,b% TO history_add_window%
+PROCload_template("Results",results_window_def%,ind_data%,ind_data_size%,-1)
+results_window_height%=(results_window_def%!12-results_window_def%!4)
+results_window_def%!84=0
+results_icon_def%=results_window_def%+88
+results_icon_width%=(results_icon_def%!8-!results_icon_def%)
+results_icon_height%=(results_icon_def%!12-results_icon_def%!4)
+PROCload_template("ResultsPane",results_pane_def%,ind_data%,ind_data_size%,-1)
+results_pane_width%=(results_pane_def%!96-results_pane_def%!88)-8
+results_pane_height%=(results_pane_def%!12-results_pane_def%!4)
+PROCclose_templates
+:
+results_window_def%!64=FNload_user_sprite_area("<Locate$Sprites>.Sprites")
+:
+$FNicon_indirection(info_window%,6)=FNmessage_trans("Version")
+:
+REM Load the menu definitions.
+:
+!b%=info_window%
+b%!4=1000 : REM A dummy value that will never be used.
+b%!8=save_window% : REM Save search (Search Window Menu)
+b%!12=object_info_window%
+b%!16=save_window% : REM Save results
+b%!20=save_window% : REM Save pathnames
+b%!24=save_window% : REM Save search
+PROCload_menu_block(resource_path$+"Menus",b%)
+icon_bar_menu%=!b%
+search_window_menu%=b%!4
+results_window_menu%=b%!8
+display_menu%=b%!12
+save_menu%=b%!16
+size_logic_menu%=b%!20
+size_units_menu%=b%!24
+date_logic_menu%=b%!28
+age_logic_menu%=b%!32
+age_units_menu%=b%!36
+type_logic_menu%=b%!40
+content_logic_menu%=b%!44
+month_menu%=b%!48
+file_type_menu%=0
+search_history_menu%=0
+:
+REM Global variables
+:
+save_data_block%=0
+:
+REM A linked list of results windows
+REM
+REM !0  = ->Next window definition
+REM !4  = ->Window redraw list
+REM !8  = Window handle
+REM !12 = Matches found
+REM !16 = ->Search options
+REM !20 = Number of selections
+REM !24 = Matches found when last window update was done
+REM !28 = Data ptr when last window update was done.
+REM !32 = Window handle for pane
+REM !36 = Display flags
+REM !40 = Results entry height
+REM !44 = ->File info data
+REM !48 = Number of selectable items
+REM $52 = Window title string (CHR$(13) terminated)
+REM $n  = file data (path_name$+CHR$(13)+"S"+sprite$+CHR$(13)+flag_byte%)
+:
+results_title_offset%=52
+:
+DIM results_window_list% 4
+!results_window_list%=0
+:
+DIM search_history_list% 12
+!search_history_list%=0
+search_history_list%!4=0
+search_history_list%!8=%1000
+:
+pending_history_block%=-1
+:
+searching_data_block%=0
+searching_window_handle%=-1
+:
+results_window_menu_ptr%=-1
+results_window_menu_searching%=FALSE
+:
+global_clipboard%=-1
+:
+dragging_box%=FALSE
+send_data_load%=FALSE
+:
+filer_action_status%=0
+:
+data_save_type%=-1
+DIM save_box_names$(3,1), save_box_select%(3), save_box_sprites$(3)
+save_box_sprites$()="file_1a1","file_FFF","file_1a1","file_1a1"
+:
+DIM days_in_month%(12)
+days_in_month%()=0,31,28,31,30,31,30,31,31,30,31,30,31
+:
+REM Deal with the various command-line parameters that can be passed.
+:
+LOCAL index%,file_name$,file_type%
+:
+REM Checto to see if we are starting as a plugin.  If so, set a flag to show this.
+REM Also set a flag to indicate if we must quit once the work has been done.
+:
+SYS "OS_Byte",129,0,&FF TO ,os_version%
+started_as_plugin%=(INSTR(command_line$,"-plugin")<>0)
+quit_after_plugin%=(started_as_plugin% AND FNread_opt_config("QuitAsPlugin"))
+:
+IF started_as_plugin% THEN
+ filer_action_path%=FNclaim_block(heap_handle%,FNread_int_config("PathBufSize"))
+ ?filer_action_path%=0
+ filer_action_directory$=""
+ filer_action_status%=1
+ENDIF
+:
+IF NOT quit_after_plugin% THEN
+ :
+ REM Put an icon on the icon bar.
+ :
+ !b%=-1
+ b%!4=0
+ b%!8=0
+ b%!12=68
+ b%!16=69
+ b%!20=&6102
+ b%!32=LEN(task_sprite$)+1
+ DIM b%!24 b%!32
+ $(b%!24)=task_sprite$
+ b%!28=1
+ SYS "Wimp_CreateIcon",,b%
+ENDIF
+:
+REM Load the file given in the argument (if any)
+:
+index%=INSTR(command_line$,"-file")
+IF index% THEN
+ file_name$=MID$(command_line$,index%+6)
+ index%=INSTR(file_name$," ")
+ IF index%>0 THEN file_name$=LEFT$(file_name$,index%-1)
+ SYS "OS_File",23,file_name$ TO ,,,,,,file_type%
+ IF file_type%=&1A1 THEN PROCload_data_file(file_name$,FALSE)
+ENDIF
+:
+REM Open the window if required
+:
+index%=INSTR(command_line$,"-open")
+IF index% THEN
+ coords$=MID$(command_line$,index%+6)
+ index%=INSTR(coords$," ")
+ IF index%>0 THEN coords$=LEFT$(coords$,index%-1)
+ index%=INSTR(coords$,"x")
+ IF index%>0 THEN
+  open_at_x%=VAL(LEFT$(coords$,index%-1))
+  open_at_y%=VAL(MID$(coords$,index%+1))
+ ELSE
+  open_at_x%=0 : open_at_y%=0
+ ENDIF
+ PROCopen_search_window(open_at_x%,open_at_y%,default_search_options%)
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCclose_down
+:
+REM Tidy up, release all claimed memory and then exit tidily.
+:
+LOCAL last%
+:
+REM Release all memory claimed from the heap for results data.
+:
+PROCdelete_history_list(search_history_list%)
+:
+results_window_list%=!results_window_list%
+:
+WHILE results_window_list%<>0
+ last%=results_window_list%
+ results_window_list%=!results_window_list%
+ PROCdelete_results_window(last%)
+ENDWHILE
+:
+REM De-Register from everything.
+:
+SYS "MessageTrans_CloseFile",message_block%
+SYS "Wimp_CloseDown",task_handle%,TASK
+PROCremove_heap(heap_handle%)
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+REM Interactive help
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCsend_interactive_help
+:
+LOCAL token$,len%
+:
+REM Try and find an appropriate token for the window and icon currently under the pointer.
+:
+token$=""
+:
+CASE b%!32 OF
+ WHEN -2           : token$="HelpH1"
+ WHEN info_window% : IF b%!36=8 THEN token$="HelpH3" ELSE token$="HelpH2"
+ WHEN search_window% : CASE b%!36 OF
+   WHEN 0,1                  : token$="HelpSW"+STR$(b%!36)
+   WHEN 4                    : token$="HelpSW2"
+   WHEN 6,7,8,9,10,11,12,13  : token$="HelpSW"+STR$(b%!36-3)
+   WHEN 16,17,18             : token$="HelpSW"+STR$(b%!36-5)
+   WHEN 20,21                : token$="HelpSW"+STR$(b%!36-6)
+  ENDCASE
+ WHEN search_panes%(0) : CASE b%!36 OF
+   WHEN 1,2,3,4,5 : token$="HelpS0"+STR$(b%!36-1)
+   WHEN 7,8,9     : token$="HelpS0"+STR$(b%!36-5)
+  ENDCASE
+ WHEN search_panes%(1) : CASE b%!36 OF
+   WHEN 0,1            : token$="HelpS1"+STR$(b%!36)
+   WHEN 3,4,5,6        : token$="HelpS1"+STR$(b%!36-1)
+   WHEN 8,9            : token$="HelpS1"+STR$(b%!36-2)
+   WHEN 11,12,13,14,15 : token$="HelpS1"+STR$(b%!36-3)
+   WHEN 18,19,20       : token$="HelpS1"+STR$(b%!36-5)
+  ENDCASE
+ WHEN search_panes%(2) : IF b%!36>=0 THEN token$="HelpS2"+STR$(b%!36)
+ WHEN search_panes%(3) : IF b%!36>=0 THEN token$="HelpS3"+STR$(b%!36)
+ WHEN search_panes%(4) : IF b%!36>=1 THEN token$="HelpS4"+STR$(b%!36-1)
+ WHEN choices_window% : CASE b%!36 OF
+   WHEN 0,1,2          : token$="HelpCH"+STR$(b%!36)
+   WHEN 6,7,8,9        : token$="HelpCH"+STR$(b%!36-3)
+   WHEN 13             : token$="HelpCH"+STR$(b%!36-6)
+   WHEN 15             : token$="HelpCH"+STR$(b%!36-7)
+   WHEN 18,19,20,21,22 : token$="HelpCH"+STR$(b%!36-9)
+  ENDCASE
+ WHEN time_window% : CASE b%!36 OF
+   WHEN 0,1,2,3,4,5,6,7,8,9,10 : token$="HelpTM"+STR$(b%!36)
+   WHEN 13,14,15,16,17,18      : token$="HelpTM"+STR$(b%!36-2)
+  ENDCASE
+ WHEN save_window% : IF b%!36>=0 THEN token$="HelpSV"+STR$(b%!36)+STR$(data_save_type%)
+ WHEN object_info_window% : token$="HelpOI1"
+ OTHERWISE
+  IF FNget_results_data_block(b%!32)>-1 THEN
+   token$="HelpF1"
+  ELSE
+   SYS "Wimp_GetMenuState",1,q%,b%!32,b%!36
+   CASE menu_up% OF
+    WHEN icon_bar_menu% : IF !q%>-1 THEN token$="MenuIB"+STR$(!q%)
+     IF !q%=1 AND q%!4>-1 THEN token$="MenuHIS"
+    WHEN search_window_menu% : IF !q%>-1 THEN token$="MenuSH"+STR$(!q%)
+    WHEN results_window_menu%  : IF !q%>-1 THEN
+     CASE !q% OF
+      WHEN 0 : IF q%!4>-1 THEN token$="MenuDY"+STR$(q%!4) ELSE token$="MenuRS"+STR$(!q%)
+      WHEN 1 : IF q%!4>-1 THEN token$="MenuSM"+STR$(q%!4) ELSE token$="MenuRS"+STR$(!q%)
+      OTHERWISE : token$="MenuRS"+STR$(!q%)
+     ENDCASE
+    ENDIF
+    WHEN file_type_menu% : IF !q%>-1 THEN token$="MenuFT"
+    WHEN size_logic_menu%  : IF !q%>-1 THEN token$="MenuSL"
+    WHEN size_units_menu% : IF !q%>-1 THEN token$="MenuSU"
+    WHEN date_logic_menu% : IF !q%>-1 THEN token$="MenuDL"
+    WHEN age_logic_menu% : IF !q%>-1 THEN token$="MenuAL"
+    WHEN age_units_menu% : IF !q%>-1 THEN token$="MenuAU"
+    WHEN month_menu% : IF !q%>-1 THEN token$="MenuMN"
+   ENDCASE
+  ENDIF
+ENDCASE
+:
+REM If a token was found, look it up and reply to the help request.
+:
+IF token$<>"" THEN
+ SYS "MessageTrans_Lookup",message_block%,token$,b%+20,235 TO ,,,len%
+ :
+ b%!12=b%!8
+ b%!16=&503
+ !b%=24+(len% AND &FFFFFC)
+ SYS "Wimp_SendMessage",17,b%,b%!4
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+REM Search window handling
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCopen_search_window(x%,y%,settings%)
+:
+REM Opens the search window, setting the contents up first.
+:
+LOCAL loop%,pane%,ptr%,word%
+:
+REM Check to see if a search window is already open.
+:
+IF current_search_options%=0 THEN
+ !settings%=!settings% OR %10
+ current_search_options%=settings%
+ :
+ REM Set up and open the search window.
+ :
+ PROCset_search_window(settings%,TRUE,pane%)
+ PROCset_icon_selected(search_window%,13,FALSE)
+ PROCopen_search_pane(pane%,x%,y%)
+ :
+ IF FNwindow_is_open(search_window%) THEN PROCput_caret_at_end(search_window%,4)
+ELSE
+ :
+ REM Re-open the window on the top of the stack.
+ :
+ PROCopen_search_pane(search_pane%,0,0)
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCopen_dir_search_window(path$,object_type%)
+:
+REM Opens the search window, setting the contents up first.
+:
+LOCAL settings%,loop%,pane%,ptr%,word%
+:
+REM Check to see if a search window is already open.
+:
+IF current_search_options%=0 THEN
+ IF object_type%<&1000 THEN path$=FNpath_name(path$)
+ $a%=path$
+ settings%=FNset_default_search_options(a%,"")
+ !settings%=!settings% OR %10
+ current_search_options%=settings%
+ :
+ REM Set up and open the search window.
+ :
+ PROCset_search_window(settings%,TRUE,pane%)
+ SYS "Wimp_GetPointerInfo",,q%
+ PROCopen_search_pane(pane%,!q%,q%!4)
+ :
+ IF FNwindow_is_open(search_window%) THEN PROCput_caret_at_end(search_window%,4)
+ELSE
+ :
+ REM Re-open the window on the top of the stack.
+ :
+ PROCopen_search_pane(pane%,0,0)
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCreset_search_window
+:
+REM Reset the contents of the search window to the default for this search, then refresh the display.
+:
+LOCAL pane%
+:
+PROCset_search_window(current_search_options%,FALSE,pane%)
+:
+REM Refresh main window.
+:
+IF FNwindow_is_open(search_panes%(0)) THEN
+ PROCforce_icon_redraw(search_panes%(0),2)
+ PROCforce_icon_redraw(search_panes%(0),3)
+ PROCforce_icon_redraw(search_panes%(0),5)
+ PROCforce_icon_redraw(search_panes%(0),7)
+ PROCforce_icon_redraw(search_panes%(0),9)
+ENDIF
+:
+IF FNwindow_is_open(search_panes%(1)) THEN
+ PROCforce_icon_redraw(search_panes%(1),3)
+ PROCforce_icon_redraw(search_panes%(1),5)
+ PROCforce_icon_redraw(search_panes%(1),8)
+ENDIF
+:
+IF FNwindow_is_open(search_panes%(2)) THEN
+ PROCforce_icon_redraw(search_panes%(2),3)
+ PROCforce_icon_redraw(search_panes%(2),5)
+ENDIF
+:
+IF FNwindow_is_open(search_panes%(4)) THEN
+ PROCforce_icon_redraw(search_panes%(4),1)
+ PROCforce_icon_redraw(search_panes%(4),3)
+ENDIF
+:
+PROCforce_icon_redraw(search_window%,4)
+PROCforce_icon_redraw(search_window%,20)
+:
+REM Move the caret somewhere sensible.
+:
+PROCsearch_window_caret_clear
+SYS "Wimp_GetCaretPosition",,q%
+IF !q%=search_window% OR !q%=search_panes%(0) OR !q%=search_panes%(1) OR !q%=search_panes%(2) THEN
+ PROCput_caret_at_end(!q%,q%!4)
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCset_search_window(settings%,set_pane%,RETURN pane%)
+:
+REM Set the icons in the search window to the values stored in the settings block.
+:
+LOCAL ptr%,loop%,word%
+:
+ptr%=8
+:
+pane%=FNextract_word(settings%,ptr%)
+IF set_pane% THEN
+ FOR loop%=6 TO 10
+  PROCset_icon_state(search_window%,loop%,(loop%-6)=pane%,0,0)
+ NEXT loop%
+ENDIF
+:
+!q%=search_window% : q%!4=20
+SYS "Wimp_GetIconState",,q%
+PROCcopy_long_string(FNextract_long_string(settings%,ptr%),q%!28,q%!36)
+$FNicon_indirection(search_window%,4)=FNextract_string(settings%,ptr%)
+PROCset_icon_selected(search_window%,12,FNextract_word(settings%,ptr%))
+word%=FNextract_word(settings%,ptr%)                           : REM All the options are now in one word.
+PROCset_icon_selected(search_window%,16,(word% AND %0001)<>0)
+PROCset_icon_selected(search_window%,17,(word% AND %0010)<>0)
+PROCset_icon_selected(search_window%,18,(word% AND %0100)<>0)
+PROCset_icon_selected(search_window%,21,(word% AND %1000)<>0)
+word%=FNextract_word(settings%,ptr%)                           : REM Extract two blank words.
+word%=FNextract_word(settings%,ptr%)
+:
+REM Set up size pane.
+:
+search_size_logic%=FNextract_word(settings%,ptr%)
+$FNicon_indirection(search_panes%(0),2)=FNnumbered_message_trans("SizeLogic",search_size_logic%)
+$FNicon_indirection(search_panes%(0),3)=FNextract_string(settings%,ptr%)
+search_size_units1%=FNextract_word(settings%,ptr%)
+$FNicon_indirection(search_panes%(0),5)=FNnumbered_message_trans("SizeUnits",search_size_units1%)
+$FNicon_indirection(search_panes%(0),7)=FNextract_string(settings%,ptr%)
+search_size_units2%=FNextract_word(settings%,ptr%)
+$FNicon_indirection(search_panes%(0),9)=FNnumbered_message_trans("SizeUnits",search_size_units2%)
+FOR loop%=3 TO 9
+ PROCset_icon_shaded(search_panes%(0),loop%,(search_size_logic%<=4 AND loop%>=6) OR search_size_logic%=0)
+NEXT loop%
+:
+REM Set up date pane.
+:
+word%=FNextract_word(settings%,ptr%)    : REM Date / Age format
+PROCset_icon_selected(search_panes%(1),0,word%=0)
+PROCset_icon_selected(search_panes%(1),1,word%=1)
+FOR loop%=2 TO 21
+ PROCset_icon_deleted(search_panes%(1),loop%,(loop%>=10 AND word%=0) OR (loop%<=9 AND word%=1))
+NEXT loop%
+:
+search_date_logic%=FNextract_word(settings%,ptr%)
+$FNicon_indirection(search_panes%(1),3)=FNnumbered_message_trans("DateLogic",search_date_logic%)
+$FNicon_indirection(search_panes%(1),5)=FNextract_string(settings%,ptr%)
+$FNicon_indirection(search_panes%(1),8)=FNextract_string(settings%,ptr%)
+FOR loop%=5 TO 9
+ PROCset_icon_shaded(search_panes%(1),loop%,(search_date_logic%<=4 AND loop%>=7) OR search_date_logic%=0)
+NEXT loop%
+:
+search_age_logic%=FNextract_word(settings%,ptr%)
+$FNicon_indirection(search_panes%(1),11)=FNnumbered_message_trans("AgeLogic",search_age_logic%)
+$FNicon_indirection(search_panes%(1),13)=FNextract_string(settings%,ptr%)
+search_age_units1%=FNextract_word(settings%,ptr%)
+$FNicon_indirection(search_panes%(1),14)=FNnumbered_message_trans("AgeUnits",search_age_units1%)
+$FNicon_indirection(search_panes%(1),18)=FNextract_string(settings%,ptr%)
+search_age_units2%=FNextract_word(settings%,ptr%)
+$FNicon_indirection(search_panes%(1),19)=FNnumbered_message_trans("AgeUnits",search_age_units2%)
+FOR loop%=13 TO 21
+ PROCset_icon_shaded(search_panes%(1),loop%,(search_age_logic%<=4 AND loop%>=17) OR search_age_logic%=0)
+NEXT loop%
+:
+REM Set up type pane
+:
+word%=FNextract_word(settings%,ptr%)
+:
+PROCset_icon_selected(search_panes%(2),0,word% AND %001)
+PROCset_icon_selected(search_panes%(2),1,word% AND %010)
+PROCset_icon_selected(search_panes%(2),2,word% AND %100)
+search_type_logic%=FNextract_word(settings%,ptr%)
+FOR loop%=3 TO 6
+ PROCset_icon_shaded(search_panes%(2),loop%,(word% AND %001)=0 OR (loop%>=5 AND search_type_logic%=0))
+NEXT loop%
+$FNicon_indirection(search_panes%(2),3)=FNnumbered_message_trans("TypeLogic",search_type_logic%)
+$FNicon_indirection(search_panes%(2),5)=FNextract_string(settings%,ptr%)
+:
+REM Set up attribute pane
+:
+word%=FNextract_word(settings%,ptr%)
+FOR loop%=0 TO 12 STEP 3
+ PROCset_icon_selected(search_panes%(3),loop%,word% AND (1<<(loop% DIV 3)))
+ PROCset_icon_shaded(search_panes%(3),loop%+1,(word% AND (1<<(loop% DIV 3)))=0)
+ PROCset_icon_shaded(search_panes%(3),loop%+2,(word% AND (1<<(loop% DIV 3)))=0)
+NEXT loop%
+word%=FNextract_word(settings%,ptr%)
+FOR loop%=1 TO 13 STEP 3
+ PROCset_icon_selected(search_panes%(3),loop%,(word% AND (1<<(loop% DIV 3)))<>0)
+ PROCset_icon_selected(search_panes%(3),loop%+1,(word% AND (1<<(loop% DIV 3)))=0)
+NEXT loop%
+:
+REM Set up content pane
+:
+search_content_logic%=FNextract_word(settings%,ptr%)
+FOR loop%=3 TO 5
+ PROCset_icon_shaded(search_panes%(4),loop%,search_content_logic%=0)
+NEXT loop%
+$FNicon_indirection(search_panes%(4),1)=FNnumbered_message_trans("ContentLogic",search_content_logic%)
+$FNicon_indirection(search_panes%(4),3)=FNextract_string(settings%,ptr%)
+word%=FNextract_word(settings%,ptr%)
+PROCset_icon_selected(search_panes%(4),4,word% AND %01)
+PROCset_icon_selected(search_panes%(4),5,word% AND %10)
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCopen_search_pane(pane%,x%,y%)
+LOCAL loop%,
+search_pane%=pane%
+!b%=search_window%
+SYS "Wimp_GetWindowState",,b%
+IF x%<>0 OR y%<>0 THEN
+ IF x%<>0 THEN
+  loop%=b%!12-b%!4
+  b%!4=x%-loop%/2
+  b%!12=b%!4+loop%
+ ENDIF
+ IF y%<>0 THEN
+  IF FNicon_selected(search_window%,13) THEN loop%=718 ELSE loop%=544
+  IF y%=-1 THEN
+   b%!8=b%!16-loop%
+   IF b%!8<0 THEN b%!8=0 : b%!16=b%!8+loop%
+  ELSE
+   b%!8=y%-loop%/2
+   IF b%!8<96 THEN b%!8=96
+   b%!16=b%!8+loop%
+  ENDIF
+ ENDIF
+ SYS "Wimp_OpenWindow",,b%
+ SYS "Wimp_GetWindowState",,b%
+ENDIF
+!q%=search_panes%(pane%)
+SYS "Wimp_GetWindowState",,q%
+q%!4=b%!4+252
+q%!8=b%!16-428
+q%!12=b%!12-32
+q%!16=b%!16-164
+q%!28=-1
+SYS "Wimp_OpenWindow",,q%
+b%!28=!q%
+SYS "Wimp_OpenWindow",,b%
+q%!4=b%!4+252
+q%!8=b%!16-428
+q%!12=b%!12-32
+q%!16=b%!16-164
+SYS "Wimp_OpenWindow",,q%
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCmove_search_pane(db%)
+!q%=search_panes%(search_pane%)
+SYS "Wimp_GetWindowState",,q%
+q%!4=db%!4+252
+q%!8=db%!16-428
+q%!12=db%!12-32
+q%!16=db%!16-164
+q%!28=db%!28
+SYS "Wimp_OpenWindow",,q%
+db%!28=!q%
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCclose_search_window
+:
+REM Close the search window and tidy up.
+:
+PROCclose_window(search_window%)
+PROCclose_window(search_panes%(search_pane%))
+IF FNwindow_is_open(time_window%) THEN PROCclose_window(time_window%)
+:
+REM If the current options for the window exist and aren't the default, then clear the 'attached' bit of the
+REM block's flags and free the block.  Clear the current_options pointer.
+:
+IF current_search_options%<>0 AND current_search_options%<>default_search_options% THEN
+ PROCdelete_search_options(current_search_options%,%10)
+ENDIF
+current_search_options%=0
+ENDPROC
+:
+:
+:
+:
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCsearch_window_keypress
+:
+:
+CASE b%!24 OF
+ WHEN &18E,&18A : CASE !b% OF
+  WHEN search_window% : CASE b%!4 OF
+    WHEN 20 : PROCput_caret_at_end(search_window%,4)
+    WHEN 4 : CASE search_pane% OF
+      WHEN 0 : IF FNicon_shaded(search_panes%(0),3) THEN
+                PROCput_caret_at_end(search_window%,20)
+               ELSE
+                PROCput_caret_at_end(search_panes%(0),3)
+               ENDIF
+      WHEN 1 : IF FNicon_selected(search_panes%(1),0) THEN
+                IF FNicon_shaded(search_panes%(1),5) THEN
+                 PROCput_caret_at_end(search_window%,20)
+                ELSE
+                 PROCput_caret_at_end(search_panes%(1),5)
+                ENDIF
+               ELSE
+                IF FNicon_shaded(search_panes%(1),13) THEN
+                 PROCput_caret_at_end(search_window%,20)
+                ELSE
+                 PROCput_caret_at_end(search_panes%(1),13)
+                ENDIF
+               ENDIF
+      WHEN 2 : IF FNicon_shaded(search_panes%(2),5) THEN
+                PROCput_caret_at_end(search_window%,20)
+               ELSE
+                PROCput_caret_at_end(search_panes%(2),5)
+               ENDIF
+      WHEN 4 : IF FNicon_shaded(search_panes%(4),3) THEN
+                PROCput_caret_at_end(search_window%,20)
+               ELSE
+                PROCput_caret_at_end(search_panes%(4),3)
+               ENDIF
+     ENDCASE
+   ENDCASE
+  WHEN search_panes%(0) : CASE b%!4 OF
+    WHEN 3 : IF FNicon_shaded(search_panes%(0),7) THEN
+              PROCput_caret_at_end(search_window%,20)
+             ELSE
+              PROCput_caret_at_end(search_panes%(0),7)
+             ENDIF
+    WHEN 7 : PROCput_caret_at_end(search_window%,20)
+   ENDCASE
+  WHEN search_panes%(1) : CASE b%!4 OF
+    WHEN 5  : IF FNicon_shaded(search_panes%(1),8) OR FNicon_selected(search_panes%(1),1) THEN
+               PROCput_caret_at_end(search_window%,20)
+              ELSE
+               PROCput_caret_at_end(search_panes%(1),8)
+              ENDIF
+    WHEN 8  : PROCput_caret_at_end(search_window%,20)
+    WHEN 13 : IF FNicon_shaded(search_panes%(1),18) OR FNicon_selected(search_panes%(1),0) THEN
+              PROCput_caret_at_end(search_window%,20)
+             ELSE
+              PROCput_caret_at_end(search_panes%(1),18)
+             ENDIF
+    WHEN 18 : PROCput_caret_at_end(search_window%,20)
+   ENDCASE
+  WHEN search_panes%(2) : IF b%!4=5 THEN PROCput_caret_at_end(search_window%,20)
+  WHEN search_panes%(4) : IF b%!4=3 THEN PROCput_caret_at_end(search_window%,20)
+ ENDCASE
+ WHEN &18F,&19A : CASE !b% OF
+  WHEN search_window% : CASE b%!4 OF
+    WHEN 4 : PROCput_caret_at_end(search_window%,20)
+    WHEN 20 : CASE search_pane% OF
+      WHEN 0 : IF FNicon_shaded(search_panes%(0),7) THEN
+                IF FNicon_shaded(search_panes%(0),3) THEN
+                 PROCput_caret_at_end(search_window%,4)
+                ELSE
+                 PROCput_caret_at_end(search_panes%(0),3)
+                ENDIF
+               ELSE
+                PROCput_caret_at_end(search_panes%(0),7)
+               ENDIF
+      WHEN 1 : IF FNicon_selected(search_panes%(1),0) THEN
+                IF FNicon_shaded(search_panes%(1),8) THEN
+                 IF FNicon_shaded(search_panes%(1),5) THEN
+                  PROCput_caret_at_end(search_window%,4)
+                 ELSE
+                  PROCput_caret_at_end(search_panes%(1),5)
+                 ENDIF
+                ELSE
+                 PROCput_caret_at_end(search_panes%(1),8)
+                ENDIF
+               ELSE
+                IF FNicon_shaded(search_panes%(1),18) THEN
+                 IF FNicon_shaded(search_panes%(1),13) THEN
+                  PROCput_caret_at_end(search_window%,4)
+                 ELSE
+                  PROCput_caret_at_end(search_panes%(1),13)
+                 ENDIF
+                ELSE
+                 PROCput_caret_at_end(search_panes%(1),18)
+                ENDIF
+               ENDIF
+      WHEN 2 : IF FNicon_shaded(search_panes%(2),5) THEN
+                PROCput_caret_at_end(search_window%,4)
+               ELSE
+                PROCput_caret_at_end(search_panes%(2),5)
+               ENDIF
+      WHEN 4 : IF FNicon_shaded(search_panes%(4),3) THEN
+                PROCput_caret_at_end(search_window%,4)
+               ELSE
+                PROCput_caret_at_end(search_panes%(4),3)
+               ENDIF
+     ENDCASE
+   ENDCASE
+  WHEN search_panes%(0) : CASE b%!4 OF
+    WHEN 3 : PROCput_caret_at_end(search_window%,4)
+    WHEN 7 : PROCput_caret_at_end(search_panes%(0),3)
+   ENDCASE
+  WHEN search_panes%(1) : CASE b%!4 OF
+    WHEN 5,13 : PROCput_caret_at_end(search_window%,4)
+    WHEN 8    : PROCput_caret_at_end(search_panes%(1),5)
+    WHEN 18   : PROCput_caret_at_end(search_panes%(1),13)
+   ENDCASE
+  WHEN search_panes%(2) : IF b%!4=5 THEN PROCput_caret_at_end(search_window%,4)
+  WHEN search_panes%(4) : IF b%!4=3 THEN PROCput_caret_at_end(search_window%,4)
+ ENDCASE
+ENDCASE
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCsearch_window_caret_clear
+:
+REM Move the caret from greyed out icons in the search window.
+:
+SYS "Wimp_GetCaretPosition",,q%
+CASE !q% OF
+ WHEN search_panes%(0)
+  IF q%!4=7 AND FNicon_shaded(search_panes%(0),7) THEN
+   IF FNicon_shaded(search_panes%(0),3) THEN
+    PROCput_caret_at_end(search_window%,4)
+   ELSE
+    PROCput_caret_at_end(search_panes%(0),3)
+   ENDIF
+  ENDIF
+  IF q%!4=3 AND FNicon_shaded(search_panes%(0),3) THEN PROCput_caret_at_end(search_window%,4)
+ WHEN search_panes%(1)
+  IF q%!4=8 AND FNicon_shaded(search_panes%(1),8) THEN
+   IF FNicon_shaded(search_panes%(1),5) THEN
+    PROCput_caret_at_end(search_window%,4)
+   ELSE
+    PROCput_caret_at_end(search_panes%(1),5)
+   ENDIF
+  ENDIF
+  IF q%!4=5 AND FNicon_shaded(search_panes%(1),5) THEN PROCput_caret_at_end(search_window%,4)
+  IF q%!4=18 AND FNicon_shaded(search_panes%(1),18) THEN
+   IF FNicon_shaded(search_panes%(1),13) THEN
+    PROCput_caret_at_end(search_window%,4)
+   ELSE
+    PROCput_caret_at_end(search_panes%(1),13)
+   ENDIF
+  ENDIF
+  IF q%!4=13 AND FNicon_shaded(search_panes%(1),13) THEN PROCput_caret_at_end(search_window%,4)
+  IF FNicon_selected(search_panes%(1),0) THEN
+   IF q%!4=13 OR q%!4=18 THEN PROCput_caret_at_end(search_window%,4)
+  ELSE
+   IF q%!4=5 OR q%!4=8 THEN PROCput_caret_at_end(search_window%,4)
+  ENDIF
+ WHEN search_panes%(2)
+  IF q%!4=5 AND FNicon_shaded(search_panes%(2),5) THEN PROCput_caret_at_end(search_window%,4)
+ WHEN search_panes%(4)
+  IF q%!4=3 AND FNicon_shaded(search_panes%(4),3) THEN PROCput_caret_at_end(search_window%,4)
+ENDCASE
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNget_current_search_options
+:
+LOCAL options%,ptr%,icon%,loop%,word%
+:
+options%=FNclaim_block(heap_handle%,8)
+ptr%=8
+!options%=0         : REM Flags are zero
+:
+REM Main window
+:
+icon%=0
+FOR loop%=6 TO 10
+ IF FNicon_selected(search_window%,loop%) THEN icon%=loop%-6
+NEXT loop%
+:
+PROCstore_word(heap_handle%,options%,ptr%,icon%)
+PROCstore_long_string(heap_handle%,options%,ptr%,FNicon_indirection(search_window%,20))
+PROCstore_string(heap_handle%,options%,ptr%,$FNicon_indirection(search_window%,4))
+PROCstore_word(heap_handle%,options%,ptr%,FNicon_selected(search_window%,12))
+:
+word%=FNicon_selected(search_window%,16) AND %0001
+word%+=FNicon_selected(search_window%,17) AND %0010
+word%+=FNicon_selected(search_window%,18) AND %0100
+word%+=FNicon_selected(search_window%,21) AND %1000
+PROCstore_word(heap_handle%,options%,ptr%,word%)   : REM Store all the options in one word now.
+PROCstore_word(heap_handle%,options%,ptr%,0)       : REM Two unused words.
+PROCstore_word(heap_handle%,options%,ptr%,0)
+:
+REM Size window
+:
+PROCstore_word(heap_handle%,options%,ptr%,search_size_logic%)
+PROCstore_string(heap_handle%,options%,ptr%,$FNicon_indirection(search_panes%(0),3))
+PROCstore_word(heap_handle%,options%,ptr%,search_size_units1%)
+PROCstore_string(heap_handle%,options%,ptr%,$FNicon_indirection(search_panes%(0),7))
+PROCstore_word(heap_handle%,options%,ptr%,search_size_units2%)
+:
+REM Date window
+:
+PROCstore_word(heap_handle%,options%,ptr%,ABS(FNicon_selected(search_panes%(1),1)))
+PROCstore_word(heap_handle%,options%,ptr%,search_date_logic%)
+PROCstore_string(heap_handle%,options%,ptr%,$FNicon_indirection(search_panes%(1),5))
+PROCstore_string(heap_handle%,options%,ptr%,$FNicon_indirection(search_panes%(1),8))
+PROCstore_word(heap_handle%,options%,ptr%,search_age_logic%)
+PROCstore_string(heap_handle%,options%,ptr%,$FNicon_indirection(search_panes%(1),13))
+PROCstore_word(heap_handle%,options%,ptr%,search_age_units1%)
+PROCstore_string(heap_handle%,options%,ptr%,$FNicon_indirection(search_panes%(1),18))
+PROCstore_word(heap_handle%,options%,ptr%,search_age_units2%)
+:
+REM Type window
+:
+word%=0
+IF FNicon_selected(search_panes%(2),0) THEN word%=word% OR %001
+IF FNicon_selected(search_panes%(2),1) THEN word%=word% OR %010
+IF FNicon_selected(search_panes%(2),2) THEN word%=word% OR %100
+PROCstore_word(heap_handle%,options%,ptr%,word%)
+PROCstore_word(heap_handle%,options%,ptr%,search_type_logic%)
+PROCstore_string(heap_handle%,options%,ptr%,$FNicon_indirection(search_panes%(2),5))
+:
+REM Attribute window
+:
+word%=0
+IF FNicon_selected(search_panes%(3),0) THEN word%=word% OR %00001
+IF FNicon_selected(search_panes%(3),3) THEN word%=word% OR %00010
+IF FNicon_selected(search_panes%(3),6) THEN word%=word% OR %00100
+IF FNicon_selected(search_panes%(3),9) THEN word%=word% OR %01000
+IF FNicon_selected(search_panes%(3),12) THEN word%=word% OR %10000
+PROCstore_word(heap_handle%,options%,ptr%,word%)
+word%=0
+IF FNicon_selected(search_panes%(3),1) THEN word%=word% OR %00001
+IF FNicon_selected(search_panes%(3),4) THEN word%=word% OR %00010
+IF FNicon_selected(search_panes%(3),7) THEN word%=word% OR %00100
+IF FNicon_selected(search_panes%(3),10) THEN word%=word% OR %01000
+IF FNicon_selected(search_panes%(3),13) THEN word%=word% OR %10000
+PROCstore_word(heap_handle%,options%,ptr%,word%)
+:
+REM Contents window
+:
+PROCstore_word(heap_handle%,options%,ptr%,search_content_logic%)
+PROCstore_string(heap_handle%,options%,ptr%,$FNicon_indirection(search_panes%(4),3))
+word%=0
+IF FNicon_selected(search_panes%(4),4) THEN word%=word% OR %01
+IF FNicon_selected(search_panes%(4),5) THEN word%=word% OR %10
+PROCstore_word(heap_handle%,options%,ptr%,word%)
+:
+options%!4=ptr%
+:
+=options%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNset_default_search_options(path%,name$)
+:
+LOCAL options%,ptr%,bits%
+:
+options%=FNclaim_block(heap_handle%,8)
+ptr%=8
+!options%=0         : REM Flags are zero
+:
+REM Main window
+:
+PROCstore_word(heap_handle%,options%,ptr%,0)                : REM Default to pane 0
+PROCstore_long_string(heap_handle%,options%,ptr%,path%)
+PROCstore_string(heap_handle%,options%,ptr%,name$)
+PROCstore_word(heap_handle%,options%,ptr%,TRUE)
+bits%=%0001 AND FNread_opt_config("Multitask")
+bits%+=%0010 AND FNread_opt_config("ImageFS")
+bits%+=%0100 AND FNread_opt_config("SuppressErrors")
+bits%+=%1000 AND FNread_opt_config("FullInfoDisplay")
+PROCstore_word(heap_handle%,options%,ptr%,bits%)
+PROCstore_word(heap_handle%,options%,ptr%,0)
+PROCstore_word(heap_handle%,options%,ptr%,0)
+:
+REM Size window
+:
+PROCstore_word(heap_handle%,options%,ptr%,0)
+PROCstore_string(heap_handle%,options%,ptr%,"")
+PROCstore_word(heap_handle%,options%,ptr%,1)
+PROCstore_string(heap_handle%,options%,ptr%,"")
+PROCstore_word(heap_handle%,options%,ptr%,1)
+:
+REM Date window
+:
+PROCstore_word(heap_handle%,options%,ptr%,0)                : REM Use Date format
+PROCstore_word(heap_handle%,options%,ptr%,0)
+PROCstore_string(heap_handle%,options%,ptr%,"")
+PROCstore_string(heap_handle%,options%,ptr%,"")
+PROCstore_word(heap_handle%,options%,ptr%,0)
+PROCstore_string(heap_handle%,options%,ptr%,"")
+PROCstore_word(heap_handle%,options%,ptr%,2)
+PROCstore_string(heap_handle%,options%,ptr%,"")
+PROCstore_word(heap_handle%,options%,ptr%,2)
+:
+REM Type window
+:
+PROCstore_word(heap_handle%,options%,ptr%,7)
+PROCstore_word(heap_handle%,options%,ptr%,0)
+PROCstore_string(heap_handle%,options%,ptr%,"")
+:
+REM Attribute window
+:
+PROCstore_word(heap_handle%,options%,ptr%,0)
+PROCstore_word(heap_handle%,options%,ptr%,%11110)
+:
+REM Contents window - not used yet
+:
+PROCstore_word(heap_handle%,options%,ptr%,0)    : REM Search type - none/as is/not
+PROCstore_string(heap_handle%,options%,ptr%,"") : REM Search text
+PROCstore_word(heap_handle%,options%,ptr%,%01)  : REM Search flags
+:
+options%!4=ptr%
+:
+=options%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCdelete_search_options(options%,id%)
+:
+!options%=!options% AND (NOT id%)
+IF !options%=0 THEN PROCfree_block(heap_handle%,options%)
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCopen_time_window(icon%,x%,y%,re_open%)
+:
+LOCAL date$,level%
+:
+date$=$FNicon_indirection(search_panes%(1),icon%)
+IF date$="" THEN
+ q%!100=3
+ SYS "OS_Word",14,q%+100
+ SYS "Territory_ConvertTimeToOrdinals",-1,q%+100,q%
+ELSE
+ level%=FNconvert_date_to_ordinals(date$,q%)
+ENDIF
+set_date_month%=q%!20
+set_date_icon%=icon%
+$FNicon_indirection(time_window%,3)=FNnumbered_message_trans("Month",set_date_month%)
+$FNicon_indirection(time_window%,4)=RIGHT$("0"+STR$(q%!16),2)
+$FNicon_indirection(time_window%,7)=RIGHT$("000"+STR$(q%!24),4)
+$FNicon_indirection(time_window%,13)=RIGHT$("0"+STR$(q%!12),2)
+$FNicon_indirection(time_window%,14)=RIGHT$("0"+STR$(q%!8),2)
+PROCset_icon_selected(time_window%,10,level%=1)
+PROCshade_time(level%=1)
+IF re_open% THEN
+ PROCforce_icon_redraw(time_window%,3)
+ PROCforce_icon_redraw(time_window%,4)
+ PROCforce_icon_redraw(time_window%,7)
+ELSE
+ PROCopen_window_centred(time_window%,x%,y%)
+ PROCput_caret_at_end(time_window%,4)
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCset_time
+:
+LOCAL date$
+:
+date$=RIGHT$("0"+$FNicon_indirection(time_window%,4),2)+"/"
+date$+=RIGHT$("0"+STR$(set_date_month%),2)+"/"
+date$+=RIGHT$("000"+$FNicon_indirection(time_window%,7),4)
+:
+IF FNicon_selected(time_window%,10) THEN
+ date$+="."+RIGHT$("0"+$FNicon_indirection(time_window%,13),2)
+ date$+=":"+RIGHT$("0"+$FNicon_indirection(time_window%,14),2)
+ENDIF
+:
+$FNicon_indirection(search_panes%(1),set_date_icon%)=date$
+PROCforce_icon_redraw(search_panes%(1),set_date_icon%)
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCshade_time(time%)
+:
+LOCAL icon%
+:
+FOR icon%=11 TO 18
+ PROCset_icon_shaded(time_window%,icon%,NOT time%)
+NEXT icon%
+:
+IF NOT time% AND (FNis_caret_in_icon(time_window%,13) OR FNis_caret_in_icon(time_window%,14)) THEN
+ PROCput_caret_at_end(time_window%,7)
+ENDIF
+ENDPROC
+
+
+
+REM ====================================================================================================================
+REM Search routines
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCsearch(parameters%)
+:
+LOCAL data_block%,data_ptr%,title_length%,extras$,exit%,multitask%,window_title%,search_info%,data_ptr%
+LOCAL image_fs%,errors%,suppress_fs_errors%,full_info%
+:
+index_dir_list%=parameters%+12
+search_info%=FNdecode_search_parameters(extras$,multitask%,image_fs%,suppress_fs_errors%,full_info%,parameters%)
+:
+IF multitask% THEN
+ PROCset_icon_shaded(search_window%,1,TRUE)
+ELSE
+ SYS "Hourglass_On"
+ENDIF
+:
+REM Allocate a block to hold the results information, and initialise it.
+:
+data_block%=FNclaim_block(heap_handle%,results_title_offset%)
+:
+data_block%!4=0                                   : REM -> Window redraw list
+data_block%!8=0                                   : REM Window handle
+data_block%!12=0                                  : REM Number of matches found so far
+data_block%!16=parameters%                        : REM -> Search options
+!(data_block%!16)=%001
+data_block%!20=0                                  : REM Number of selections
+data_block%!24=0                                  : REM Number of matches linked into the results block
+data_block%!28=results_title_offset%              : REM Pointer to the next result to be linked
+data_block%!32=0                                  : REM Window handle of results pane (not used)
+data_block%!36=0                                  : REM Display flags (full info is done in the next line)
+PROCset_full_info(data_block%,FNread_opt_config("FullInfoDisplay"))
+data_block%!44=0                                  : REM -> File info data
+data_block%!48=0                                  : REM Number of selectable items
+:
+REM Prepare to perform the search itself.
+:
+exit%=FALSE
+abort_search%=FALSE                               : REM Global variable: set if user requires exit.
+data_ptr%=results_title_offset%
+:
+REM Set up the search details.
+:
+IF FNread_opt_config("ConfirmHistoryAdd") THEN
+ PROCadd_search_to_pending_history(data_block%!16,$(search_info%!580)+" ("+extras$+")")
+ELSE
+ PROCadd_search_to_history(search_history_list%,FNread_int_config("HistorySize"),data_block%!16,$(search_info%!580)+" ("+extras$+")")
+ENDIF
+:
+REM Create and open results window & pane.
+:
+results_pane_def%!108=FNclaim_block(heap_handle%,256)
+results_pane_def%!116=256
+$(results_pane_def%!108)=""
+SYS "Wimp_CreateWindow",,results_pane_def% TO data_block%!32
+:
+REM Build the results window title and results pane icon.
+:
+SYS "MessageTrans_Lookup",message_block%,"ResWindTitle",q%,255,search_info%!580,extras$ TO ,,,title_length%
+q%?title_length%=13
+:
+window_title%=FNclaim_block(heap_handle%,title_length%+1)
+$window_title%=$q%
+results_window_def%!72=window_title%
+results_window_def%!80=LEN($window_title%)
+SYS "Wimp_CreateWindow",,results_window_def% TO data_block%!8
+searching_window_handle%=data_block%!8
+:
+!data_block%=!results_window_list%
+:
+!a%=data_block%!8
+PROCopen_window(!a%)
+SYS "Wimp_GetWindowState",,a%
+PROCmove_results_pane(a%,data_block%!32)
+SYS "Wimp_OpenWindow",,a%
+:
+IF NOT multitask% THEN SYS "OS_Byte",124 : SYS "OS_Byte",229,0,0
+next_dir%=0
+REPEAT
+ index_dir$=FNenumerate_index_dirs(index_dir_list%, next_dir%)
+ IF index_dir$="" THEN
+  PROCwimp_report(FNmessage_trans("NoPaths"),1,%01,"")
+ ELSE
+  errors%=FNsearch_files(index_dir$,search_info%,data_block%,data_ptr%,exit%,multitask%,NOT image_fs%,NOT suppress_fs_errors%)
+ ENDIF
+UNTIL next_dir%=-1
+IF NOT multitask% THEN SYS "OS_Byte",229,1,0
+IF search_info%!584<>0 THEN PROCfree_block(heap_handle%,search_info%!584) : REM Release content search
+IF search_info%!596<>0 THEN PROCfree_block(heap_handle%,search_info%!596) : REM buffers if necessary
+PROCfree_block(heap_handle%,search_info%)
+:
+IF data_block%!12=0 THEN PROCadd_results_entry(data_block%,data_ptr%,FNmessage_trans("NoFiles"),"none",%111)
+:
+IF exit% AND (NOT abort_search%) THEN
+ IF data_block%<>0 THEN
+  IF data_block%!8=0 THEN
+   PROCfree_block(heap_handle%,window_title%)
+  ELSE
+   !results_window_list%=!data_block%
+  ENDIF
+  PROCdelete_results_window(data_block%)
+ ENDIF
+ELSE
+ :
+ errors%+=FNformat_results_window(data_block%)
+ IF data_block%!12>=1 AND errors%>=1 AND (!((data_block%!4)+8) AND %100)=0 THEN
+  SYS "MessageTrans_Lookup",message_block%,"Errors",q%,255,STR$(errors%)
+ ELSE
+  $q%=""
+ ENDIF
+ SYS "MessageTrans_Lookup",message_block%,"Found",FNicon_indirection(data_block%!32,0),255,STR$(data_block%!12-errors%),q%
+ PROCforce_icon_redraw(data_block%!32,0)
+ searching_data_block%=0
+ IF menu_up%=results_window_menu% THEN
+  PROCset_results_menu_state(data_block%)
+  PROCdisplay_menu(results_window_menu%,0,0)
+ ENDIF
+ENDIF
+:
+IF multitask% THEN
+ PROCset_icon_shaded(search_window%,1,FALSE)
+ELSE
+ SYS "Hourglass_Off"
+ENDIF
+:
+IF searching_window_handle%=-1 THEN PROCfind_and_delete_results_window(data_block%!8)
+searching_window_handle%=-1
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNdecode_search_parameters(RETURN extras$,RETURN multitask%,RETURN image_fs%,RETURN supp_errs%,RETURN full_info%,parameters%)
+:
+LOCAL search_info%,search_opts%,ignore_case%,index%,ctrl$,dummy%,dummy$,ptr%
+LOCAL size_logic%,size_unit1%,size_unit2%,size1%,size2%
+LOCAL date_age%,date_logic%,date1$,date2$,age_logic%,age1$,age2$,age_unit1%,age_unit2%
+LOCAL type_option%,type_logic%,text_types$
+LOCAL att_type%,att_option%
+LOCAL content_logic%,content_text$,content_opts%
+:
+REM Claim some memory for the parameter block and initialise it.
+:
+search_info%=FNclaim_block(heap_handle%,1024) : REM Make this amount something more sensible.
+!search_info%=&0000
+search_info%!4=&0000
+:
+REM Initialise data block pointer, to miss the initial data.
+:
+ptr%=12
+dummy%=FNextract_long_string(parameters%,ptr%)
+:
+REM File name (point to the text in the parameter block and then skip past the text).
+:
+search_info%!580=parameters%+ptr%
+dummy$=FNextract_string(parameters%,ptr%)
+:
+ignore_case%=FNextract_word(parameters%,ptr%)
+IF $(search_info%!580)<>"" THEN
+ !search_info%=!search_info% OR &0001
+ IF ignore_case% THEN
+  $(search_info%!580)=FNto_lower($(search_info%!580))
+  search_info%!4=search_info%!4 OR &0004
+ ENDIF
+ENDIF
+:
+REM Skip past the search options that are in the data.
+:
+search_opts%=FNextract_word(parameters%,ptr%) : REM All the options are in one word now
+multitask%=(search_opts% AND %0001)<>0
+image_fs%=(search_opts% AND %0010)<>0
+supp_errs%=(search_opts% AND %0100)<>0
+full_info%=(search_opts% AND %1000)<>0
+search_opts%=FNextract_word(parameters%,ptr%) : REM Skip past two unused words
+search_opts%=FNextract_word(parameters%,ptr%)
+:
+REM File size
+:
+size_logic%=FNextract_word(parameters%,ptr%)
+dummy$=FNextract_string(parameters%,ptr%)
+IF size_logic%>=1 THEN size1%=VAL(dummy$)
+size_unit1%=FNextract_word(parameters%,ptr%)
+dummy$=FNextract_string(parameters%,ptr%)
+IF size_logic%>=5 THEN size2%=VAL(dummy$)
+size_unit2%=FNextract_word(parameters%,ptr%)
+:
+CASE size_logic% OF
+ WHEN 1 : IF size_unit1%>0 THEN
+           search_info%!16=FNscale_bytes(size1%,size_unit1%,FALSE)
+           search_info%!20=FNscale_bytes(size1%,size_unit1%,TRUE)
+           !search_info%=!search_info% OR &0018
+           search_info%!4=search_info%!4 OR &0000
+          ELSE
+           search_info%!8=size1%
+           !search_info%=!search_info% OR &0002
+           search_info%!4=search_info%!4 OR &0000
+          ENDIF
+          extras$+=FNmessage_trans("SizeFlag")
+ WHEN 2 : IF size_unit1%>0 THEN
+           search_info%!16=FNscale_bytes(size1%,size_unit1%,TRUE)+1
+           search_info%!20=FNscale_bytes(size1%,size_unit1%,FALSE)-1
+           !search_info%=!search_info% OR &0018
+           search_info%!4=search_info%!4 OR &0001
+          ELSE
+           search_info%!8=size1%                   : REM info%!8, not info%!12
+           !search_info%=!search_info% OR &0004
+           search_info%!4=search_info%!4 OR &0000
+          ENDIF
+           extras$+=FNmessage_trans("SizeFlag")
+ WHEN 3 : search_info%!16=FNscale_bytes(size1%,size_unit1%,FALSE)
+          !search_info%=!search_info% OR &0008
+          search_info%!4=search_info%!4 OR &0000
+          extras$+=FNmessage_trans("SizeFlag")
+ WHEN 4 : search_info%!20=FNscale_bytes(size1%,size_unit1%,TRUE)
+          !search_info%=!search_info% OR &0010
+          search_info%!4=search_info%!4 OR &0000
+          extras$+=FNmessage_trans("SizeFlag")
+ WHEN 5 : search_info%!16=FNscale_bytes(size1%,size_unit1%,FALSE)
+          search_info%!20=FNscale_bytes(size2%,size_unit2%,TRUE)
+          !search_info%=!search_info% OR &0018
+          search_info%!4=search_info%!4 OR &0000
+          extras$+=FNmessage_trans("SizeFlag")
+ WHEN 6 : search_info%!16=FNscale_bytes(size2%,size_unit2%,TRUE)
+          search_info%!20=FNscale_bytes(size1%,size_unit1%,FALSE)
+          !search_info%=!search_info% OR &0018
+          search_info%!4=search_info%!4 OR &0001
+          extras$+=FNmessage_trans("SizeFlag")
+ENDCASE
+:
+REM Dates
+:
+date_age%=(FNextract_word(parameters%,ptr%)<>0)
+date_logic%=FNextract_word(parameters%,ptr%)
+date1$=FNextract_string(parameters%,ptr%)
+date2$=FNextract_string(parameters%,ptr%)
+:
+IF date_logic%>=1 AND date_age%=FALSE THEN
+ date_level1%=FNconvert_date_to_ordinals(date1$,q%)
+ IF date_logic%>=5 date_level2%=FNconvert_date_to_ordinals(date2$,q%+32)
+ :
+ CASE date_logic% OF
+  WHEN 1 : IF date_level1%<=1 THEN
+            SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+40,q%
+            search_info%!48=search_info%!40
+            search_info%!52=search_info%!44
+            CASE date_level1% OF
+             WHEN 0 : PROCadd_date_offset(search_info%+48,8640000) : REM A Whole day
+             WHEN 1 : PROCadd_date_offset(search_info%+48,6000)    : REM A Whole minute
+            ENDCASE
+            !search_info%=!search_info% OR &0180
+            search_info%!4=search_info%!4 OR &0000
+           ELSE
+            SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+24,q%
+            !search_info%=!search_info% OR &0020
+            search_info%!4=search_info%!4 OR &0000
+           ENDIF
+           extras$+=FNmessage_trans("DateFlag")
+  WHEN 2 : IF date_level1%<=1 THEN
+            SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+40,q%
+            search_info%!48=search_info%!40
+            search_info%!52=search_info%!44
+            CASE date_level1% OF
+             WHEN 0 : PROCadd_date_offset(search_info%+40,8640000) : REM A Whole day
+             WHEN 1 : PROCadd_date_offset(search_info%+40,6000)    : REM A Whole minute
+            ENDCASE
+            !search_info%=!search_info% OR &0180
+            search_info%!4=search_info%!4 OR &0002
+           ELSE
+            SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+24,q%
+           !search_info%=!search_info% OR &0040
+           search_info%!4=search_info%!4 OR &0000
+           ENDIF
+           extras$+=FNmessage_trans("DateFlag")
+  WHEN 3 : SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+40,q%
+           !search_info%=!search_info% OR &0080
+           search_info%!4=search_info%!4 OR &0000
+           extras$+=FNmessage_trans("DateFlag")
+  WHEN 4 : SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+48,q%
+            CASE date_level1% OF
+             WHEN 0 : PROCadd_date_offset(search_info%+48,8640000) : REM A Whole day
+             WHEN 1 : PROCadd_date_offset(search_info%+48,6000)    : REM A Whole minute
+            ENDCASE
+           !search_info%=!search_info% OR &0100
+           search_info%!4=search_info%!4 OR &0000
+           extras$+=FNmessage_trans("DateFlag")
+  WHEN 5 : SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+40,q%
+           SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+48,q%+32
+            CASE date_level1% OF
+             WHEN 0 : PROCadd_date_offset(search_info%+48,8640000) : REM A Whole day
+             WHEN 1 : PROCadd_date_offset(search_info%+48,6000)    : REM A Whole minute
+            ENDCASE
+           !search_info%=!search_info% OR &0180
+           search_info%!4=search_info%!4 OR &0000
+           extras$+=FNmessage_trans("DateFlag")
+  WHEN 6 : SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+48,q%
+           SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+40,q%+32
+            CASE date_level1% OF
+             WHEN 0 : PROCadd_date_offset(search_info%+40,8640000) : REM A Whole day
+             WHEN 1 : PROCadd_date_offset(search_info%+40,6000)    : REM A Whole minute
+            ENDCASE
+           !search_info%=!search_info% OR &0180
+           search_info%!4=search_info%!4 OR &0002
+           extras$+=FNmessage_trans("DateFlag")
+ ENDCASE
+ENDIF
+:
+REM Ages
+:
+age_logic%=FNextract_word(parameters%,ptr%)
+age1$=FNextract_string(parameters%,ptr%)
+age_unit1%=FNextract_word(parameters%,ptr%)
+age2$=FNextract_string(parameters%,ptr%)
+age_unit2%=FNextract_word(parameters%,ptr%)
+:
+IF age_logic%>=1 AND date_age%=TRUE THEN
+ age1%=VAL(age1$)
+ IF age_logic%>=5 THEN age2%=VAL(age2$)
+ :
+ search_info%?40=3
+ SYS "OS_Word",14,search_info%+40
+ search_info%!48=search_info%!40
+ search_info%!52=search_info%!44
+ :
+ CASE age_logic% OF
+  WHEN 1 : PROCscale_date(search_info%+40,age_unit1%,age1%,FALSE)
+           PROCscale_date(search_info%+48,age_unit1%,age1%,TRUE)
+           !search_info%=!search_info% OR &0180
+           search_info%!4=search_info%!4 OR &0000
+           extras$+=FNmessage_trans("AgeFlag")
+  WHEN 2 : PROCscale_date(search_info%+40,age_unit1%,age1%,TRUE)
+           PROCscale_date(search_info%+48,age_unit1%,age1%,FALSE)
+           !search_info%=!search_info% OR &0180
+           search_info%!4=search_info%!4 OR &0002
+           extras$+=FNmessage_trans("AgeFlag")
+  WHEN 3 : PROCscale_date(search_info%+40,age_unit1%,age1%,FALSE)
+           !search_info%=!search_info% OR &0080
+           search_info%!4=search_info%!4 OR &0000
+           extras$+=FNmessage_trans("AgeFlag")
+  WHEN 4 : PROCscale_date(search_info%+48,age_unit1%,age1%,FALSE)
+           !search_info%=!search_info% OR &0100
+           search_info%!4=search_info%!4 OR &0000
+           extras$+=FNmessage_trans("AgeFlag")
+  WHEN 5 : PROCscale_date(search_info%+40,age_unit2%,age2%,FALSE)
+           PROCscale_date(search_info%+48,age_unit1%,age1%,FALSE)
+           !search_info%=!search_info% OR &0180
+           search_info%!4=search_info%!4 OR &0000
+           extras$+=FNmessage_trans("AgeFlag")
+  WHEN 6 : PROCscale_date(search_info%+40,age_unit1%,age1%,FALSE)
+           PROCscale_date(search_info%+48,age_unit2%,age2%,FALSE)
+           !search_info%=!search_info% OR &0180
+           search_info%!4=search_info%!4 OR &0002
+           extras$+=FNmessage_trans("AgeFlag")
+ ENDCASE
+ENDIF
+:
+REM File types
+:
+type_option%=FNextract_word(parameters%,ptr%)
+type_logic%=FNextract_word(parameters%,ptr%)
+text_types$=FNextract_string(parameters%,ptr%)
+:
+untyped$=FNto_lower(FNmessage_trans("Untyped"))
+:
+search_info%!56=%111
+IF (type_option% AND %001)=0 THEN
+ search_info%!56=search_info%!56 AND (NOT %001)
+ !search_info%=!search_info% OR &0800
+ELSE
+ IF type_logic%>0 THEN
+  FOR loop%=60 TO 568 STEP 4
+   CASE type_logic% OF
+    WHEN 1 : search_info%!loop%=&00000000
+    WHEN 2 : search_info%!loop%=&FFFFFFFF
+   ENDCASE
+  NEXT loop%
+  WHILE text_types$<>""
+   IF INSTR(text_types$,",") THEN
+    text_type$=LEFT$(text_types$,INSTR(text_types$,",")-1)
+    text_types$=MID$(text_types$,INSTR(text_types$,",")+1)
+   ELSE
+    text_type$=text_types$
+    text_types$=""
+   ENDIF
+   SYS "XOS_FSControl",31,text_type$ TO ,,num_type% ;flags%
+   IF (flags% AND 1)=0 THEN
+    word%=((num_type% DIV 32) << 2)+60
+    CASE type_logic% OF
+     WHEN 1 : search_info%!word%=search_info%!word% OR (1<<(num_type% MOD 32))
+     WHEN 2 : search_info%!word%=search_info%!word% AND (NOT (1<<(num_type% MOD 32)))
+    ENDCASE
+    !search_info%=!search_info% OR &0200
+   ELSE
+    IF FNto_lower(text_type$)=untyped$ THEN
+     search_info%!56=search_info%!56 OR &100
+     !search_info%=!search_info% OR &0200
+    ENDIF
+   ENDIF
+  ENDWHILE
+ ENDIF
+ENDIF
+IF (type_option% AND %010)=0 THEN
+ search_info%!56=search_info%!56 AND (NOT %010)
+ !search_info%=!search_info% OR &0800
+ENDIF
+IF (type_option% AND %100)=0 THEN
+ search_info%!56=search_info%!56 AND (NOT %100)
+ !search_info%=!search_info% OR &0800
+ENDIF
+IF (!search_info% AND &0E00) THEN extras$+=FNmessage_trans("TypeFlag")
+:
+REM Attributes
+:
+att_type%=FNextract_word(parameters%,ptr%)
+att_option%=FNextract_word(parameters%,ptr%)
+:
+search_info%!572=0
+IF att_type% AND %00001 THEN search_info%!572=search_info%!572 OR %001000
+IF att_type% AND %00010 THEN search_info%!572=search_info%!572 OR %000001
+IF att_type% AND %00100 THEN search_info%!572=search_info%!572 OR %000010
+IF att_type% AND %01000 THEN search_info%!572=search_info%!572 OR %010000
+IF att_type% AND %10000 THEN search_info%!572=search_info%!572 OR %100000
+:
+search_info%!576=0
+IF att_option% AND %00001 THEN search_info%!576=search_info%!576 OR (%001000 AND search_info%!572)
+IF att_option% AND %00010 THEN search_info%!576=search_info%!576 OR (%000001 AND search_info%!572)
+IF att_option% AND %00100 THEN search_info%!576=search_info%!576 OR (%000010 AND search_info%!572)
+IF att_option% AND %01000 THEN search_info%!576=search_info%!576 OR (%010000 AND search_info%!572)
+IF att_option% AND %10000 THEN search_info%!576=search_info%!576 OR (%100000 AND search_info%!572)
+
+IF search_info%!572 THEN
+ !search_info%=!search_info% OR &1000
+ extras$+=FNmessage_trans("AttrFlag")
+ENDIF
+:
+:
+REM File contents
+:
+
+content_logic%=FNextract_word(parameters%,ptr%)
+content_text$=FNextract_string(parameters%,ptr%)
+content_opts%=FNextract_word(parameters%,ptr%)
+
+search_info%!584=0
+search_info%!596=0
+:
+IF content_logic%>0 THEN
+ search_info%!584=FNclaim_block(heap_handle%,LEN(content_text$)+4) : REM LEN+4 to allow for two terminators and two *s
+ $(search_info%!584)=content_text$
+ !search_info%=!search_info% OR &2000
+ IF content_opts% AND %01 THEN
+  $(search_info%!584)=FNto_lower($(search_info%!584))
+  search_info%!4=search_info%!4 OR &0008
+ ENDIF
+ IF content_opts% AND %10 THEN
+  index%=INSTR($(search_info%!584),"\")
+  WHILE index%>0
+   CASE FNto_lower(MID$($(search_info%!584),index%+1,1)) OF
+    WHEN "a" : ctrl$=CHR$(7)
+    WHEN "b" : ctrl$=CHR$(8)
+    WHEN "f" : ctrl$=CHR$(12)
+    WHEN "n" : ctrl$=CHR$(10)
+    WHEN "r" : ctrl$=CHR$(13)
+    WHEN "t" : ctrl$=CHR$(9)
+    WHEN "v" : ctrl$=CHR$(11)
+    WHEN "\" : ctrl$="\"
+    OTHERWISE : ctrl$=""
+   ENDCASE
+   $(search_info%!584)=LEFT$($(search_info%!584),index%-1)+ctrl$+MID$($(search_info%!584),index%+2)
+   index%=INSTR($(search_info%!584),"\")
+  ENDWHILE
+ ENDIF
+ $(search_info%!584)="*"+$(search_info%!584)+"*"
+ IF content_logic%=1 THEN search_info%!592=1 ELSE search_info%!592=0
+ search_info%!596=FNclaim_block(heap_handle%,&4000) : REM File load buffer
+ extras$+=FNmessage_trans("ContFlag")
+ $(search_info%!584)=$(search_info%!584)+CHR$(0)
+ENDIF
+search_info%!588=search_info%+600 : REM Watch that this doesn't get overwritten.
+:
+=search_info%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNformat_results_window(data_block%)
+:
+LOCAL loop%,top%,bottom%,errors%
+:
+REM Check if any new matches have been found sine we last updated the window.
+:
+IF data_block%!12>0 AND data_block%!12>data_block%!24 THEN
+ top%=data_block%!24
+ bottom%=data_block%!12
+ :
+ REM Claim or extend the block for the redraw pointers.
+ :
+ IF data_block%!4<>0 THEN
+  PROCextend_block(heap_handle%,(data_block%!12-data_block%!24)*32,data_block%!4)
+ ELSE
+  data_block%!4=FNclaim_block(heap_handle%,data_block%!12*32)
+ ENDIF
+ :
+ REM Build the redraw pointer block, by working through the results block and filling in offsets to the data.
+ :
+ F%=data_block%
+ D%=results_icon_width%
+ :
+ IF wimp_text_op% THEN errors%=USR(main_code%+format_text_35%) ELSE errors%=USR(main_code%+format_text_31%)
+ :
+ IF data_block%!8<>0 THEN
+  :
+  REM Change Y extent of window to show all the icons.
+  :
+  PROCset_results_window_extent(data_block%)
+  :
+  REM Scroll down to the end.
+  :
+  IF FNread_opt_config("ScrollResults") THEN
+   SYS "Wimp_GetWindowInfo",,(q% OR 1)
+   q%!24=-((q%!56-q%!48)-(q%!16-q%!8))
+   SYS "Wimp_OpenWindow",,q%
+  ENDIF
+  :
+  REM Redraw all the icons that have been added.
+  :
+  FOR loop%=top% TO bottom%-1 : REM ***** The -1 might be wrong...
+   PROCget_object_details(data_block%,loop%)
+   PROCredraw_results_row(data_block%,loop%)
+  NEXT loop%
+ ENDIF
+ENDIF
+:
+REM Update the linked list pointer to reflect if the block has moved in the meantime.  We assume that the block is
+REM still the first on the list (ie. that there is only one search happening).
+:
+!results_window_list%=data_block%
+=errors%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCadd_results_entry(RETURN data_block%,RETURN data_ptr%,text$,sprite$,flags%)
+:
+REM Add an entry into the results window.
+:
+:
+PROCextend_block(heap_handle%,LEN(text$)+LEN(sprite$)+4,data_block%)
+:
+$(data_block%+data_ptr%)=text$
+data_ptr%+=(LEN(text$)+1)
+$(data_block%+data_ptr%)="S"+sprite$
+data_ptr%+=(LEN(sprite$)+2)
+data_block%?data_ptr%=flags%
+data_ptr%+=1
+:
+REM Increment the item count.
+:
+data_block%!12+=1
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNsearch_files(dir$,criteria%,RETURN data_block%,RETURN data_ptr%, RETURN exit%,multitask%,image_fs%,throw_errors%)
+:
+LOCAL next%,read%,file_name$,icon_height%,indirected%,sprite$,this_icon%,flags%,small%,file_ptr%,os_gbpb_block%
+LOCAL file_name$,matches%,err%,recover%,truncated_dir$,icon_text%,text_width%,read_size%,errors%,result%
+LOCAL ERROR
+:
+read_size%=FNread_int_config("OSGBPBReadSize")
+:
+recover%=FALSE
+errors%=0
+ON ERROR LOCAL PROChandle_search_error(os_gbpb_block%,recover%,exit%) : =errors%
+:
+os_gbpb_block%=FNclaim_block(heap_handle%,4096)
+:
+IF multitask% THEN
+ truncated_dir$=dir$
+ icon_text%=FNicon_indirection(data_block%!32,0)
+ SYS "MessageTrans_Lookup",message_block%,"Searching",icon_text%,255,dir$
+ IF wimp_text_op% THEN
+  SYS "Wimp_TextOp",1,icon_text%,0 TO text_width%
+  WHILE text_width%>results_pane_width%
+   truncated_dir$=MID$(truncated_dir$,2)
+   SYS "MessageTrans_Lookup",message_block%,"Searching",icon_text%,255,"..."+truncated_dir$
+   SYS "Wimp_TextOp",1,icon_text%,0 TO text_width%
+  ENDWHILE
+ ELSE
+  IF LEN(FNctrl_string(FNicon_indirection(data_block%!32,0)))*16>results_pane_width% THEN
+   text_width%=LEN(FNctrl_string(FNicon_indirection(data_block%!32,0)))+3-results_pane_width%/16
+   SYS "MessageTrans_Lookup",message_block%,"Searching",icon_text%,255,"..."+MID$(dir$,text_width%+2)
+  ENDIF
+ ENDIF
+ PROCforce_icon_redraw(data_block%!32,0)
+ENDIF
+:
+next%=0
+:
+REPEAT
+ SYS "XOS_GBPB",10,dir$,os_gbpb_block%,read_size%,next%,4096,0 TO err%,,,read%,next% ;flags%
+ IF (flags% AND 1) THEN
+  IF throw_errors% THEN
+   recover%=TRUE
+   ERROR !err%,FNctrl_string(err%+4)
+  ELSE
+   IF NOT multitask% THEN SYS "OS_Byte",229,1,0
+   PROCadd_results_entry(data_block%,data_ptr%,dir$+": '"+FNctrl_string(err%+4)+"'","error",%011)
+   IF NOT multitask% THEN SYS "OS_Byte",229,0,0
+   =errors%
+  ENDIF
+ ELSE
+  file_ptr%=os_gbpb_block%
+  WHILE (NOT exit%) AND read%>0
+   file_name$=FNctrl_string(file_ptr%+20)
+   :
+   IF LEN(dir$)+LEN(file_name$)<254 THEN
+    $(criteria%!588)=dir$+"."+file_name$+CHR$(0)
+    :
+    result%=FNcheck_file(criteria%,file_ptr%,throw_errors%,multitask%,data_block%,data_ptr%,dir$)
+    IF result%<>TRUE AND result%<>FALSE THEN =errors% : REM Spot errors and leave the procedure.
+    IF result% THEN
+     IF !file_ptr% AND &FFF00000 = &FFF00000 THEN
+      file_type%=(!file_ptr% >> 8) AND &FFF
+     ELSE
+      file_type%=-1
+     ENDIF
+     CASE file_ptr%!16 OF
+      WHEN 1,3 : IF file_type%=-1 THEN
+                  sprite$="small_lxa"
+                  SYS "XWimp_SpriteOp",&28,,sprite$ TO ;flags%
+                  IF (flags% AND 1) THEN sprite$="small_xxx"
+                  small%=TRUE
+                 ELSE
+                  sprite$="small_"+FNfile_type_num_to_str(file_type%)
+                  SYS "XWimp_SpriteOp",&28,,sprite$ TO ;flags%
+                  IF (flags% AND 1) THEN
+                   small%=FALSE
+                   sprite$="file_"+FNfile_type_num_to_str(file_type%)
+                   SYS "XWimp_SpriteOp",&28,,sprite$ TO ;flags%
+                   IF (flags% AND 1) THEN sprite$="small_xxx" : small%=TRUE
+                  ELSE
+                   small%=TRUE
+                  ENDIF
+                 ENDIF
+      WHEN 2   : IF LEFT$(file_name$,1)="!" THEN
+                  sprite$="sm"+LEFT$(file_name$,10)
+                  SYS "XWimp_SpriteOp",&28,,sprite$ TO ;flags%
+                  IF (flags% AND 1) THEN
+                   small%=FALSE
+                   sprite$=LEFT$(file_name$,12)
+                   SYS "XWimp_SpriteOp",&28,,sprite$ TO ;flags%
+                   IF (flags% AND 1) THEN sprite$="small_app" : small%=TRUE
+                  ELSE
+                   small%=TRUE
+                  ENDIF
+                 ELSE
+                  sprite$="small_dir"
+                  small%=TRUE
+                 ENDIF
+     ENDCASE
+     :
+     IF NOT multitask% THEN SYS "OS_Byte",229,1,0
+     PROCadd_results_entry(data_block%,data_ptr%,dir$+"."+file_name$,sprite$,1 AND small%)
+     IF NOT multitask% THEN SYS "OS_Byte",229,0,0
+    ENDIF
+    :
+    IF file_ptr%!16=2 OR (file_ptr%!16=3 AND image_fs%) THEN
+     errors%+=FNsearch_files(dir$+"."+file_name$,criteria%,data_block%,data_ptr%,exit%,multitask%,image_fs%,throw_errors%)
+    ENDIF
+   ELSE
+    IF throw_errors% THEN
+     recover%=TRUE
+     ERROR 255,FNmessage_trans("NameTooLong")
+    ELSE
+     IF NOT multitask% THEN SYS "OS_Byte",229,1,0
+     PROCadd_results_entry(data_block%,data_ptr%,FNmessage_trans("NameTooLong"),"error",%011)
+     IF NOT multitask% THEN SYS "OS_Byte",229,0,0
+     =errors%
+    ENDIF
+   ENDIF
+   file_ptr%+=(24+LEN(file_name$)) AND &FFFFFFFC
+   read%-=1
+  ENDWHILE
+ ENDIF
+UNTIL exit% OR (next%=-1)
+PROCfree_block(heap_handle%,os_gbpb_block%)
+IF multitask% AND (NOT exit%) THEN
+ errors%+=FNformat_results_window(data_block%)
+ searching_data_block%=data_block%
+ IF menu_up%=results_window_menu% AND results_window_menu_searching% THEN results_window_menu_ptr%=data_block%
+ PROCpoll(poll_mask% AND (NOT 1),FALSE)
+ IF searching_data_block%<>data_block% THEN exit%=TRUE : data_block%=0
+ IF abort_search% THEN exit%=TRUE
+ IF quit% THEN exit%=TRUE
+ENDIF
+=errors%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROChandle_search_error(block%,recover%,RETURN exit%)
+:
+LOCAL ERROR
+ON ERROR LOCAL exit%=TRUE : ENDPROC
+:
+OSCLI("Report "+STR$ERL)
+OSCLI("Report "+dir$)
+OSCLI("Report os_gbpb_block%")
+VDU 4 : PRINT REPORT$
+:
+IF ERR=17 THEN
+ PROCwimp_report(FNmessage_trans("AbrtSrch"),1,%01,"")
+ exit%=TRUE
+ELSE
+ IF recover% THEN
+  exit%=(FNwimp_report(REPORT$,2,%11,"")=2)
+ ELSE
+  PROCwimp_report(REPORT$+" "+STR$(ERL),2,%10,"")
+  exit%=TRUE
+ ENDIF
+ENDIF
+:
+IF block%<>0 THEN PROCfree_block(heap_handle%,block%)
+:
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF FNscale_bytes(value%,factor%,top%)
+:
+LOCAL product%
+:
+product%=1
+WHILE factor%>0
+ product%=product%*1024
+ factor%-=1
+ENDWHILE
+:
+IF top% THEN value%=value%*product%+(product% DIV 2) ELSE value%=value%*product%-(product% DIV 2)
+IF value%<0 THEN value%=0
+:
+=value%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCscale_date(A%,C%,B%,top%)
+:
+IF top% THEN B%-=1
+:
+CALL main_code%+subtract_date%
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+REM Object info
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCget_object_details(data_block%,item%)
+:
+LOCAL redraw%,info_block%,ptr%,size%,not_here$
+LOCAL text1$,text2$,text3$,text4$,object%,length%,attributes%,load%,exec%,end%,type%
+:
+redraw%=data_block%!4
+info_block%=data_block%!44
+:
+IF ((redraw%!(item%*32+8)) AND %10)=0 THEN
+ SYS "OS_File",17,redraw%!(item%*32)+data_block% TO object%,,load%,exec%,length%,attributes%
+
+ IF object%>0 THEN
+  SYS "OS_ConvertFileSize",length%,q%,256 TO ,end%
+  ?end%=13
+  text1$=$q%
+  size%=(LEN(text1$)+1)
+  :
+  SYS "OS_FSControl",38,redraw%!(item%*32)+data_block%,load%,exec%,length%,attributes%,object% TO ,,type%
+  IF type%>=0 AND type%<=&FFF THEN
+   SYS "OS_FSControl",18,,type% TO ,,!q%,q%!4
+   q%?8=13
+   IF INSTR($q%," ")>0 THEN $q%=LEFT$($q%,INSTR($q%," "))
+   text2$=$q%
+  ELSE
+   CASE type% OF
+    WHEN -1    : text2$=FNmessage_trans("Untyped")
+    WHEN &1000 : text2$=FNmessage_trans("Dir")
+    WHEN &2000 : text2$=FNmessage_trans("App")
+   ENDCASE
+  ENDIF
+  size%+=(LEN(text2$)+1)
+  :
+  text3$=""
+  IF attributes% AND %00001000 THEN text3$+="L"
+  IF attributes% AND %00000010 THEN text3$+="W"
+  IF attributes% AND %00000001 THEN text3$+="R"
+  text3$+="/"
+  IF attributes% AND %00100000 THEN text3$+="w"
+  IF attributes% AND %00010000 THEN text3$+="r"
+  size%+=(LEN(text3$)+1)
+  :
+  !q%=exec% : q%?4=load%
+  SYS "OS_ConvertStandardDateAndTime",q%,q%+5,251 TO ,end%
+  ?end%=13
+  text4$=$(q%+5)
+  size%+=(LEN(text4$)+1)
+  :
+  ptr%=FNextend_file_info_block(data_block%,size%)
+  :
+  $ptr%=text1$
+  redraw%!(item%*32+16)=ptr%-data_block%!44
+  ptr%+=LEN(text1$)+1
+  :
+  $ptr%=text2$
+  redraw%!(item%*32+20)=ptr%-data_block%!44
+  ptr%+=LEN(text2$)+1
+  :
+  $ptr%=text3$
+  redraw%!(item%*32+24)=ptr%-data_block%!44
+  ptr%+=LEN(text3$)+1
+  :
+  $ptr%=text4$
+  redraw%!(item%*32+28)=ptr%-data_block%!44
+  !(data_block%!44)+=size%
+  data_block%!48+=1 : REM Increment count of selectable items.
+ ELSE
+  REM Only allocate the "Not here" text the first time it is needed; thereafter, just re-use it.
+  IF data_block%!44=0 OR !((data_block%!44)+4)=0 THEN
+   not_here$=FNmessage_trans("NotHere")
+   ptr%=FNextend_file_info_block(data_block%,LEN(not_here$)+1)
+   $ptr%=not_here$
+   !(data_block%!44)+=LEN(not_here$)+1
+   !((data_block%!44)+4)=ptr%-data_block%!44
+  ENDIF
+  redraw%!(item%*32+16)=!((data_block%!44)+4): REM Object, but doesn't exist any more.
+  redraw%!(item%*32+20)=0
+  redraw%!(item%*32+24)=0
+  redraw%!(item%*32+28)=0
+  redraw%!(item%*32+8) =redraw%!(item%*32+8) OR &200
+ ENDIF
+ELSE
+ redraw%!(item%*32+16)=0 : REM Error or informational.
+ redraw%!(item%*32+20)=0
+ redraw%!(item%*32+24)=0
+ redraw%!(item%*32+28)=0
+ENDIF
+ENDPROC
+:
+:
+:
+:
+DEF FNextend_file_info_block(data%,size%)
+:
+LOCAL ptr%
+:
+IF data%!44<>0 THEN
+ PROCextend_block(heap_handle%,size%,data%!44)
+ ptr%=data%!44+!(data%!44)
+ELSE
+ data%!44=FNclaim_block(heap_handle%,size%+8)
+ !(data%!44)=8
+ !((data%!44)+4)=0
+ ptr%=data%!44+!(data%!44)
+ENDIF
+=ptr%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCset_object_info(data%)
+:
+LOCAL redraw%,loop%,found%,sprite$,type$,type%,flags%
+:
+IF data%!20=1 THEN
+ redraw%=data%!4
+ :
+ loop%=0
+ found%=FALSE
+ WHILE loop%<data%!24 AND (NOT found%)
+  IF (redraw%!(loop%*32+8) AND &100) THEN
+   $FNicon_indirection(object_info_window%,0)=FNleaf_name($(data%+(redraw%!(loop%*32))))
+   type$=$(data%!44+redraw%!(loop%*32+20))
+   SYS "XOS_FSControl",31,type$ TO ,,type% ;flags%
+   IF (flags% AND 1)=0 THEN type$+=" ("+RIGHT$("000"+STR$~(type%),3)+")"
+   $FNicon_indirection(object_info_window%,2)=LEFT$(type$,14)
+   $FNicon_indirection(object_info_window%,4)=LEFT$($(data%!44+redraw%!(loop%*32+16)),19)
+   $FNicon_indirection(object_info_window%,6)=LEFT$($(data%!44+redraw%!(loop%*32+24)),11)
+   $FNicon_indirection(object_info_window%,8)=LEFT$($(data%!44+redraw%!(loop%*32+28)),20)
+   sprite$=$(data%+(redraw%!(loop%*32+4))+1)
+   CASE sprite$ OF
+    WHEN "small_app" : sprite$="application"
+    WHEN "small_dir" : sprite$="directory"
+    OTHERWISE
+     IF LEFT$(sprite$,6)="small_" THEN sprite$="file_"+MID$(sprite$,7)
+     IF LEFT$(sprite$,3)="sm!" THEN sprite$=MID$(sprite$,3)
+   ENDCASE
+   $FNicon_indirection(object_info_window%,9)=sprite$
+   found%=TRUE
+  ENDIF
+  loop%+=1
+ ENDWHILE
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+REM Results and results window handling
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCtoggle_full_info(data_block%,full_info%)
+:
+REM Set the line height and display flags as required, then update the window extent.
+:
+PROCset_full_info(data_block%,full_info%)
+PROCset_results_window_extent(data_block%)
+:
+REM If the window shows bits that don't exist, sroll up to the bottom.  Redraw it all.
+:
+q%!100=data_block%!8
+SYS "Wimp_GetWindowInfo",,((q%+100) OR 1)
+IF q%!124-(q%!116-q%!108) < q%!148 THEN
+ q%!124=q%!148+(q%!116-q%!108)
+ PROCmove_results_pane(q%+100,data_block%!32)
+ SYS "Wimp_OpenWindow",,q%+100
+ PROCmove_results_pane(q%+100,data_block%!32)
+ENDIF
+:
+PROCforce_window_redraw(data_block%!8)
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCset_full_info(data_block%,full_info%)
+:
+REM Set up the full info parameters in a results data block.  Used by PROCtoggle_full_info and PROCsearch
+:
+IF full_info% THEN
+ data_block%!40=2*results_icon_height%+4
+ data_block%!36=data_block%!36 OR %1
+ELSE
+ data_block%!40=results_icon_height%+4
+ data_block%!36=data_block%!36 AND (NOT %1)
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCset_results_window_extent(data_block%)
+:
+REM Sets the window's extent -- no check is made of visible area etc.
+:
+LOCAL y_extent%
+:
+y_extent%=(data_block%!40)*data_block%!12+4+results_pane_height%
+IF y_extent%<results_window_height% THEN y_extent%=results_window_height%
+!q%=data_block%!8
+SYS "Wimp_GetWindowInfo",,(q% OR 1)
+q%!48=q%!56-y_extent%
+SYS "Wimp_SetExtent",!q%,q%+44
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCmove_results_pane(db%,pane%)
+!q%=pane%
+SYS "Wimp_GetWindowState",,q%
+q%!4=db%!4
+q%!8=db%!8
+q%!12=db%!12
+q%!16=db%!8+results_pane_height%
+q%!20=db%!20
+q%!28=db%!28
+SYS "Wimp_OpenWindow",,q%
+db%!28=!q%
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCfind_and_delete_results_window(window%)
+:
+REM Search the linked list for the given window handle and, if it exists, remove and delete it.
+:
+LOCAL last%,current%,found%
+:
+current%=results_window_list%
+found%=FALSE
+:
+WHILE !current%<>0 AND (NOT found%)
+ last%=current%
+ current%=!current%
+ found%=(window%=current%!8)
+ENDWHILE
+IF found% THEN
+ !last%=!current%
+ PROCdelete_results_window(current%)
+ENDIF
+:
+REM If this was the last window and we are a quitting plugin, then quit.
+:
+PROCquit_after_plugin
+:
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCdelete_results_window(block%)
+:
+REM Delete a window and its associated block (assumes that the linked list will have been updated).
+:
+IF block%!32<>0 THEN
+ !q%=block%!32
+ q%!4=0
+ SYS "Wimp_GetIconState",,q%
+ PROCfree_block(heap_handle%,q%!28)
+ SYS "Wimp_DeleteWindow",,q%
+ENDIF
+IF block%!8<>0 THEN
+ !q%=block%!8
+ SYS "Wimp_GetWindowInfo",,q% OR 1
+ PROCfree_block(heap_handle%,q%!76)
+ SYS "Wimp_DeleteWindow",,q%
+ENDIF
+IF block%!4<>0 THEN PROCfree_block(heap_handle%,block%!4)
+IF block%!16<>0 THEN PROCdelete_search_options(block%!16,%01)
+IF block%!44<>0 THEN PROCfree_block(heap_handle%,block%!44)
+PROCfree_block(heap_handle%,block%)
+IF searching_data_block%=block% THEN searching_data_block%=0
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCrescan_font_widths
+:
+REM Go through all the windows in the linked list and re-scan the font widths.
+:
+LOCAL data_block%
+:
+data_block%=results_window_list%
+:
+WHILE !data_block%<>0
+ data_block%=!data_block%
+ :
+ IF data_block%!12>0 THEN
+  F%=data_block%
+  D%=results_icon_width%
+  :
+  data_block%!24=0
+  data_block%!28=results_title_offset%
+  :
+  IF wimp_text_op% THEN CALL main_code%+format_text_35% ELSE CALL main_code%+format_text_31%
+ ENDIF
+ENDWHILE
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCresults_window_click
+:
+REM Deal with mouse clicks in a results window.
+:
+LOCAL data_block%,redraw_list%,icon%,loop%,position%,in_icon%,file_name$,object_type%,ox%,oy%,first%,last%
+:
+data_block%=FNget_results_data_block(b%!12)
+:
+IF data_block%<>-1 THEN
+ redraw_list%=data_block%!4
+ :
+ REM Use the window position to calculate the 'icon' in which the mouse was clicked, the vertical position in that
+ REM icon and set a flag to show if the click should be counted as in the icon or in the neutral gutter between
+ REM icons.
+ :
+ !q%=b%!12
+ SYS "Wimp_GetWindowState",,q%
+ first%=(-q%!24 DIV data_block%!40)
+ last%=((-q%!24+(q%!16-q%!8-results_pane_height%)) DIV data_block%!40)
+ IF last%>=data_block%!12 THEN last%=(data_block%!12)-1
+ icon%=((q%!16-b%!4)-q%!24+4) DIV data_block%!40
+ position%=((q%!16-b%!4)-q%!24) MOD data_block%!40
+ in_icon%=(position%>4 AND position%<(results_icon_height%-4)) AND (icon%<data_block%!12) AND ((redraw_list%!(icon%*32+8) AND &202)=0) : REM Only in an icon if: 1) not in the inter-line gap 2) icon<total icons 3) not an informational.
+ ox%=q%!4-q%!20
+ oy%=q%!16-q%!24
+ CASE b%!8 OF
+  WHEN 1024
+   :
+   REM Select-Click: Clear all the selections first (if the icon is unselected), then select the icon under the pointer.
+   :
+   IF (NOT in_icon%) OR (redraw_list%!(icon%*32+8) AND &100)=0 THEN PROCclear_selection(data_block%)
+   IF in_icon% AND (redraw_list%!(icon%*32+8) AND &100)=0 THEN PROCtoggle_selection(data_block%,icon%)
+  WHEN 256
+   :
+   REM Adjust-Click: Toggle the state of the icon under the pointer.
+   :
+   IF in_icon% THEN PROCtoggle_selection(data_block%,icon%)
+  WHEN 16,64
+   :
+   REM Select or adjust drag: try to 'save' files out or drag a selection box out, depending on if we are in an icon.
+   IF in_icon% THEN
+    IF b%!8=16 THEN PROCtoggle_selection(data_block%,icon%) : REM Re-select the item under the pointer.
+    :
+    REM In an icon, so drag the selection out to another task.  First set the drag type (5 - fixed box) and the drag
+    REM area (as big as possible).
+    :
+    q%!4=5
+    q%!24=&80000000
+    q%!28=&80000000
+    q%!32=&7FFFFFFF
+    q%!36=&7FFFFFFF
+    :
+    REM The remaining setup depends on if DragASprite is to be used...
+    :
+    IF drag_a_sprite% THEN
+     :
+     REM Bounding box assumes a normal 64x64 Wimp sprite.
+     :
+     q%!8=!b%-32
+     q%!16=!b%+32
+     q%!12=b%!4-32
+     q%!20=b%!4+32
+     :
+     REM If there's only one item selected, get the item's sprite from the redraw data.  It will be a small sprite
+     REM if one exists, so we need to parse it to get the full sprite.  Catch the obvious special cases, then apply
+     REM some general rules.  If this fails, DragASprite will just use a dashed box.
+     REM
+     REM If there's more than one item, use the standard package sprite.
+     :
+     IF data_block%!20=1 THEN
+      sprite$=$(data_block%+(redraw_list%!(icon%*32+4))+1)
+      IF (redraw_list%!(icon%*32+8) AND 1) THEN
+       CASE sprite$ OF
+        WHEN "small_app" : sprite$="application"
+        WHEN "small_dir" : sprite$="directory"
+        OTHERWISE
+         IF LEFT$(sprite$,6)="small_" THEN sprite$="file_"+MID$(sprite$,7)
+         IF LEFT$(sprite$,3)="sm!" THEN sprite$=MID$(sprite$,3)
+       ENDCASE
+      ENDIF
+     ELSE
+      sprite$="package"
+     ENDIF
+     SYS "DragASprite_Start",%11000101,1,sprite$,q%+8,q%+24
+    ELSE
+     q%!8=ox%+4
+     q%!16=ox%+4+results_icon_width%
+     IF data_block%!20=1 THEN
+      REM There is only one selected icon
+      q%!12=oy%-(icon%*data_block%!40+results_icon_height%)
+      q%!20=oy%-(icon%*data_block%!40)
+     ELSE
+      REM We must find the first and last selected items...
+      WHILE (redraw_list%!(first%*32+8) AND &100)=0
+       first%+=1
+      ENDWHILE
+      WHILE (redraw_list%!(last%*32+8) AND &100)=0
+       last%-=1
+      ENDWHILE
+      q%!12=oy%-(last%*data_block%!40+results_icon_height%)
+      q%!20=oy%-(first%*data_block%!40)
+     ENDIF
+     SYS "Wimp_DragBox",,q%
+    ENDIF
+    :
+    drag_window_handle%=b%!12
+    drag_data_block%=data_block%
+   ELSE
+    REMIF b%!8=64 THEN PROCclear_selection(data_block%) : REM Select drag, so clear selection first.
+    dragging_box%=TRUE
+    drag_button%=b%!8
+    q%!24=q%!4
+    q%!28=&80000000
+    q%!32=q%!12
+    q%!36=&7FFFFFF0
+    q%!4=6
+    q%!8=!b%
+    q%!12=b%!4
+    q%!16=!b%
+    q%!20=b%!4
+    :
+    q%!64=b%!12
+    q%!68=20
+    q%!72=20+results_pane_height%
+    q%!76=20
+    q%!80=20
+    q%!84=0
+    q%!88=1
+    SYS "Wimp_DragBox",,q%,TASK,%11   : REM RISC OS 4 Only so far...
+    IF wimp_auto_scroll% THEN SYS "Wimp_AutoScroll",%010,q%+64
+    drag_data_block%=data_block%
+   ENDIF
+  WHEN 2
+   :
+   REM Menu-Click: Open the search window.
+   :
+   IF data_block%!20=0 AND in_icon% THEN
+    PROCtoggle_selection(data_block%,icon%)
+    results_select_by_menu%=TRUE
+   ELSE
+    results_select_by_menu%=FALSE
+   ENDIF
+   :
+   results_window_menu_ptr%=data_block%
+   results_window_menu_searching%=(data_block%=searching_data_block%)
+   PROCset_results_menu_state(data_block%)
+   PROCdisplay_menu(results_window_menu%,!b%,b%!4)
+  WHEN 1,4
+   :
+   REM Double-click: clear the icon under the pointer, then do the necessary.
+   :
+   PROCtoggle_selection(data_block%,icon%)
+   IF data_block%!24>0 AND icon%<data_block%!24 AND ((redraw_list%!(icon%*32+8) AND &202)=0) THEN
+    file_name$=$(data_block%+(redraw_list%!(icon%*32)))
+    SYS "OS_File",17,file_name$ TO object_type%
+    IF object_type%>0 THEN
+     CASE b%!8 OF
+      WHEN 1 : OSCLI("%Filer_OpenDir "+FNpath_name(file_name$))
+      WHEN 4 : OSCLI("%Filer_Run "+file_name$)
+     ENDCASE
+    ELSE
+     redraw_list%!(icon%*32+8)=redraw_list%!(icon%*32+8) OR &200
+     PROCredraw_results_icon(data_block%,icon%)
+     PROCwimp_report(FNmessage_trans("NotThere"),2,%10,"")
+    ENDIF
+   ENDIF
+ ENDCASE
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCset_results_menu_state(data%)
+:
+PROCset_menu_state(save_menu%,0,FALSE,data%!24=0)  : REM Save results
+PROCset_menu_state(save_menu%,1,FALSE,data%!24=0)  : REM Export names
+PROCset_menu_state(save_menu%,2,FALSE,data%!16=0)  : REM Save search
+:
+PROCset_menu_state(results_window_menu%,1,FALSE,data%!16=0 AND data%!24=0)                       : REM Search menu
+PROCset_menu_state(results_window_menu%,2,FALSE,data%!12=0 OR (data%!20=data%!48) OR data%!48=0) : REM Select all
+PROCset_menu_state(results_window_menu%,3,FALSE,data%!20=0)                                      : REM Clear selection
+PROCset_menu_state(results_window_menu%,4,FALSE,data%!20<>1)                                     : REM Object info
+PROCset_menu_state(results_window_menu%,5,FALSE,data%!20<>1)                                     : REM Open parent
+PROCset_menu_state(results_window_menu%,6,FALSE,data%!24=0 OR data%!48=0)                        : REM Copy names
+PROCset_menu_state(results_window_menu%,7,FALSE,data%!16=0 OR current_search_options%<>0)        : REM Modify search
+PROCset_menu_state(results_window_menu%,8,FALSE,searching_data_block%<>data%)                    : REM Stop search
+:
+PROCset_menu_state(display_menu%,0,(data%!36 AND 1)=0,FALSE)
+PROCset_menu_state(display_menu%,1,(data%!36 AND 1)=1,FALSE)
+PROCinit_save_box_texts
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCopen_selection_parent(data%)
+:
+LOCAL redraw%,loop%,found%
+:
+IF data%!20=1 THEN
+ redraw%=data%!4
+ :
+ loop%=0
+ found%=FALSE
+ WHILE loop%<data%!24 AND (NOT found%)
+  IF (redraw%!(loop%*32+8) AND &100) THEN
+   OSCLI("%Filer_OpenDir "+FNpath_name($(data%+(redraw%!(loop%*32)))))
+   found%=TRUE
+  ENDIF
+  loop%+=1
+ ENDWHILE
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCredraw_results_icon(data_block%,icon%)
+:
+REM Redraw the window around the specified icon in the given results window.
+:
+!q%=data_block%!8
+q%!4=8
+q%!8=-icon%*(data_block%!40)-results_icon_height%
+q%!12=8+results_icon_width%
+q%!16=-icon%*data_block%!40
+:
+B%=q%
+C%=results_icon_def%
+D%=data_block%
+SYS "Wimp_UpdateWindow",,B% TO A%
+CALL main_code%+window_redraw%
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCredraw_results_row(data_block%,icon%)
+:
+REM Redraw the window around the specified icon in the given results window.
+:
+!q%=data_block%!8
+q%!4=8
+q%!8=-icon%*(data_block%!40)-(data_block%!40)
+q%!12=8+results_icon_width%
+q%!16=-icon%*data_block%!40
+:
+B%=q%
+C%=results_icon_def%
+D%=data_block%
+SYS "Wimp_UpdateWindow",,B% TO A%
+CALL main_code%+window_redraw%
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNget_results_data_block(window_handle%)
+:
+LOCAL data_block%,found%
+:
+data_block%=results_window_list%
+found%=FALSE
+:
+WHILE !data_block%<>0 AND (NOT found%)
+ data_block%=!data_block%
+ found%=(window_handle%=data_block%!8)
+ENDWHILE
+:
+IF NOT found% THEN data_block%=-1
+:
+=data_block%
+:
+:
+:
+:
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCselect_all(data%)
+:
+LOCAL loop%,redraw_list%,count%
+:
+IF data%!24>0 THEN
+ redraw_list%=data%!4
+ count%=0
+ FOR loop%=0 TO data%!24-1
+  IF (redraw_list%!(loop%*32+8) AND &202)=0 THEN
+   redraw_list%!(loop%*32+8)=redraw_list%!(loop%*32+8) OR &100
+   count%+=1
+   PROCredraw_results_icon(data%,loop%)
+  ENDIF
+ NEXT loop%
+ data%!20=count%
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCclear_selection(data%)
+:
+LOCAL loop%,redraw_list%
+:
+IF data%!24>0 THEN
+ redraw_list%=data%!4
+ FOR loop%=0 TO data%!24-1
+  IF redraw_list%!(loop%*32+8) AND &100 THEN
+   redraw_list%!(loop%*32+8)=redraw_list%!(loop%*32+8) AND (NOT &100)
+   PROCredraw_results_icon(data%,loop%)
+  ENDIF
+ NEXT loop%
+ data%!20=0
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCtoggle_selection(data%,icon%)
+:
+REM Toggle the state of a selection.
+:
+LOCAL redraw_list%
+:
+redraw_list%=data%!4
+:
+IF data%!24>0 AND icon%<data%!24 AND ((redraw_list%!(icon%*32+8) AND &202)=0) THEN
+ IF redraw_list%!(icon%*32+8) AND &100 THEN
+  data%!20-=1
+  redraw_list%!(icon%*32+8)=redraw_list%!(icon%*32+8) AND (NOT &100)
+ ELSE
+  data%!20+=1
+  redraw_list%!(icon%*32+8)=redraw_list%!(icon%*32+8) OR &100
+ ENDIF
+ PROCredraw_results_icon(data%,icon%)
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCcopy_to_clipboard(data%)
+:
+REM Copy the window contents onto the global clipboard, creating a data space for it.
+:
+LOCAL owned%
+:
+REM First quietly free any existing clipboard we may have.
+:
+IF global_clipboard%<>-1 THEN PROCfree_block(heap_handle%,global_clipboard%) : global_clipboard%=-1 : owned%=TRUE
+:
+global_clipboard%=FNbuild_text_save_block(data%,FALSE)
+:
+IF NOT owned% THEN
+ !q%=24
+ q%!12=0
+ q%!16=15
+ q%!20=%100
+ SYS "Wimp_SendMessage",17,q%,0
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCsend_clipboard_data
+:
+REM Start the process of sending data from the clipboard.
+:
+IF (b%!36 AND %100)=%100 THEN
+ save_data_block%=global_clipboard%
+ drag_window_handle%=save_window% : REM Convince ourselves that subsequent messages are due to a datasave action.
+ !b%=52
+ b%!12=b%!8
+ b%!16=1
+ b%!36=!save_data_block%  : REM Data size
+ b%!40=save_data_block%!8 : REM Data file type
+ $(b%+44)="Locate"+CHR$(0)
+ SYS "Wimp_SendMessage",18,b%,b%!20,b%!24
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF FNbuild_data_save_block(data%)
+:
+LOCAL block%,ptr%,redraw%,loop%,select%,len_ptr%
+:
+SYS "Hourglass_On"
+:
+!a%=save_window%
+a%!4=4
+SYS "Wimp_GetIconState",,a%
+:
+block%=FNclaim_block(heap_handle%,12)
+ptr%=12
+:
+PROCstore_word(heap_handle%,block%,ptr%,&48435253)    : REM 'SRCH' Magic word
+PROCstore_word(heap_handle%,block%,ptr%,1)            : REM File version number (VERSION 1)
+PROCstore_word(heap_handle%,block%,ptr%,0)            : REM Flags word
+:
+select%=NOT((data%!20>0) AND ((a%!24 AND &200000)<>0))
+redraw%=data%!4
+:
+REM Write out the datablock (the parts of which are required)
+:
+len_ptr%=ptr%
+PROCstore_word(heap_handle%,block%,ptr%,0)            : REM Length of data block (placeholder)
+:
+PROCstore_word(heap_handle%,block%,ptr%,0) : REM This should all be taken care of by results_title_offset%
+PROCstore_word(heap_handle%,block%,ptr%,0)
+PROCstore_word(heap_handle%,block%,ptr%,0)
+PROCstore_word(heap_handle%,block%,ptr%,0) : REM Matches (incremented as data is copied into the block).
+PROCstore_word(heap_handle%,block%,ptr%,0)
+PROCstore_word(heap_handle%,block%,ptr%,0) : REM Selection count
+PROCstore_word(heap_handle%,block%,ptr%,0)
+PROCstore_word(heap_handle%,block%,ptr%,results_title_offset%)
+PROCstore_word(heap_handle%,block%,ptr%,0)
+PROCstore_word(heap_handle%,block%,ptr%,data%!36)
+PROCstore_word(heap_handle%,block%,ptr%,data%!40)
+PROCstore_word(heap_handle%,block%,ptr%,0)
+PROCstore_word(heap_handle%,block%,ptr%,0)
+:
+REM Copy in the actual matched object data.
+:
+IF data%!24>0 THEN
+ FOR loop%=0 TO data%!24-1
+  IF select% OR (redraw%!((loop%*32)+8) AND &100) OR (redraw%!((loop%*32)+8) AND &2) THEN
+   PROCstore_string(heap_handle%,block%,ptr%,$(data%+redraw%!(loop%*32)))
+   PROCstore_string(heap_handle%,block%,ptr%,$(data%+redraw%!(loop%*32+4)))
+   PROCstore_byte(heap_handle%,block%,ptr%,(redraw%!(loop%*32+8)) AND &FF)
+   block%!40+=1 : REM Increment match count.
+  ENDIF
+ NEXT loop%
+ENDIF
+:
+block%!len_ptr%=ptr%-(len_ptr%+4) : REM Write the length of the datablock back.
+:
+REM Write out the window title.
+:
+len_ptr%=ptr%
+PROCstore_word(heap_handle%,block%,ptr%,0)          : REM Length of window title (placeholder)
+:
+!a%=data%!8
+SYS "Wimp_GetWindowInfo",,a% OR 1
+PROCstore_string(heap_handle%,block%,ptr%,$(a%!76))
+:
+block%!len_ptr%=ptr%-(len_ptr%+4) : REM Write the length of the window title back.
+:
+len_ptr%=ptr%
+PROCstore_word(heap_handle%,block%,ptr%,0)
+:
+PROCextend_block(heap_handle%,!((data%!16)+4),block%)
+FOR loop%=0 TO !((data%!16)+4)-1
+ block%?ptr%=!((data%!16)+loop%)
+ ptr%+=1
+NEXT loop%
+:
+block%!len_ptr%=ptr%-(len_ptr%+4)
+:
+!block%=ptr%-12
+block%!4=0
+block%!8=&1A1 : REM Located file
+:
+SYS "Hourglass_Off"
+:
+=block%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNbuild_search_save_block(results%)
+:
+LOCAL block%,ptr%,data%,redraw%,loop%,select%,len_ptr%
+:
+SYS "Hourglass_On"
+:
+block%=FNclaim_block(heap_handle%,12)
+ptr%=12
+:
+PROCstore_word(heap_handle%,block%,ptr%,&48435253) : REM 'SRCH' Magic word
+PROCstore_word(heap_handle%,block%,ptr%,1) : REM File version (VERSION 1)
+PROCstore_word(heap_handle%,block%,ptr%,0) : REM Flags
+:
+PROCstore_word(heap_handle%,block%,ptr%,0) : REM No data
+PROCstore_word(heap_handle%,block%,ptr%,0) : REM No title
+:
+len_ptr%=ptr%
+PROCstore_word(heap_handle%,block%,ptr%,0)
+:
+IF results%=-1 THEN
+ data%=FNget_current_search_options
+ELSE
+ data%=results%!16
+ENDIF
+PROCextend_block(heap_handle%,data%!4,block%)
+block%!ptr%=0
+ptr%+=4
+FOR loop%=4 TO (data%!4)-1
+ block%?ptr%=data%?loop%
+ ptr%+=1
+NEXT loop%
+IF results%=-1 THEN PROCfree_block(heap_handle%,data%)
+:
+block%!len_ptr%=ptr%-(len_ptr%+4)
+:
+!block%=ptr%-12
+block%!4=0
+block%!8=&1A1 : REM Located file
+:
+SYS "Hourglass_Off"
+:
+=block%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNbuild_text_save_block(data%,select_opt%)
+:
+LOCAL block%,ptr%,redraw%,loop%,select%
+:
+SYS "Hourglass_On"
+:
+IF select_opt% THEN
+ !a%=save_window%
+ a%!4=4
+ SYS "Wimp_GetIconState",,a%
+ select%=NOT((data%!20>0) AND ((a%!24 AND &200000)<>0))
+ELSE
+ select%=NOT (data%!20>0)
+ENDIF
+:
+block%=FNclaim_block(heap_handle%,12)
+ptr%=12
+:
+redraw%=data%!4
+:
+IF data%!24>0 THEN
+ FOR loop%=0 TO data%!24-1
+  IF (select% OR (redraw%!((loop%*32)+8) AND &100)) AND ((redraw%!((loop%*32)+8) AND &2)=0) THEN
+   PROCstore_string(heap_handle%,block%,ptr%,$(data%+redraw%!(loop%*32)))
+   block%?(ptr%-1)=10
+  ENDIF
+ NEXT loop%
+ENDIF
+!block%=ptr%-12
+block%!4=0
+block%!8=&FFF : REM Text file
+:
+SYS "Hourglass_Off"
+:
+=block%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCsave_results_to_disc
+:
+IF save_data_block%<>0 THEN
+ SYS "OS_File",10,b%+44,save_data_block%!8,,save_data_block%+12,save_data_block%+!save_data_block%+12
+ IF save_data_block%<>global_clipboard% THEN PROCfree_block(heap_handle%,save_data_block%)
+ save_data_block%=0
+ :
+ b%!12=b%!8
+ b%!16=3
+ SYS "Wimp_SendMessage",18,b%,b%!4
+ENDIF
+:
+PROCdisplay_menu(-1,0,0)
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCsave_results_in_ram
+:
+LOCAL bytes_to_send%,bytes_sent%,message_type%
+:
+bytes_to_send%=!save_data_block%-save_data_block%!4
+IF bytes_to_send%>b%!24 THEN bytes_sent%=b%!24 ELSE bytes_sent%=bytes_to_send%
+:
+SYS "Wimp_TransferBlock",task_handle%,save_data_block%+save_data_block%!4+12,b%!4,b%!20,bytes_sent%
+save_data_block%!4+=bytes_sent%
+:
+IF bytes_sent%<b%!24 THEN
+ :
+ REM Transfer over
+ :
+ message_type%=17
+ IF save_data_block%<>global_clipboard% THEN PROCfree_block(heap_handle%,save_data_block%)
+ save_data_block%=0
+ :
+ PROCdisplay_menu(-1,0,0)
+ELSE
+ :
+ REM More to come
+ :
+ message_type%=18
+ENDIF
+:
+b%!12=b%!8
+b%!16=7
+b%!24=bytes_sent%
+SYS "Wimp_SendMessage",message_type%,b%,b%!4
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCend_ram_transfer
+:
+REM Called *iff* the RAM Transfer failed early for some reason
+:
+IF save_data_block%<>0 THEN
+ IF save_data_block%<>global_clipboard% THEN PROCfree_block(heap_handle%,save_data_block%)
+ save_data_block%=0
+ENDIF
+:
+PROCdisplay_menu(-1,0,0)
+PROCwimp_report(FNmessage_trans("RAMXferFail"),2,%01,"")
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCsave_direct_to_disc(data%)
+:
+REM Save direct if we have a full filename (ignore the DTP).
+:
+LOCAL save_block%
+:
+IF INSTR($FNicon_indirection(save_window%,2),".")=0 THEN PROCwimp_report(FNmessage_trans("BadSave"),1,%01,"") : ENDPROC
+:
+CASE data_save_type% OF
+ WHEN 0 : save_block%=FNbuild_data_save_block(data%)
+ WHEN 1 : save_block%=FNbuild_text_save_block(data%,TRUE)
+ WHEN 2 : save_block%=FNbuild_search_save_block(results_window_menu_ptr%)
+ WHEN 3 : save_block%=FNbuild_search_save_block(-1)
+ENDCASE
+SYS "OS_File",10,FNicon_indirection(save_window%,2),save_block%!8,,save_block%+12,save_block%+!save_block%+12
+PROCfree_block(heap_handle%,save_block%)
+:
+PROCdisplay_menu(-1,0,0)
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCload_data_file(file_name$,ack%)
+:
+LOCAL handle%,data_block%,title_block%,settings_block%,loaded%,errors%,version%,data_size%,loop%,dummy%,dummy$,ptr%
+LOCAL ERROR
+:
+IF ack% THEN
+ b%!12=b%!8
+ b%!16=4
+ SYS "Wimp_SendMessage",17,b%,b%!4
+ENDIF
+:
+REM We can't manage to load *and* search simultaneously, so ignore the load.
+IF searching_data_block%<>0 THEN PROCwimp_report(FNmessage_trans("NoLoadNow"),1,%10,"") : ENDPROC
+:
+SYS "Hourglass_On"
+:
+loaded%=FALSE
+:
+ON ERROR LOCAL SYS "Hourglass_Smash" : PROCfile_load_error(handle%,data_block%,title_block%,settings_block%) : ENDPROC
+:
+SYS "OS_Find",&43,file_name$ TO handle%
+:
+IF handle% THEN
+ SYS "OS_GBPB",4,handle%,q%,12
+ :
+ version%=q%!4
+ :
+ IF !q%<>&48435253 OR version%>1 THEN
+  PROCwimp_report(FNmessage_trans("BadFile"),1,%10,"")
+  SYS "OS_Find",0,handle%
+ ELSE
+  SYS "OS_GBPB",4,handle%,q%,4
+  data_size%=!q%
+  IF data_size%>0 THEN
+   IF version%=0 THEN data_size%+=16      : REM If version 0, we need to add 16 bytes to the fata header after loading
+   data_block%=FNclaim_block(heap_handle%,data_size%)
+   SYS "OS_GBPB",4,handle%,data_block%,!q%
+   IF version%=0 THEN
+    FOR loop%=data_size%-1 TO 48 STEP -1
+     data_block%?loop%=data_block%?(loop%-16)
+    NEXT loop%
+    data_block%!36=0                      : REM Set the display flags to 0
+    data_block%!40=results_icon_height%+4 : REM Set the item height to the default (including guttering)
+    data_block%!44=0                      : REM Set the file info pointer to 0
+    data_block%!48=0                      : REM Set the number of selectable items to 0
+    data_block%!28+=16                    : REM Increment the update pointer to reflect the shuffling
+   ENDIF
+  ELSE
+   data_block%=0
+  ENDIF
+  :
+  SYS "OS_GBPB",4,handle%,q%,4
+  IF !q%>0 THEN
+   title_block%=FNclaim_block(heap_handle%,!q%)
+   SYS "OS_GBPB",4,handle%,title_block%,!q%
+   results_window_def%!72=title_block%
+   results_window_def%!80=LEN($title_block%)
+  ELSE
+   title_block%=0
+  ENDIF
+  :
+  SYS "OS_GBPB",4,handle%,q%,4
+  IF !q%>0 THEN
+   settings_block%=FNclaim_block(heap_handle%,!q%)
+   SYS "OS_GBPB",4,handle%,settings_block%,!q%
+   IF version%=0 THEN
+    ptr%=8
+    dummy%=FNextract_word(settings_block%,ptr%)
+    dummy%=FNextract_long_string(settings_block%,ptr%)
+    dummy$=FNextract_string(settings_block%,ptr%)
+    dummy%=FNextract_word(settings_block%,ptr%)
+    :
+    dummy%=%0001 AND FNextract_word(settings_block%,ptr%)
+    dummy%+=%0010 AND FNextract_word(settings_block%,ptr%)
+    dummy%+=%0100 AND FNextract_word(settings_block%,ptr%)
+    ptr%-=12
+    PROCstore_word(heap_handle%,settings_block%,ptr%,dummy%)
+    PROCstore_word(heap_handle%,settings_block%,ptr%,0)
+    PROCstore_word(heap_handle%,settings_block%,ptr%,0)
+   ENDIF
+  ELSE
+   settings_block%=0
+  ENDIF
+  IF data_block%<>0 THEN data_block%!16=settings_block%
+  :
+  SYS "OS_Find",0,handle% : handle%=0
+  loaded%=TRUE
+ ENDIF
+ :
+ IF loaded% THEN
+  REM Create and open results window & pane.
+  :
+  IF data_block%<>0 AND title_block%<>0 THEN
+   results_pane_def%!108=FNclaim_block(heap_handle%,256)
+   results_pane_def%!116=256
+   SYS "Wimp_CreateWindow",,results_pane_def% TO data_block%!32
+   :
+   REM Create the main window (title data already set up).
+   SYS "Wimp_CreateWindow",,results_window_def% TO data_block%!8
+   :
+   IF settings_block%<>0 THEN !settings_block%=%001
+   :
+   !data_block%=!results_window_list%
+   :
+   !a%=data_block%!8
+   PROCopen_window(!a%)
+   SYS "Wimp_GetWindowState",,a%
+   PROCmove_results_pane(a%,data_block%!32)
+   SYS "Wimp_OpenWindow",,a%
+   :
+   errors%=FNformat_results_window(data_block%)
+   IF data_block%!12>=1 AND errors%>=1 AND (!((data_block%!4)+8) AND %100)=0 THEN
+    SYS "MessageTrans_Lookup",message_block%,"Errors",q%,255,STR$(errors%)
+   ELSE
+    $q%=""
+   ENDIF
+   SYS "MessageTrans_Lookup",message_block%,"Found",results_pane_def%!108,255,STR$(data_block%!12-errors%),q%
+  ELSE
+   IF settings_block%<>0 THEN
+    PROCclose_search_window
+    SYS "Wimp_GetPointerInfo",,q%
+    PROCopen_search_window(!q%,q%!4,settings_block%)
+   ENDIF
+  ENDIF
+ ENDIF
+ENDIF
+:
+SYS "Hourglass_Off"
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCfile_load_error(handle%,b1%,b2%,b3%)
+:
+IF handle% THEN SYS "XOS_Find",0,handle%
+IF b1% THEN PROCfree_block(heap_handle%,b1%)
+IF b2% THEN PROCfree_block(heap_handle%,b2%)
+IF b3% THEN PROCfree_block(heap_handle%,b3%)
+PROCwimp_report(FNmessage_trans("FileError"),2,%10,"")
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+REM Save box settings
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCinit_save_box_texts
+:
+data_save_type%=-1
+save_box_names$(0,0)=FNmessage_trans("FileName")
+save_box_names$(1,0)=FNmessage_trans("ExptName")
+save_box_names$(2,0)=FNmessage_trans("SrchName")
+save_box_names$(3,0)=FNmessage_trans("SrchName")
+save_box_names$(0,1)=FNmessage_trans("SelectName")
+save_box_names$(1,1)=FNmessage_trans("SelectName")
+save_box_names$(2,1)=FNmessage_trans("SelectName")
+save_box_names$(3,1)=FNmessage_trans("SelectName")
+save_box_select%()=FALSE
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCchange_search_window_contents(RETURN type%, new_type%)
+:
+IF type%<>-1 THEN
+ save_box_select%(type%)=FNicon_selected(save_window%,4)
+ save_box_names$(type%,ABS(save_box_select%(type%)))=$FNicon_indirection(save_window%,2)
+ENDIF
+:
+type%=new_type%
+$FNicon_indirection(save_window%,2)=save_box_names$(type%,ABS(save_box_select%(type%)))
+$FNicon_indirection(save_window%,3)=save_box_sprites$(type%)
+PROCset_icon_state(save_window%,4,save_box_select%(type%),results_window_menu_ptr%!20=0,FALSE)
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCset_save_window_select
+:
+LOCAL select%
+:
+select%=FNicon_selected(save_window%,4)
+save_box_names$(data_save_type%,ABS(NOT select%))=$FNicon_indirection(save_window%,2)
+$FNicon_indirection(save_window%,2)=save_box_names$(data_save_type%,ABS(select%))
+PROCforce_icon_redraw(save_window%,2)
+PROCput_caret_at_end(save_window%,2)
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+REM Wimp dragbox handling
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCstart_drag_box(window%,icon%)
+:
+LOCAL ox%,oy%,sprite$
+:
+!q%=window%
+SYS "Wimp_GetWindowState",,q%
+ox%=q%!4-q%!20
+oy%=q%!16-q%!24
+q%!4=icon%
+SYS "Wimp_GetIconState",,q%
+sprite$=FNctrl_string(q%!28)
+q%!4=5
+q%!8=ox%+q%!8
+q%!12=oy%+q%!12
+q%!16=ox%+q%!16
+q%!20=oy%+q%!20
+q%!24=&80000000
+q%!28=&80000000
+q%!32=&7FFFFFFF
+q%!36=&7FFFFFFF
+:
+IF drag_a_sprite% THEN
+ SYS "DragASprite_Start",%11000101,1,sprite$,q%+8,q%+24
+ELSE
+ SYS "Wimp_DragBox",,q%
+ENDIF
+:
+drag_window_handle%=window%
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+REM Search path management
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCadd_path_to_search_list(window%,icon%,path$,type%,over%)
+:
+LOCAL buffer%, size%
+:
+!q%=window% : q%!4=icon%
+SYS "Wimp_GetIconState",,q%
+buffer%=q%!28 : size%=q%!36
+:
+REM If the object is a file, strip the leafname from the filename given.
+:
+IF type%<&1000 THEN path$=FNpath_name(path$)
+:
+REM If overwrite is not forced on us, decide what to do based on user preference and the state of the Shift key.
+:
+IF NOT over% THEN
+ IF INKEY(-1) THEN over%=TRUE
+ENDIF
+:
+PROCadd_path_to_search_buffer(buffer%,size%,path$,over%)
+IF FNis_caret_in_icon(window%,icon%) THEN SYS "Wimp_SetCaretPosition",window%,icon%,,,-1,c%
+PROCforce_icon_redraw(window%,icon%)
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCadd_path_to_search_buffer(buffer%,size%,path$,over%)
+:
+LOCAL c%, start%
+:
+REM Find the insertion point, by stepping through the buffer.
+:
+c%=0
+IF NOT over% THEN
+ WHILE buffer%?c%>=32 AND c%<size%
+  c%+=1
+ ENDWHILE
+ENDIF
+:
+REM Copy the path into the buffer.
+:
+IF c%<(size%-1) THEN
+ start%=c%
+ IF c%>0 THEN buffer%?c%=ASC(",") : c%+=1
+ :
+ WHILE path$<>"" AND c%<(size%-1)
+  buffer%?c%=ASC(LEFT$(path$,1))
+  path$=MID$(path$,2)
+  c%+=1
+ ENDWHILE
+ :
+ IF path$<>"" THEN PROCwimp_report(FNmessage_trans("PathBufFull"),2,%10,"") : c%=start%
+ :
+ buffer%?c%=0
+ELSE
+ PROCwimp_report(FNmessage_trans("PathBufFull"),2,%10,"")
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNenumerate_index_dirs(list%,RETURN next%)
+:
+LOCAL dir$
+:
+dir$=""
+:
+WHILE list%?next%>=32 AND list%?next%<>ASC(",")
+ dir$+=CHR$(list%?next%)
+ next%+=1
+ENDWHILE
+:
+IF list%?next%<32 THEN
+ next%=-1 : REM Finished.
+ELSE
+ next%+=1 : REM Skip over comma.
+ENDIF
+:
+=FNstrip_surrounding_whitespace(dir$)
+:
+:
+:
+:
+REM ====================================================================================================================
+REM History management
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCadd_search_to_pending_history(options%,name$)
+:
+IF pending_history_block%<>-1 THEN PROCdelete_search_options(pending_history_block%,%100)
+:
+pending_history_block%=options%
+!options% = !options% OR %100
+$FNicon_indirection(history_add_window%,1)=name$
+:
+IF FNwindow_is_open(history_add_window%) THEN
+ PROCopen_window(history_add_window%)
+ PROCforce_icon_redraw(history_add_window%,1)
+ELSE
+ SYS "Wimp_GetPointerInfo",,q%
+ PROCopen_window_at(history_add_window%,!q%-64,q%!4)
+ENDIF
+PROCput_caret_at_end(history_add_window%,1)
+ENDPROC
+:
+:
+:
+:
+DEF PROCadd_pending_history_entry
+
+IF pending_history_block%<>-1 THEN
+ PROCadd_search_to_history(search_history_list%,FNread_int_config("HistorySize"),pending_history_block%,$FNicon_indirection(history_add_window%,1))
+ PROCdelete_search_options(pending_history_block%,%100)
+ pending_history_block%=-1
+ PROCclose_window(history_add_window%)
+ENDIF
+ENDPROC
+:
+:
+:
+:
+DEF PROCremove_pending_history_entry
+IF pending_history_block%<>-1 THEN
+ PROCdelete_search_options(pending_history_block%,%100)
+ pending_history_block%=-1
+ PROCclose_window(history_add_window%)
+ENDIF
+ENDPROC
+
+:
+:
+:
+:
+DEF PROCadd_search_to_history(list%,max_len%,info%,name$)
+:
+LOCAL block%,item%
+:
+IF name$="" THEN name$=FNmessage_trans("DeftHistName")
+:
+IF max_len%>0 THEN
+ block%=FNclaim_block(heap_handle%,9+LEN(name$))
+ :
+ IF block% THEN
+  !info%=!info% OR list%!8
+  block%!4=info%
+  $(block%+8)=name$
+  :
+  !block%=!list%
+  !list%=block%
+  list%!4+=1
+  :
+  PROCtrim_search_history(list%,max_len%)
+ ENDIF
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCtrim_search_history(list%,max_len%)
+:
+LOCAL block%,info%
+:
+IF max_len%>-1 AND list%!4>max_len% THEN
+ item%=1
+ block%=!list%
+ :
+ WHILE block%<>0 AND item%<max_len%
+  block%=!block%
+  item%+=1
+ ENDWHILE
+ :
+ IF block%<>0 THEN
+  PROCdelete_history_list(block%)
+  !block%=0
+  list%!4=max_len%
+ ENDIF
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNbuild_search_history_menu(list%)
+:
+LOCAL menu_buf%,type%,items%,name1%,name2%,length%,block%
+:
+menu_buf%=FNclaim_block(heap_handle%,28)
+:
+$menu_buf%=LEFT$(FNmessage_trans("HistoryMenu"),12)
+menu_buf%!12=&00070207
+menu_buf%!16=16*LEN($menu_buf%) : REM Menu width
+menu_buf%!20=44
+menu_buf%!24=0
+:
+block%=!list%
+
+items%=-1
+WHILE block%<>0
+ PROCextend_block(heap_handle%,24,menu_buf%)
+ items%+=1
+ menu_buf%!(28+items%*24)=0
+ menu_buf%!(32+items%*24)=-1
+ menu_buf%!(36+items%*24)=&07000131
+ menu_buf%!(40+items%*24)=block%+8
+ menu_buf%!(44+items%*24)=0
+ menu_buf%!(48+items%*24)=LEN($(block%+8))
+ IF (32+16*LEN($(block%+8)))>menu_buf%!16 THEN menu_buf%!16=16*LEN($(block%+8))+32
+ block%=!block%
+ENDWHILE
+:
+menu_buf%!(28+items%*24)=menu_buf%!(28+items%*24) OR &80
+:
+PROCgrey_out_history_menu(menu_buf%)
+:
+=menu_buf%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCgrey_out_history_menu(menu%)
+:
+LOCAL item%
+:
+IF search_history_list%!4>0 THEN
+ FOR item%=0 TO (search_history_list%!4)-1
+  PROCset_menu_state(menu%,item%,FALSE,current_search_options%<>0)
+ NEXT item%
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCopen_history_search(list%,item%)
+:
+LOCAL block%,settings%
+:
+block%=!list%
+:
+WHILE block%<>0 AND item%>0
+ block%=!block%
+ item%-=1
+ENDWHILE
+:
+SYS "Wimp_GetPointerInfo",,q%
+:
+IF block%<>0 THEN PROCopen_search_window(!q%,q%!4,block%!4)
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCdelete_history_list(list%)
+:
+LOCAL block%,old_block%,settings%
+:
+block%=!list%
+:
+WHILE block%<>0
+ settings%=block%!4
+ old_block%=block%
+ block%=!block%
+ PROCdelete_search_options(settings%,list%!8)
+ PROCfree_block(heap_handle%,old_block%)
+ENDWHILE
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+REM File type management
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF FNbuild_file_type_menu(alphabetic%)
+:
+LOCAL menu_buf%,name_buf%,spr_buf%,temp_buf%,type%,items%,name1%,name2%,length%,next%,types%,spr$,type$,sprites%
+LOCAL item_size%,item_width%
+:
+types%=FNcount_defined_filetypes + 1  : REM +1 to allow for "Untyped".
+sprites%=FNread_opt_config("FileMenuSprites")
+:
+IF sprites% THEN
+ REM 48 = 24 (menu item size) + 13 (menu text+type+2 terminators) + 11 (Ssmall_xxx len)
+ menu_buf%=FNclaim_block(heap_handle%,28+48*types%)
+ELSE
+ REM 37 = 24 (menu item size) + 13 (menu text+type+2 terminators); +1 for dummy validation string
+ menu_buf%=FNclaim_block(heap_handle%,28+37*types%+1)
+ENDIF
+name_buf%=menu_buf%+28+24*types%
+spr_buf%=menu_buf%+28+37*types%
+temp_buf%=FNclaim_block(heap_handle%,4*types%)
+:
+IF NOT sprites% THEN $spr_buf%=""
+:
+next%=0
+buffer%=name_buf%+13
+$name_buf%=FNmessage_trans("Untyped")
+$(name_buf%+9)="lxa" : REM Untyped under Select: will default to xxx on other systems.
+:
+REPEAT
+ SYS "XOS_ReadVarVal","File$Type_*",buffer%,9,next%,0 TO ,,length%,next%
+ IF length%<>0 THEN
+  buffer%?length%=13
+  $(buffer%+9)=FNctrl_string(next%+10)
+  buffer%+=13
+ ENDIF
+UNTIL length%=0
+:
+REM Sort all but the first item, which is "Untyped".
+:
+IF alphabetic% THEN
+ IF os_heapsort32% THEN
+  SYS "OS_HeapSort32",types%-1,temp_buf%,5,,name_buf%+13,13,,(%110<<29) TO ,r1%
+ ELSE
+  SYS "OS_HeapSort",types%-1,temp_buf% OR (%010<<29),5,,name_buf%+13,13 TO ,r1%
+ ENDIF
+ENDIF
+:
+$menu_buf%=LEFT$(FNmessage_trans("FileMenu"),12)
+menu_buf%!12=&00070207
+menu_buf%!16=(LEN$(menu_buf%)+2)*16
+menu_buf%!20=44
+menu_buf%!24=0
+:
+FOR items%=0 TO types%-1
+ menu_buf%!(28+items%*24)=-%10 * (items%=0) : REM Dotted line if it's the first item ("Untyped")
+ menu_buf%!(32+items%*24)=-1
+ menu_buf%!(36+items%*24)=&7009131-(&2*sprites%) : REM Remove sprite bit (bit 1 = &2) if no sprites in menu)
+ menu_buf%!(40+items%*24)=name_buf%+(items%*13)
+ menu_buf%!(44+items%*24)=spr_buf%
+ menu_buf%!(48+items%*24)=LEN($(name_buf%+(items%*13)))
+ item_width%=32+LEN($(name_buf%+(items%*13)))*16-(40*sprites%) : REM Add 40 if sprites are included.
+ IF menu_buf%!16<item_width% THEN menu_buf%!16=item_width%
+ :
+ IF sprites% THEN
+  type$=FNto_lower($(name_buf%+(items%*13)+9))
+  spr$="small_"
+  SYS"XWimp_SpriteOp",24,,spr$+type$ TO ;err%
+  IF (err% AND 1) THEN
+   spr$="file_"
+   SYS"XWimp_SpriteOp",24,,spr$+type$ TO ;err%
+   IF (err% AND 1) THEN
+    spr$="small_"
+    type$="xxx"
+   ELSE
+    menu_buf%!(36+items%*24)=&7000931-(&2*sprites%) : REM Remove sprite bit (bit 1 = &2) if no sprites in menu)
+   ENDIF
+  ENDIF
+  $spr_buf%="S"+spr$+type$
+  spr_buf%+=LEN($spr_buf%)+1
+ ENDIF
+NEXT items%
+:
+menu_buf%!(28+(types%-1)*24)=menu_buf%!(28+(types%-1)*24) OR &80
+:
+PROCfree_block(heap_handle%,temp_buf%)
+:
+=menu_buf%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNcount_defined_filetypes
+:
+LOCAL count%,next%,len%
+:
+count%=-1
+:
+REPEAT
+ SYS"XOS_ReadVarVal","File$Type_*",q%,255,next% TO ,,len%,next%
+ count%+=1
+UNTIL len%=0
+=count%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNfile_type_str_to_num(s$)
+LOCAL type%, flags%
+SYS "XOS_FSControl",31,s$ TO ,,type% ;flags%
+IF (flags% AND 1) THEN type%=-1
+:
+REM Given a text name, this function simply returns the file type number.
+=type%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNfile_type_num_to_str(type_num%)
+:
+REM This takes a decimal number, and returns a lowercase hex string.
+:
+=FNto_lower(RIGHT$("000"+STR$~type_num%,3))
+:
+:
+:
+:
+REM ====================================================================================================================
+REM Choices management
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCopen_choices_window(x%,y%)
+:
+$FNicon_indirection(choices_window%,6)=FNread_str_config("SearchPath")
+PROCset_icon_selected(choices_window%,7,FNread_opt_config("Multitask"))
+PROCset_icon_selected(choices_window%,8,FNread_opt_config("ImageFS"))
+PROCset_icon_selected(choices_window%,9,FNread_opt_config("SuppressErrors"))
+PROCset_icon_selected(choices_window%,22,FNread_opt_config("FullInfoDisplay"))
+$FNicon_indirection(choices_window%,13)=STR$(FNread_int_config("HistorySize"))
+PROCset_icon_selected(choices_window%,21,FNread_opt_config("FileMenuSprites"))
+PROCset_icon_selected(choices_window%,20,FNread_opt_config("ScrollResults"))
+PROCset_icon_selected(choices_window%,15,FNread_opt_config("ConfirmHistoryAdd"))
+PROCset_icon_selected(choices_window%,18,FNread_opt_config("QuitAsPlugin") AND (os_version%>=169))
+PROCset_icon_selected(choices_window%,19,FNread_opt_config("SearchWindAsPlugin") AND (os_version%>=169))
+FOR icon%=16 TO 19
+ PROCset_icon_shaded(choices_window%,icon%,os_version%<169)
+NEXT icon%
+IF FNwindow_is_open(choices_window%) THEN
+ PROCforce_icon_redraw(choices_window%,6)
+ IF FNis_caret_in_icon(choices_window%,6) THEN PROCput_caret_at_end(choices_window%,6)
+ PROCforce_icon_redraw(choices_window%,13)
+ IF FNis_caret_in_icon(choices_window%,13) THEN PROCput_caret_at_end(choices_window%,10)
+ELSE
+ PROCopen_window_centred(choices_window%,x%,y%)
+ PROCput_caret_at_end(choices_window%,6)
+ENDIF
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCset_choices(save%)
+:
+LOCAL new_choices%,object%,len%
+:
+PROCset_str_config("SearchPath",$FNicon_indirection(choices_window%,6))
+PROCset_opt_config("Multitask",FNicon_selected(choices_window%,7))
+PROCset_opt_config("ImageFS",FNicon_selected(choices_window%,8))
+PROCset_opt_config("SuppressErrors",FNicon_selected(choices_window%,9))
+PROCset_int_config("HistorySize",VAL($FNicon_indirection(choices_window%,13)))
+PROCset_opt_config("ConfirmHistoryAdd",FNicon_selected(choices_window%,15))
+PROCset_opt_config("QuitAsPlugin",FNicon_selected(choices_window%,18))
+PROCset_opt_config("SearchWindAsPlugin",FNicon_selected(choices_window%,19))
+PROCset_opt_config("ScrollResults",FNicon_selected(choices_window%,20))
+PROCset_opt_config("FileMenuSprites",FNicon_selected(choices_window%,21))
+PROCset_opt_config("FullInfoDisplay",FNicon_selected(choices_window%,22))
+:
+PROCtrim_search_history(search_history_list%,FNread_int_config("HistorySize"))
+:
+IF save% THEN
+ IF choices_save$="" THEN
+  SYS "XOS_ReadVarVal","Choices$Write",0,-1,0,0 TO ,,new_choices%
+  IF new_choices%<>0 THEN
+   SYS "XOS_ReadVarVal","Choices$Write",q%,256,0,0 TO ,,len%
+   q%?len%=13
+   choices_save$=$q%+".Locate"
+   SYS "OS_File",17,choices_save$ TO object%
+   IF object%=0 THEN SYS "OS_File",8,choices_save$
+   choices_save$+=".Choices"
+  ELSE
+   choices_save$="<Locate$Dir>.Choices"
+  ENDIF
+ ENDIF
+ :
+ PROCsave_config_file(choices_save$)
+ENDIF
+:
+PROCfree_block(heap_handle%,default_search_options%)
+$a%=FNread_str_config("SearchPath")
+default_search_options%=FNset_default_search_options(a%,"")
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+REM Misc routines
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF FNmessage_trans(m$)
+LOCAL e$
+IF m$<>"" THEN SYS "MessageTrans_Lookup",message_block%,m$ TO ,,e$
+=e$
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNnumbered_message_trans(m$,no%)
+LOCAL e$
+IF m$<>"" THEN SYS "MessageTrans_Lookup",message_block%,m$+STR$(no%) TO ,,e$
+=e$
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCtick_menu_item(menu%,item%)
+:
+LOCAL loop%
+:
+loop%=0
+REPEAT
+ PROCset_menu_state(menu%,loop%,loop%=item%,FALSE)
+ loop%+=1
+UNTIL (menu%!(28+24*(loop%-1)) AND &80)
+ENDPROC
+:
+:
+:
+:
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCstore_long_string(heap%,RETURN base%,RETURN ptr%,string%)
+:
+LOCAL length%
+:
+length%=0
+WHILE string%?length%>=32
+ length%+=1
+ENDWHILE
+length%+=1
+:
+PROCextend_block(heap%,length%,base%)
+:
+PROCcopy_long_string(string%,base%+ptr%,length%)
+ptr%+=length%
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCcopy_long_string(from%, to%, buf_length%)
+:
+LOCAL p%
+:
+p%=-1
+REPEAT
+ p%+=1
+ to%?p%=from%?p%
+UNTIL from%?p%<32 OR p%>=buf_length%
+IF to%?p%>=32 THEN to%?p%=0
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCstore_string(heap%,RETURN base%,RETURN ptr%,string$)
+:
+LOCAL length%
+:
+length%=LEN(string$)+1
+PROCextend_block(heap%,length%,base%)
+:
+$(base%+ptr%)=string$
+ptr%+=length%
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNextract_string(base%,RETURN ptr%)
+:
+LOCAL string$
+:
+string$=$(base%+ptr%)
+ptr%+=LEN(string$)+1
+:
+=string$
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNextract_long_string(base%,RETURN ptr%)
+:
+LOCAL string%
+:
+string%=base%+ptr%
+:
+WHILE base%?ptr%>=32
+ ptr%+=1
+ENDWHILE
+ptr%+=1
+:
+=string%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCstore_word(heap%,RETURN base%,RETURN ptr%,word%)
+:
+PROCextend_block(heap%,4,base%)
+:
+base%!ptr%=word%
+ptr%+=4
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNextract_word(base%,RETURN ptr%)
+:
+LOCAL word%
+:
+word%=base%!ptr%
+ptr%+=4
+:
+=word%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCstore_byte(heap%,RETURN base%,RETURN ptr%,byte%)
+:
+PROCextend_block(heap%,1,base%)
+:
+base%?ptr%=byte%
+ptr%+=1
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+REM Heap code interface
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCcreate_heap(E%,$q%,B%,C%)
+A%=q%
+CALL heap_code%+create_heap%
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCremove_heap(A%)
+CALL heap_code%+remove_heap%
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNclaim_block(A%,B%)
+REMOSCLI"Report pre"+STR$A%!12
+C%=USR(heap_code%+claim_block%)
+REMOSCLI"Report Claim "+STR$~(C%)+" ["+STR$(B%)+" bytes]"
+REMOSCLI"Report post"+STR$A%!12
+REMOSCLI"Report -------------------"
+=C%
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCextend_block(A%,B%,RETURN C%)
+C%=USR(heap_code%+extend_block%)
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNblock_size(A%,C%)
+=USR(heap_code%+block_size%)
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF PROCfree_block(A%,C%)
+REMOSCLI ("Report Free "+STR$C%)
+CALL heap_code%+free_block%
+ENDPROC
+:
+:
+:
+:
+REM ====================================================================================================================
+REM Main code interface
+REM ====================================================================================================================
+:
+:
+:
+:
+DEF PROCadd_date_offset(A%,B%)
+C%=0
+CALL main_code%+add_date_value%
+ENDPROC
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNcheck_file(C%,D%,throw_errors%,multitask%,RETURN data_block%,RETURN data_ptr%,dir$)
+:
+REM Check the given file, handling the errors appropriately.
+:
+LOCAL return%
+:
+return%=USR(main_code%+check_file%)
+:
+REM return% is either 0 (file not a match), 1 (file is a match) or >1 (an error pointer if a problem occurred).
+REM If it's an error pointer, do something with the error.
+:
+IF (return%<>0 AND return%<>1) THEN
+ IF throw_errors% THEN
+  recover%=TRUE
+  ERROR !return%, FNzero_string(return%+4)
+ ELSE
+  IF NOT multitask% THEN SYS "OS_Byte",229,1,0
+  PROCadd_results_entry(data_block%,data_ptr%,dir$+": '"+FNctrl_string(return%+4)+"'","error",%011)
+  IF NOT multitask% THEN SYS "OS_Byte",229,0,0
+  =1 : REM Exit not equalling TRUE or FALSE, so that the caller can fall out.
+ ENDIF
+ENDIF
+=(return%=0)
+:
+:
+:
+:
+REM --------------------------------------------------------------------------------------------------------------------
+:
+:
+:
+:
+DEF FNcompare(A%,B%)
+=(USR(main_code%+string_compare%)=1)
+

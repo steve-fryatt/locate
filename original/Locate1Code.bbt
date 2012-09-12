@@ -1,0 +1,1275 @@
+REM >FindCode
+REM File Find code block
+REM
+REM (c) Stephen Fryatt, 2001
+REM
+REM Needs ExtBasAsm to assemble.
+REM
+REM Version 0.89b
+REM 8 December 2004
+:
+LIBRARY "<Reporter$Dir>.AsmLib"
+:
+debug%=FALSE
+:
+ON ERROR PRINT REPORT$+" at line "+STR$(ERL) : END
+:
+REM --------------------------------------------------------------------------------------------------------------------
+
+assem_icon_spacing%=4
+assem_icon_topoffset%=0
+
+rdrw_b=1
+rdrw_icon_def=2
+rdrw_data_block=3
+rdrw_list=4
+
+rdrw_top=10
+rdrw_base=11
+rdrw_line=12
+
+
+REM --------------------------------------------------------------------------------------------------------------------
+:
+code_size%=6000
+:
+DIM code% code_size%
+:
+IF debug% THEN PROCReportInit(200)
+FOR pass%=%11100 TO %11110 STEP 2
+O%=code%
+P%=0
+L%=code%+code_size%
+IF debug% THEN PROCReportStart(pass%)
+[OPT pass%
+EXT 1
+          B         window_redraw
+          B         add_date_value
+          B         search_files
+          B         check_file
+          B         string_compare
+          B         format_icons_35
+          B         format_icons_31
+          B         subtract_date
+
+\-----------------------------------------------------------------------------------------------------------------------
+\ R0 == more%
+\ R1 -> b%
+\ R2 -> icon_def%
+\ R3 -> data_block%
+\ R4 -> redraw_list%
+\
+\ R10 top
+\ R11 base
+\ R12 line
+; ----------------------------------------------------------------------------------------------------------------------
+
+.window_redraw
+          STMFD     R13!,{R14}
+
+          LDR       rdrw_list,[rdrw_data_block,#4]
+          STMFD     R13!,{rdrw_list}
+
+;          SWI       "Wimp_RedrawWindow"
+
+.outer_redraw_loop
+          TEQ       R0,#0
+          BEQ       outer_redraw_loop_exit
+
+          LDMFD     R13,{rdrw_list}
+
+          LDR       R5,[rdrw_b,#16]               ; R0 = oy%
+          LDR       R6,[rdrw_b,#24]
+          SUB       R0,R5,R6
+;         ADD       R0,R0,#assem_icon_topoffset%
+
+          LDR       R5,[rdrw_data_block,#40]      ; R5 = Line height
+
+          LDR       R6,[rdrw_b,#40]               ; Calculate top%
+          SUB       R6,R0,R6
+          DIV       rdrw_top,R7,R6,R5,R8
+
+          CMP       rdrw_top,#0
+          MOVLT     rdrw_top,#0
+
+          LDR       R6,[rdrw_b,#32]               ; Calculate base%
+          SUB       R6,R0,R6
+          DIV       rdrw_base,R7,R6,R5,R8
+
+          LDR       R5,[rdrw_data_block,#12]
+          CMP       rdrw_base,R5
+          SUBGE     rdrw_base,R5,#1
+
+          MOV       rdrw_line,rdrw_top
+          ADD       rdrw_list,rdrw_list,rdrw_line, LSL #5   ; Redraw list + line * 32
+
+.inner_redraw_loop
+          CMP       rdrw_line,rdrw_base
+          BGT       inner_redraw_loop_exit
+
+          LDR       R5,[rdrw_icon_def,#4]         ; R5 = Minimum y coordinate
+          LDR       R6,[rdrw_icon_def,#12]        ; R6 = Maximum y coordinate
+          SUB       R0,R6,R5                      ; R0 = Results icon height
+          LDR       R6,[rdrw_data_block,#40]      ; R6 = line height
+
+          MVN       R7,rdrw_line                  ; R7 = -line
+          ADD       R7,R7,#1
+
+          MUL       R6,R7,R6                      ; R6 = line height * -line
+
+          STR       R6,[rdrw_icon_def,#12]        ; Store maximum y coordinate
+          SUB       R5,R6,R0
+          STR       R5,[rdrw_icon_def,#4]
+
+          ; Point the icon's validation string to the sprite name.
+
+          LDR       R5,[rdrw_list,#4]
+          ADD       R5,R5,rdrw_data_block
+          STR       R5,[rdrw_icon_def,#24]
+
+          ; Check the size of the sprite and set or clear the half size flag as appropriate.
+          ; Also check the selected state and do the same for the select flag.
+
+          LDR       R5,[rdrw_list,#8]             ; Load the object flags and the icon flags.
+          LDR       R6,[rdrw_icon_def,#16]
+
+          TST       R5,#%000000001                ; Sprite to be plotted half size.
+          ORREQ     R6,R6,#&800
+          BICNE     R6,R6,#&800
+
+          TST       R5,#%000000010                ; Iten is a warning; show in red.
+          BIC       R6,R6,#&F000000
+          ORREQ     R6,R6,#&7000000
+          ORRNE     R6,R6,#&B000000
+
+          TST       R5,#%100000000                ; Icon is selected.
+          BICEQ     R6,R6,#&200000
+          ORRNE     R6,R6,#&200000
+
+          TST       R5,#&200                      ; Icon is shaded.
+          BICEQ     R6,R6,#&400000
+          ORRNE     R6,R6,#&400000
+
+          STR       R6,[rdrw_icon_def,#16]        ; Store the icon flags.
+
+          ; Check if the text is offset.
+
+          ; R8 = Stack space
+          ; R9 = Offset
+
+          LDR       R9,[rdrw_list,#12]            ; R9 = Offset
+
+          LDR       R5,[rdrw_list,#0]             ; Point R5 to the start of the text
+          ADD       R5,R5,rdrw_data_block
+
+          TEQ       R9,#0                         ; Check if the offset is != 0 and if not, skip the
+          BEQ       redraw_no_text_offset         ; truncation code.
+
+          LDR       R8,[rdrw_list,#4]             ; Work out how many characters will be needed in the buffer
+          SUB       R8,R8,R9                      ; buff_size=validation_start-offset+3
+          ADD       R8,R8,#6                      ; +3 AND (NOT %11)
+          BIC       R8,R8,#%11                    ; R8 = amount to claim off stack.
+
+          SUB       R13,R13,R8                    ; Claim buffer off stack.
+
+          ADD       R5,R5,R9                      ; Add the offset to R5
+          MOV       R6,R13                        ; Point R6 to the start of the stack buffer
+
+          MOV       R0,#ASC(".")                  ; Copy three prepend characters to the buffer...
+          STRB      R0,[R6],#1
+          STRB      R0,[R6],#1
+          STRB      R0,[R6],#1
+
+.redraw_copy_loop
+          LDRB      R0,[R5],#1                    ; ...then copy the remaining string in afterwards...
+          STRB      R0,[R6],#1
+
+          CMP       R0,#32
+          BGE       redraw_copy_loop
+
+          STR       R13,[rdrw_icon_def,#20]       ; ...and put the stack buffer pointer into the icon block
+
+          B         plot_icon
+
+.redraw_no_text_offset
+          STR       R5,[rdrw_icon_def,#20]        ; Point the icon buffer to the original string
+
+.plot_icon
+          MOV       R5,rdrw_b                     ; Plot the icon, first storing the block pointer safely away.
+          MOV       R1,rdrw_icon_def              ; NB; R5 is out of bounds now...
+          SWI       "Wimp_PlotIcon"
+
+          TEQ       R9,#0                         ; If space was claimed from the stack, return it.
+          ADDNE     R13,R13,R8
+
+          LDR       R1,[rdrw_data_block,#36]      ; Check to see if the Full Info bit of the flag word is set
+          TST       R1,#%1                        ; and skip the full info redraw code if not.
+          BEQ       end_of_full_info
+
+          LDR       R8,[rdrw_data_block,#44]      ; R8 -> Full info list
+
+.plot_full_info1
+          LDR       R6,[rdrw_list,#16]
+          TEQ       R6,#0
+          BEQ       plot_full_info2
+
+          ADD       R1,rdrw_icon_def,#32          ; Find the first icon definition.
+
+          ADD       R6,R6,R8
+          STR       R6,[R1,#20]                   ; Set the icon text pointer to the text.
+
+          LDR       R7,[R1,#4]                    ; R7 = Minimum y coordinate
+          LDR       R6,[R1,#12]                   ; R6 = Maximum y coordinate
+          SUB       R0,R6,R7                      ; R0 = Results icon height
+
+          LDR       R6,[rdrw_icon_def,#4]         ; R6 = Bottom of icon above.
+          ADD       R6,R6,#4                      ; R6 = Top of this icon.
+
+          STR       R6,[R1,#12]                   ; Store maximum y coordinate
+          SUB       R7,R6,R0
+          STR       R7,[R1,#4]
+
+          LDR       R6,[rdrw_list,#8]             ; Load the object flags and the icon flags.
+          LDR       R7,[rdrw_icon_def,#(32+16)]
+
+          TST       R6,#%000000010                ; Iten is a warning; show in red.
+          BIC       R7,R7,#&F000000
+          ORREQ     R7,R7,#&7000000
+          ORRNE     R7,R7,#&B000000
+
+          TST       R6,#&200                      ; Icon is shaded.
+          BICEQ     R7,R7,#&400000
+          ORRNE     R7,R7,#&400000
+
+          STR       R7,[rdrw_icon_def,#(32+16)]
+
+          SWI       "Wimp_PlotIcon"
+
+.plot_full_info2
+          LDR       R6,[rdrw_list,#20]
+          TEQ       R6,#0
+          BEQ       plot_full_info3
+
+          ADD       R1,rdrw_icon_def,#64          ; Find the first icon definition.
+
+          ADD       R6,R6,R8
+          STR       R6,[R1,#20]                   ; Set the icon text pointer to the text.
+
+          LDR       R7,[R1,#4]                    ; R7 = Minimum y coordinate
+          LDR       R6,[R1,#12]                   ; R6 = Maximum y coordinate
+          SUB       R0,R6,R7                      ; R0 = Results icon height
+
+          LDR       R6,[rdrw_icon_def,#4]         ; R6 = Bottom of icon above.
+          ADD       R6,R6,#4                      ; R6 = Top of this icon.
+
+          STR       R6,[R1,#12]                   ; Store maximum y coordinate
+          SUB       R7,R6,R0
+          STR       R7,[R1,#4]
+
+          ; No shading etc is done yet.
+
+          SWI       "Wimp_PlotIcon"
+
+.plot_full_info3
+          LDR       R6,[rdrw_list,#24]
+          TEQ       R6,#0
+          BEQ       plot_full_info4
+
+          ADD       R1,rdrw_icon_def,#96          ; Find the first icon definition.
+
+          ADD       R6,R6,R8
+          STR       R6,[R1,#20]                   ; Set the icon text pointer to the text.
+
+          LDR       R7,[R1,#4]                    ; R7 = Minimum y coordinate
+          LDR       R6,[R1,#12]                   ; R6 = Maximum y coordinate
+          SUB       R0,R6,R7                      ; R0 = Results icon height
+
+          LDR       R6,[rdrw_icon_def,#4]         ; R6 = Bottom of icon above.
+          ADD       R6,R6,#4                      ; R6 = Top of this icon.
+
+          STR       R6,[R1,#12]                   ; Store maximum y coordinate
+          SUB       R7,R6,R0
+          STR       R7,[R1,#4]
+
+          ; No shading etc is done yet.
+
+          SWI       "Wimp_PlotIcon"
+
+.plot_full_info4
+          LDR       R6,[rdrw_list,#28]
+          TEQ       R6,#0
+          BEQ       end_of_full_info
+
+          ADD       R1,rdrw_icon_def,#128         ; Find the first icon definition.
+
+          ADD       R6,R6,R8
+          STR       R6,[R1,#20]                   ; Set the icon text pointer to the text.
+
+          LDR       R7,[R1,#4]                    ; R7 = Minimum y coordinate
+          LDR       R6,[R1,#12]                   ; R6 = Maximum y coordinate
+          SUB       R0,R6,R7                      ; R0 = Results icon height
+
+          LDR       R6,[rdrw_icon_def,#4]         ; R6 = Bottom of icon above.
+          ADD       R6,R6,#4                      ; R6 = Top of this icon.
+
+          STR       R6,[R1,#12]                   ; Store maximum y coordinate
+          SUB       R7,R6,R0
+          STR       R7,[R1,#4]
+
+          ; No shading etc is done yet.
+
+          SWI       "Wimp_PlotIcon"
+
+.end_of_full_info
+          MOV       rdrw_b,R5                     ; Restore the contemts of R1 from R5.
+
+          ADD       rdrw_line,rdrw_line,#1
+          ADD       rdrw_list,rdrw_list,#32
+          B         inner_redraw_loop
+
+.inner_redraw_loop_exit
+
+          SWI       "Wimp_GetRectangle"
+
+          B         outer_redraw_loop
+
+.outer_redraw_loop_exit
+          LDMFD     R13!,{rdrw_list}
+          LDMFD     R13!,{PC}
+
+\-----------------------------------------------------------------------------------------------------------------------
+\ Add date
+\
+\ R0 -> Date block
+\ R1 == Low word to add
+\ R2 == High byte to add
+\-----------------------------------------------------------------------------------------------------------------------
+.add_date_value
+          LDR       R3,[R0,#0]
+          LDRB      R4,[R0,#4]
+
+          ADDS      R3,R3,R1
+          ADC       R4,R4,R2
+
+          STR       R3,[R0,#0]
+          STRB      R4,[R0,#4]
+
+          MOV       PC,R14
+
+\ ----------------------------------------------------------------------------------------------------------------------
+\ Subtract date
+\
+\ R0 -> Date block
+\ R1 == Number of times
+\ R2 == Unit
+\ ----------------------------------------------------------------------------------------------------------------------
+.subtract_date
+          CMP       R1,#0
+          MOVLE     PC,R14
+
+          ADR       R3,date_units
+          LDR       R5,[R3,R2,LSL #2]
+
+          LDR       R3,[R0,#0]
+          LDRB      R4,[R0,#4]
+
+.subtract_date_loop
+          SUBS      R3,R3,R5
+          SBC       R4,R4,#0
+
+          SUBS      R1,R1,#1
+          BNE       subtract_date_loop
+
+          STR       R3,[R0,#0]
+          STRB      R4,[R0,#4]
+
+          MOV       PC,R14
+
+.date_units
+          EQUD      6000      ; Minutes
+          EQUD      360000    ; Hours
+          EQUD      8640000   ; Days
+          EQUD      60480000  ; Weeks
+          EQUD      259200000 ; Months
+          EQUD      &BBF81E00 ; Years
+
+\-----------------------------------------------------------------------------------------------------------------------
+\
+\
+\
+\
+\-----------------------------------------------------------------------------------------------------------------------
+.search_files
+
+          MOV       R4,#0
+
+.search_loop
+          MOV       R0,#12
+
+
+\-----------------------------------------------------------------------------------------------------------------------
+\ R2 -> Criteria
+\ R3 -> OS_GBPB 11 Block
+\
+\ R0 == 0 - file doesn't match | 1 - file matches
+\-----------------------------------------------------------------------------------------------------------------------
+
+.check_file
+          STMFD     R13!,{R14}
+
+          ; Set up some glovbal values, loaded from the memory block.
+
+          LDR       R10,[R2,#4]         \ R10 = Misc flags
+          LDR       R11,[R2]            \ R11 = Match flags; set to indicate that mach needs to be done.
+          MOV       R12,#0              \ R12 = Result flags; set to indicate match worked.
+
+          ADD       R0,R3,#20
+
+.name_match
+          ; Match the name of the object, using wildcards.
+
+          TST       R11,#&0001          ; Skip to the next match routine if the name is not being compared.
+          BEQ       attribute_match
+
+          LDR       R0,[R2,#580]        ; Point R0 to the ideal match (including the wildcards).
+          ADD       R1,R3,#20           ; Point R1 to the name of the current object.
+
+          BL        string_compare      ; Compare the two pieces of text, and set the correct bit of the
+          TEQ       R0,#0               ; results flags if they matched.
+          ORRNE     R12,R12,#&0001
+          BEQ       exit_check          ; Avoid doing the rest of the checks if the name doesn't match.
+
+
+.attribute_match
+          ; Match the object attributes as required.
+
+          TST       R11,#&1000          ; Skip to the next match routine if the name is not being compared.
+          BEQ       date_match
+
+          LDR       R0,[R3,#12]         ; R0 Contains the attributes.
+          AND       R0,R0,#%00111011
+
+          LDR       R4,[R2,#572]        ; Keep only those attributes that we care about (and assume that the
+          AND       R0,R0,R4            ; flags given to us only contain valid attributes...).
+
+          LDR       R4,[R2,#576]        ; EOR with the ideal set of attributes; zero if a perfect match...
+          EORS      R0,R0,R4
+          ORREQ     R12,R12,#&1000      ; Set the results flag accordingly.
+
+.date_match
+          LDR       R1,[R3,#0]          ; Get the datestamp into R0,R1.
+          LDR       R0,[R3,#4]
+          MOV       R4,#&FF000000       ; Test the top 12 bits of R1 to confirm that it is a stamped file.
+          ORR       R4,R4,#&00F00000
+          AND       R5,R1,R4
+          TEQ       R4,R5
+          BEQ       date_match_eq
+
+.date_match_untyped
+          ORR       R12,R12,#&01E0      ; Just match all untyped (ie. no date stamp) files.
+
+          B         object_type_match
+
+.date_match_eq
+          AND       R1,R1,#&FF
+
+          TST       R11,#&0060
+          BEQ       date_match_gt
+
+          LDR       R4,[R2,#24]
+          LDRB      R5,[R2,#28]
+          TEQ       R0,R4
+          TEQEQ     R1,R5
+
+          AND       R4,R11,#&0020
+          ORREQ     R12,R12,R4
+          AND       R4,R11,#&0040
+          ORRNE     R12,R12,R4
+
+.date_match_gt
+
+          TST       R11,#&0080
+          BEQ       date_match_lt
+
+          LDR       R4,[R2,#40]
+          LDRB      R5,[R2,#44]
+          CMP       R1,R5
+          CMPEQ     R0,R4
+
+          ORRHI     R12,R12,#&0080
+
+.date_match_lt
+
+          TST       R11,#&0100
+          BEQ       object_type_match
+
+          LDR       R4,[R2,#48]
+          LDRB      R5,[R2,#52]
+          CMP       R1,R5
+          CMPEQ     R0,R4
+
+          ORRLO     R12,R12,#&0100
+
+.object_type_match
+          ; Match the object type (file/dir/app).  This check is used to short-circuit all the file-dependent
+          ; checks later on (size), as well as for weeding out any objects that don't match the
+          ; search criteria.  For this reason, we don't selectively carry out the file/not-file test.
+
+;         TST       R11,#&0800          ; Skip to the next match routine if the name is not being compared.
+;         BEQ       file_type_match
+
+          LDR       R0,[R2,#56]         ; R0 contains flags showing what types we want to match.
+          LDR       R1,[R3,#16]         ; R1 contains the object type for the current object.
+
+.object_1
+          TEQ       R1,#2               ; Check if the object is a file (ie it's 1 or 3, not 2)...
+          BEQ       object_2
+
+          TST       R0,#%001            ; ...and if so check if we want files.  Set the correct bit of the results
+          ORRNE     R12,R12,#&0800      ; accordingly and continue with the checks (which all apply to files).
+          B         file_type_match
+
+.object_2
+          LDRB      R1,[R3,#20]         ; R1 contains the first character of the filename (! if an app).
+
+          TEQ       R1,#ASC("!")        ; Check if the object is a directory (ie. not an application)...
+          BEQ       object_3
+
+          TST       R0,#%010            ; ...and set the results accordingly.  Now we skip the rest of the tests
+          ORRNE     R12,R12,#&0800      ; as they don't apply to directories.
+          B         exit_object
+
+.object_3
+          TST       R0,#%100            ; It's an app, so set the results accordingly.  Now we skip the rest of the
+          ORRNE     R12,R12,#&0800      ; tests as they don't apply to applications.
+
+.exit_object
+
+          ORR       R12,R12,#&001E      ; Before leaving, force matches for date, size and filetype as these do
+          ORR       R12,R12,#&0600      ; not apply to apps/dirs.
+          B         exit_check
+
+.file_type_match
+          MOV       R0,#&FF000000
+          ORR       R0,R0,#&00F00000
+          MOV       R4,R0
+
+          LDR       R1,[R3,#0]
+
+          AND       R5,R1,R0            ; If the top 12 bits aren't set, this is an unstamped file which we can't
+          TEQ       R4,R5               ; match yet...
+          BEQ       file_type_match_typed
+
+.file_type_match_untyped
+          LDR       R0,[R2,#56]         ; R0 contains flags showing what types we want to match and untyped file bit.
+
+          TST       R0,#&100            ; If unityped file bit is set, indicate a type match.
+          ORRNE     R12,R12,#&0200
+
+          B         size_match_eq
+
+.file_type_match_typed
+          MOV       R0,R0,LSR #20       ; Get the filetype bits out of the
+          AND       R1,R0,R1,LSR #8     ; The found filetype
+
+
+          TST       R11,#&0200          ; Check if we're matching filetype
+          BEQ       size_match_eq
+
+          MOV       R5,R1,LSR #3        ; Get the word number of the type (assuming one bit per type)
+          BIC       R5,R5,#%11          ; Into R5.
+
+          AND       R6,R1,#%11111       ; Get the bit number into R6
+
+          ADD       R5,R5,#60           ; Add the offset into the data block (type bits start at byte 60)
+          LDR       R0,[R2,R5]          ; and load the relevent word into R0.
+
+          MOV       R7,#1               ; Get a bit in R7 set for the current type and test it against the
+          TST       R0,R7,LSL R6        ; word loaded from the parameters.
+
+          ORRNE     R12,R12,#&0200
+;         ORREQ     R12,R12,#&0400      ; Ignore the 'not type, we don't use it.
+
+.size_match_eq
+          LDR       R1,[R3,#8]
+
+          TST       R11,#&0006
+          BEQ       size_match_gt
+
+          LDR       R0,[R2,#8]
+          TEQ       R0,R1
+
+          AND       R4,R11,#&0002
+          ORREQ     R12,R12,R4
+          AND       R4,R11,#&0004
+          ORRNE     R12,R12,R4
+
+.size_match_gt
+          TST       R11,#&0008
+          BEQ       size_match_lt
+
+          LDR       R0,[R2,#16]
+          CMP       R1,R0
+          ORRHI     R12,R12,#&0008
+
+.size_match_lt
+          TST       R11,#&0010
+          BEQ       contents_match
+
+          LDR       R0,[R2,#20]
+          CMP       R1,R0
+          ORRLO     R12,R12,#&0010
+
+.contents_match
+          TST       R11,#&2000
+          BEQ       exit_check
+
+          MOV       R8,R12
+
+          TST       R10,#&0001          \ Is the size logic OR?
+          TSTNE     R8,#&001E           \ Are any of the size matches OK?
+          AND       R9,R11,#&001E
+          ORRNE     R8,R8,R9            \ If yes to both, set all the size matches.
+
+          TST       R10,#&0002          \ Is the date logic OR?
+          TSTNE     R8,#&01E0           \ Are any of the date matches OK?
+          AND       R9,R11,#&01E0
+          ORRNE     R8,R8,R9            \ If yes to both, set all the size matches.
+
+          ORR       R8,R8,#&2000        \ Assume a match for the contents
+
+          BICS      R8,R11,R8
+          BNE       exit_check
+
+
+          LDR       R0,[R2,#584]
+          LDR       R1,[R2,#588]
+          LDR       R3,[R2,#596]
+          MOV       R4,#&4000           ; Buffer fixed at 16k long for time being
+          BL        wrap_grep
+
+          CMP       R0,#1               ; If RO contains an error pointer, get out now with it intact.
+          BHI       return_to_basic
+
+          LDR       R1,[R2,#592]        ; Set the match OK flag if the match was what we wanted.
+          TEQ       R0,R1
+          ORREQ     R12,R12,#&2000
+
+
+\ The value returned is 0 if a match occurred using AND logic.  All the bits are cleared from the original search
+\ flags by the matched results, any left set failed.
+
+.exit_check
+;         LDR       R10,[R2,#4]         \ R10 = Logic flags
+
+          TST       R10,#&0001          \ Is the size logic OR?
+          TSTNE     R12,#&001E          \ Are any of the size matches OK?
+          AND       R9,R11,#&001E
+          ORRNE     R12,R12,R9          \ If yes to both, set all the size matches.
+
+          TST       R10,#&0002          \ Is the date logic OR?
+          TSTNE     R12,#&01E0          \ Are any of the date matches OK?
+          AND       R9,R11,#&01E0
+          ORRNE     R12,R12,R9          \ If yes to both, set all the date matches.
+
+          BIC       R0,R11,R12          ; Set the return value.  If all the matches were OK, R0 will be 0
+          TEQ       R0,#0               ; BIC->0.  If not, set RO=1 to differentiate from an error pointer.
+          MOVNE     R0,#1
+
+.return_to_basic
+          LDMFD     R13!,{R14}
+          TEQ       PC,PC
+          MOVNES    PC,R14
+          MSR       CPSR_f,#0
+          MOV       PC,R14
+
+\-----------------------------------------------------------------------------------------------------------------------
+\ Internal
+\ String comparison routine
+\
+\ R0 -> First string (original, lower case, contains wildcards)
+\ R1 -> Second string (string to compare, any case, no wildcards)
+\ R10 = Options flags
+\
+\ R0 == 0 - strings different | 1 - strings equal
+\-----------------------------------------------------------------------------------------------------------------------
+
+.string_compare
+          STMFD     R13!,{R1-R11,R14}
+
+          MOV       R2,R0
+          MVN       R0,#NOT-1
+          SWI       "Territory_LowerCaseTable"
+          MOV       R9,R0
+          MOV       R0,R2
+
+          BL        stringcomp
+
+          MOV       R0,R8
+
+          LDMFD     R13!,{R1-R11,PC}             \ Return to BASIC
+
+\-----------------------------------------------------------------------------------------------------------------------
+\ Internal
+\ String comparison routine
+\
+\ R0 -> First string (original, lower case, contains wildcards)
+\ R1 -> Second string (string to compare, any case, no wildcards)
+\ R9 -> Lowercase table
+\ R10== Options flags
+\
+\ R8 == 0 - strings different | 1 - strings equal
+\-----------------------------------------------------------------------------------------------------------------------
+
+.stringcomp
+          STMFD     R13!,{R0-R7,R14}              \ Subroutine; R0 -> s1; R1 -> s2
+
+          LDRB      R2,[R0]                       \ R2 = c1
+          LDRB      R3,[R1]                       \ R3 = c2
+
+          TST       R10,#&0004                    ; If required...
+          LDRNEB    R3,[R9,R3]                    \ Convert c2 to lower case
+
+.islower                                          \ c1 & c2 are both lower case
+          CMP       R3,#32                        \ If c2 is null, check match
+          BGE       notnull
+
+.striploop
+          LDRB      R5,[R0]                       \ While s1 = '*'
+          TEQ       R5,#ASC("*")
+          BNE       endstrip
+          ADD       R0,R0,#1
+          B         striploop
+
+.endstrip
+          MOV       R8,#0                         \ return (*s1 == 0)
+          LDRB      R5,[R0]
+          CMP       R5,#32
+          MOVLT     R8,#1
+          LDMFD     R13!,{R0-R7,PC}
+
+.notnull
+          TEQ       R2,R3                         \ If (c1 == c2 || c1 == '#')
+          TEQNE     R2,#ASC("#")
+          BNE       notequal
+
+          ADD       R0,R0,#1                      \ Return strcmp(s1+1, s2+1)
+          ADD       R1,R1,#1
+          BL        stringcomp
+          LDMFD     R13!,{R0-R7,PC}
+
+.notequal
+          TEQ       R2,#ASC("*")                  \ if (c1 == '*')
+
+          MOVNE     R8,#0                         \ If not, return FALSE
+          LDMNEFD   R13!,{R0-R7,PC}
+
+          LDRB      R5,[R0,#1]                    \ If s1+1 == 0, return TRUE
+          CMP       R5,#32
+          MOVLT     R8,#1
+          LDMLTFD   R13!,{R0-R7,PC}
+
+          MOV       R4,#0                         \ ok = FALSE
+          ADD       R0,R0,#1
+
+.whilewild
+          TEQ       R4,#0                         \ while (!ok && *S2 != 0)
+          BNE       endwild
+          LDRB      R5,[R1]
+          CMP       R5,#32
+          BLT       endwild
+
+          BL        stringcomp                    \ ok = ok OR strcmp(s1+1, s2)
+          ORR       R4,R4,R8
+
+          ADD       R1,R1,#1                      \ s2++
+
+          B         whilewild
+
+.endwild
+          MOV       R8,R4                         \ return OK
+          LDMFD     R13!,{R0-R7,PC}
+
+; ----------------------------------------------------------------------------------------------------------------------
+; Internal
+;
+; File contents comparison routine
+;
+; ----------------------------------------------------------------------------------------------------------------------
+
+\ R0 -> First string (original, lower case, contains wildcards)
+\ R1 -> Filename to search
+; R3 -> Buffer for file storage
+; R4 == Buffer size
+\
+\ R0 == 0 - strings different | 1 - strings equal | R0>1 - Error block pointer
+\-----------------------------------------------------------------------------------------------------------------------
+
+.wrap_grep
+          STMFD     R13!,{R1-R11,R14}
+
+          MOV       R5,R0
+
+          MOV       R0,#&4F
+          SWI       "XOS_Find"
+
+          LDMVSFD   R13!,{R1-R11,PC}
+
+          BL        init_file_load
+
+          MVN       R0,#NOT-1
+          SWI       "Territory_LowerCaseTable"
+          MOV       R9,R0
+
+          MOV       R0,R5
+          MOV       R1,#0
+          BL        grep
+
+          ADR       R0,load_buf_header
+          LDR       R1,[R0,#20]
+          MOV       R0,#0
+          SWI       "OS_Find"
+
+          MOV       R0,R8
+
+          LDMFD     R13!,{R1-R11,PC}
+
+\-----------------------------------------------------------------------------------------------------------------------
+\ Internal
+\ String comparison routine
+\
+\ R0 -> First string (original, lower case, contains wildcards)
+\ R1 -> Second string (string to compare, any case, no wildcards)
+\ R9 -> Lowercase table
+; R10 = Comparison options
+\
+\ R8 == 0 - strings different | 1 - strings equal
+\-----------------------------------------------------------------------------------------------------------------------
+
+.grep
+          STMFD     R13!,{R0-R7,R14}              \ Subroutine; R0 -> s1; R1 -> s2
+
+          LDRB      R2,[R0]                       \ R2 = c1
+          BL        get_file_byte                 ; R3 = c2
+
+          TST       R10,#&0008                    ; If required...
+          LDRNEB    R3,[R9,R3]                    \ Convert c2 to lower case
+
+.gislower                                         \ c1 & c2 are both lower case
+          TEQ       R3,#&100                      \ If c2 is null, check match
+          BNE       gnotnull
+
+.gstriploop
+          LDRB      R5,[R0]                       \ While s1 = '*'
+          TEQ       R5,#ASC("*")
+          BNE       gendstrip
+          ADD       R0,R0,#1
+          B         gstriploop
+
+.gendstrip
+          MOV       R8,#0                         \ return (*s1 == 0)
+          LDRB      R5,[R0]
+          TEQ       R5,#0
+          MOVEQ     R8,#1
+          LDMFD     R13!,{R0-R7,PC}
+
+.gnotnull
+          TEQ       R2,R3                         \ If (c1 == c2 || c1 == '#')
+          TEQNE     R2,#ASC("#")
+          BNE       gnotequal
+
+          ADD       R0,R0,#1                      \ Return strcmp(s1+1, s2+1)
+          ADD       R1,R1,#1
+          BL        grep
+          LDMFD     R13!,{R0-R7,PC}
+
+.gnotequal
+          TEQ       R2,#ASC("*")                  \ if (c1 == '*')
+
+          MOVNE     R8,#0                         \ If not, return FALSE
+          LDMNEFD   R13!,{R0-R7,PC}
+
+          LDRB      R5,[R0,#1]                    \ If s1+1 == 0, return TRUE
+          TEQ       R5,#0
+          MOVEQ     R8,#1
+          LDMEQFD   R13!,{R0-R7,PC}
+
+          MOV       R4,#0                         \ ok = FALSE
+          ADD       R0,R0,#1
+
+.gwhilewild
+          TEQ       R4,#0                         \ while (!ok && *S2 != 0)
+          BNE       gendwild
+          BL        get_file_byte
+          TEQ       R3,#&100
+          BEQ       gendwild
+
+          BL        grep                          \ ok = ok OR strcmp(s1+1, s2)
+          ORR       R4,R4,R8
+
+          ADD       R1,R1,#1                      \ s2++
+
+          B         gwhilewild
+
+.gendwild
+          MOV       R8,R4                         \ return OK
+          LDMFD     R13!,{R0-R7,PC}
+
+
+; ----------------------------------------------------------------------------------------------------------------------
+
+.init_file_load
+
+; Call to set up the buffer parameter block and fill the buffer with data beofre starting the search.
+
+; => R0 =  File handle
+;    R3 -> buffer
+;    R4 -> buffer size
+
+          STMFD     R13!,{R0-R5,R14}
+
+; Store the file handle, buffer size and buffer address.
+
+          ADR       R1,load_buf_header
+          STR       R0,[R1,#20]
+          STR       R3,[R1,#0]
+          STR       R4,[R1,#4]
+
+; Find the length of the file and reord that.
+
+          MOV       R1,R0
+          MOV       R0,#2
+          SWI       "OS_Args"
+
+          ADR       R0,load_buf_header
+          STR       R2,[R0,#16]
+
+; Load a buffer-full of data into memory.  If the file is smaller than the buffer, OS_GBPB will just stop.
+
+          LDR       R1,[R0,#20]
+          LDR       R2,[R0,#0]
+          MOV       R3,R4
+          MOV       R4,#0
+          MOV       R0,#3
+          SWI       "OS_GBPB"
+
+; Record the start and end file pointers in the buffer data block.
+
+          ADR       R0,load_buf_header
+          STR       R4,[R0,#12]
+          MOV       R2,#0
+          STR       R2,[R0,#8]
+
+          LDMFD     R13!,{R0-R5,PC}
+
+; ----------------------------------------------------------------------------------------------------------------------
+
+.load_buf_header
+          EQUD      0         ;  0 -> buffer
+          EQUD      0         ;  4 =  buf_size
+          EQUD      0         ;  8 =  buf_start
+          EQUD      0         ; 12 =  buf_end
+          EQUD      0         ; 16 =  file size
+          EQUD      0         ; 20 =  file handle
+
+; ----------------------------------------------------------------------------------------------------------------------
+
+.get_file_byte
+
+; Return a given byte from the file initialised by .init_file_load, getting the correct part into the memory
+; buffer if required
+;
+; => R1 = Byte to get
+;
+; <= R3 = Value of byte (&100 for EOF)
+
+          STMFD     R13!,{R0-R2,R4,R6-R7,R14}
+
+; First, check if the byte is past the end of the file.  If it is, return the EOF code of &100.
+
+          ADR       R0,load_buf_header
+          LDR       R3,[R0,#16]
+          CMP       R1,R3
+          BLT       get_actual_byte
+
+          MOV       R3,#&100
+          LDMFD     R13!,{R0-R2,R4,R6-R7,PC}
+
+; Check if the byte is in memory already.  If so, we can skip the OS_GBPB routine.
+
+.get_actual_byte
+          LDR       R3,[R0,#8]
+          CMP       R1,R3
+          BLT       load_new_file_buffer
+
+          LDR       R3,[R0,#12]
+          CMP       R1,R3
+          BLT       get_and_return_byte
+
+; If the byte isn't in the buffer, load a buffer full of the file starting at the requested byte.
+;
+; This could be made more intelligent, as it currently stops when the file ends even if there is space left in the
+; buffer.  This should perhaps move the buffer start back to always use the maximum possible.
+
+.load_new_file_buffer
+          SUBS      R4,R1,#20           ; R4 is set to the first byte to load into the block; if this is less than
+          MOVMI     R4,#0               ; zero, it is set to zero.  The byte is the requested one minus a small offset
+          MOV       R7,R4               ; to allow for some movement backwards without more disc access.
+
+          MOV       R6,R1
+          LDR       R1,[R0,#20]
+          LDR       R2,[R0,#0]
+          LDR       R3,[R0,#4]
+          MOV       R0,#3
+          SWI       "OS_GBPB"
+
+; Record the new buffer data extent.
+
+          ADR       R0,load_buf_header
+          STR       R4,[R0,#12]
+          STR       R7,[R0,#8]
+
+          MOV       R1,R6
+
+; Finally, load the byte into R3 and return it.
+
+.get_and_return_byte
+          ADR       R0,load_buf_header
+          LDR       R2,[R0,#8]
+          SUB       R1,R1,R2                      ; Get the offset into the buffer (byte-buffer_start).
+
+          LDR       R0,[R0,#0]
+          LDRB      R3,[R0,R1]
+
+          LDMFD     R13!,{R0-R2,R4,R6-R7,PC}
+
+
+
+
+; ----------------------------------------------------------------------------------------------------------------------
+; R6 -> redraw%
+; R5 -> data_block%
+; R3 =  icon_width%
+; ----------------------------------------------------------------------------------------------------------------------
+.format_icons_35
+          STMFD     R13!,{R14}
+
+          LDR       R7,[R5,#12]         ; Total Matches so far
+          LDR       R4,[R5,#28]         ; Data ptr so far
+          ADD       R4,R4,R5            ; Data_block%+data_ptr%
+          LDR       R12,[R5,#24]        ; Loop counter (matches checked so far)
+          LDR       R6,[R5,#4]          ; Redraw%
+          ADD       R6,R6,R12,ASL #5    ; Make redraw% point to the end of the current data
+          MOV       R9,#0               ; Count for the number of messages (errors) found.
+
+.format_loop_35
+          SUB       R2,R4,R5            ; Get offset to name and store it in results!0
+          STR       R2,[R6,#0]
+
+; Work out print offset and store it in results!12.  This is based on the display length of the text in the
+; current Desktop font.
+
+          MOV       R11,#0              ; R11 =  String length (characters)
+          MOV       R8,R4               ; R8  -> String
+
+.format_loop_35_1                       ; Step through the string, updating the data_ptr%+offset% value in
+          LDRB      R2,[R4],#1          ; R4 as we go and counting the number of characters.
+          ADD       R11,R11,#1
+          CMP       R2,#32
+          BGE       format_loop_35_1
+
+          ; Copy the string onto the stack, and append the ellipsis.
+
+          ADD       R11,R11,#3          ; Claim enough stack space for string and ellipsis
+          SUB       R13,R13,R11         ; R11 remembers how much we claimed.
+
+          MOV       R0,R13              ; R0 -> Stack base (new string) copy
+
+.format_loop_35_2
+          LDRB      R2,[R8],#1          ; Copy the filename onto the stack
+          STRB      R2,[R0],#1
+          CMP       R2,#32
+          BGE       format_loop_35_2
+
+          SUB       R0,R0,#1
+
+          MOV       R2,#ASC(".")        ; Append the ellipsis
+          STRB      R2,[R0],#1
+          STRB      R2,[R0],#1
+          STRB      R2,[R0],#1
+
+          MOV       R2,#0               ; Terminate with NULL
+          STRB      R2,[R0],#1
+
+          ; Call Wimp_TextOp repeatedly, removing characters from the start of the string, until it fits.
+
+          MOV       R1,R13              ; R1 -> Stack copy + Offset
+                                        ; R2 already = 0
+
+.format_loop_35_3
+          MOV       R0,#1
+          SWI       "Wimp_TextOp"
+
+          ADD       R0,R0,#48           ; Sprite width (assumed)
+          CMP       R0,R3
+          ADDGT     R1,R1,#1
+          BGT       format_loop_35_3
+
+          ; Work out print offset and store it in results!12
+
+          SUB       R2,R1,R13
+          STR       R2,[R6,#12]
+
+          ADD       R13,R13,R11         ; Return space to stack
+
+; Calculate and store offset to sprite name in results!4.
+
+          SUB       R2,R4,R5
+          STR       R2,[R6,#4]
+
+          ; Skip past the sprite data and the flag byte.
+
+.format_loop_35_4
+          LDRB      R2,[R4],#1
+          CMP       R2,#32
+          BGT       format_loop_35_4
+
+          ADD       R4,R4,#1            ; Skip the flag byte.
+
+; Load the flag byte and store it in results!8 as a full word.
+
+          LDRB      R2,[R4,#-1]
+          STR       R2,[R6,#8]
+
+          TST       R2,#%10
+          ADDNE     R9,R9,#1
+
+; Store dummy data for the missing fields
+
+;          MOV       R2,#0
+;          STR       R2,[R6,#16]
+;          STR       R2,[R6,#20]
+;          STR       R2,[R6,#24]
+;          STR       R2,[R6,#28]
+
+; Increment the loop counter, add 32 to results to point to the next block and then loop.
+
+          ADD       R6,R6,#32
+          ADD       R12,R12,#1
+          CMP       R12,R7
+          BLT       format_loop_35
+
+          SUB       R4,R4,R5
+          STR       R4,[R5,#28]         ; Data ptr so far
+          STR       R12,[R5,#24]        ; Loop counter (matches checked so far)
+
+          MOV       R0,R9
+
+          LDMFD     R13!,{PC}
+
+; ----------------------------------------------------------------------------------------------------------------------
+; R6 -> redraw%
+; R5 -> data_block%
+; R3 =  icon_width%
+; ----------------------------------------------------------------------------------------------------------------------
+.format_icons_31
+          STMFD     R13!,{R14}
+
+          LDR       R7,[R5,#12]         ; Total Matches so far
+          LDR       R4,[R5,#28]         ; Data ptr so far
+          ADD       R4,R4,R5            ; Data_block%+data_ptr%
+          LDR       R12,[R5,#24]        ; Loop counter (matches checked so far)
+          LDR       R6,[R5,#4]          ; Redraw%
+          ADD       R6,R6,R12,ASL #5    ; Make redraw% point to the end of the current data
+          MOV       R9,#0               ; Count of number of messages (errors) encountered.
+
+.format_loop_31
+          SUB       R2,R4,R5            ; Get offset to name and store it in results!0
+          STR       R2,[R6,#0]
+
+; Work out print offset and store it in results!12.  This is based on the display length of the text in the
+; current Desktop font.
+
+          MOV       R11,#0              ; R11 =  String length (characters)
+          MOV       R8,R4               ; R8  -> String
+
+.format_loop_31_1                       ; Step through the string, updating the data_ptr%+offset% value in
+          LDRB      R2,[R4],#1          ; R4 as we go and counting the number of characters.
+          ADD       R11,R11,#1
+          CMP       R2,#32
+          BGE       format_loop_31_1
+
+          ;
+
+          ADD       R11,R11,#3          ; R3 = Length of string + ellipsis
+
+          ;
+
+          MOV       R0,R11
+          SUB       R2,R3,#48           ; Icon sprite width
+
+.format_loop_31_2
+          CMP       R2,R0,LSL #4
+          SUBLT     R0,R0,#1
+          BLT       format_loop_31_2
+
+          ; Work out print offset and store it in results!12
+
+          SUB       R2,R11,R0
+          STR       R2,[R6,#12]
+
+; Calculate and store offset to sprite name in results!4.
+
+          SUB       R2,R4,R5
+          STR       R2,[R6,#4]
+
+          ; Skip past the sprite data and the flag byte.
+
+.format_loop_31_4
+          LDRB      R2,[R4],#1
+          CMP       R2,#32
+          BGT       format_loop_31_4
+
+          ADD       R4,R4,#1            ; Skip the flag byte.
+
+; Load the flag byte and store it in results!8 as a full word.
+
+          LDRB      R2,[R4,#-1]
+          STR       R2,[R6,#8]
+
+          TST       R2,#%10
+          ADDNE     R9,R9,#1
+
+; Store dummy data for the missing fields
+
+;          MOV       R2,#0
+;          STR       R2,[R6,#16]
+;          STR       R2,[R6,#20]
+;          STR       R2,[R6,#24]
+;          STR       R2,[R6,#28]
+
+; Increment the loop counter, add 32 to results to point to the next block and then loop.
+
+          ADD       R6,R6,#32
+          ADD       R12,R12,#1
+          CMP       R12,R7
+          BLT       format_loop_31
+
+          SUB       R4,R4,R5
+          STR       R4,[R5,#28]         ; Data ptr so far
+          STR       R12,[R5,#24]        ; Loop counter (matches checked so far)
+
+          MOV       R0,R9
+
+          LDMFD     R13!,{PC}
+          ]
+IF debug% THEN
+[OPT pass%
+          FNReportGen
+]
+ENDIF
+NEXT pass%
+:
+SYS "OS_File",10,"<Locate$Dir>.Code",&FFD,,code%,O%
+:
+PRINT "Code assembled: ";O%-code%;" bytes long."
