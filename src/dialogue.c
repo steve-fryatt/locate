@@ -788,6 +788,9 @@ static void dialogue_toggle_size(bool expand)
 
 static void dialogue_set_window(struct dialogue_block *dialogue)
 {
+	if (dialogue == NULL)
+		return;
+
 	icons_printf(dialogue_window, DIALOGUE_ICON_SEARCH_PATH, "%s", dialogue->path);
 
 	icons_printf(dialogue_window, DIALOGUE_ICON_FILENAME, "%s", dialogue->filename);
@@ -1025,6 +1028,9 @@ static void dialogue_write_filetype_list(char *buffer, size_t length, unsigned t
 static osbool dialogue_read_window(struct dialogue_block *dialogue)
 {
 	osbool		success = TRUE;
+
+	if (dialogue == NULL)
+		return FALSE;
 
 	dialogue->pane = icons_get_radio_group_selected(dialogue_window, DIALOGUE_PANES,
 			DIALOGUE_ICON_SIZE, DIALOGUE_ICON_DATE, DIALOGUE_ICON_TYPE,
