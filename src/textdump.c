@@ -175,8 +175,6 @@ unsigned textdump_store(struct textdump_block *handle, char *text)
 			return offset + sizeof(unsigned);
 		}
 
-		debug_printf("sizeof(struct textdump_header) = %u", sizeof(struct textdump_header));
-
 		length = (strlen(text) + sizeof(struct textdump_header)) & 0xfffffffc;
 	} else {
 		length = strlen(text) + 1;
