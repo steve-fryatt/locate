@@ -1026,6 +1026,10 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 {
 	osbool		success = TRUE;
 
+	dialogue->pane = icons_get_radio_group_selected(dialogue_window, DIALOGUE_PANES,
+			DIALOGUE_ICON_SIZE, DIALOGUE_ICON_DATE, DIALOGUE_ICON_TYPE,
+			DIALOGUE_ICON_ATTRIBUTES, DIALOGUE_ICON_CONTENTS);
+
 	if (!flexutils_store_string((flex_ptr) &(dialogue->path), icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_SEARCH_PATH))) {
 		if (success)
 			error_msgs_report_error("NoMemStoreParams");
