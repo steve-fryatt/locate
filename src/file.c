@@ -97,9 +97,10 @@ struct file_block *file_create(void)
  *
  * \param *pointer		The pointer position to open the dialogue at.
  * \param *path			A path to use, or NULL for the default.
+ * \param *template		A template to use, or NULL for the default.
  */
 
-void file_create_dialogue(wimp_pointer *pointer, char *path)
+void file_create_dialogue(wimp_pointer *pointer, char *path, struct file_block *template)
 {
 	struct file_block *new;
 
@@ -107,7 +108,7 @@ void file_create_dialogue(wimp_pointer *pointer, char *path)
 	if (new == NULL)
 		return;
 
-	new->dialogue = dialogue_create(new, path);
+	new->dialogue = dialogue_create(new, path, (template != NULL) ? template->dialogue : NULL);
 	if (new->dialogue == NULL) {
 		file_destroy(new);
 		return;

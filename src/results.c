@@ -37,6 +37,8 @@
 
 #include "results.h"
 
+#include "dialogue.h"
+#include "file.h"
 #include "fileicon.h"
 #include "ihelp.h"
 #include "objdb.h"
@@ -397,6 +399,7 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 	if (handle == NULL)
 		return;
 
+	menus_shade_entry(results_window_menu, RESULTS_MENU_MODIFY_SEARCH, dialogue_window_is_open());
 	menus_shade_entry(results_window_menu, RESULTS_MENU_STOP_SEARCH, !file_search_active(handle->file));
 }
 
@@ -421,6 +424,10 @@ static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 	wimp_get_pointer_info(&pointer);
 
 	switch(selection->items[0]) {
+	case RESULTS_MENU_MODIFY_SEARCH:
+		file_create_dialogue(&pointer, NULL, handle->file);
+		break;
+
 	case RESULTS_MENU_STOP_SEARCH:
 		file_stop_search(handle->file);
 		break;

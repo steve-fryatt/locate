@@ -114,7 +114,7 @@ static void iconbar_click_handler(wimp_pointer *pointer)
 
 	switch (pointer->buttons) {
 	case wimp_CLICK_SELECT:
-		file_create_dialogue(pointer, NULL);
+		file_create_dialogue(pointer, NULL, NULL);
 		break;
 
 	case wimp_CLICK_ADJUST:
@@ -226,7 +226,7 @@ static osbool iconbar_icon_drop_handler(wimp_message *message)
 	if (datasave->file_type <= 0xfff)
 		string_find_pathname(path);
 
-	file_create_dialogue(&pointer, path);
+	file_create_dialogue(&pointer, path, NULL);
 
 	return TRUE;
 }

@@ -464,10 +464,12 @@ void dialogue_initialise(void)
  *
  * \param *file			The file to which the dialogue belongs.
  * \param *path			The search path to use, or NULL for default.
+ * \param *template		A dialogue to copy the settings from, or NULL for
+ *				default values.
  * \return			Pointer to the new block, or NULL on failure.
  */
 
-struct dialogue_block *dialogue_create(struct file_block *file, char *path)
+struct dialogue_block *dialogue_create(struct file_block *file, char *path, struct dialogue_block *template)
 {
 	struct dialogue_block	*new;
 	osbool			mem_ok = TRUE;
@@ -479,7 +481,15 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path)
 	if (path == NULL)
 		path = config_str_read("SearchPath");
 
-	/* Allocate all of the memory that we require. */
+	/* Count the number of filetypes that are in the block, then
+	 * allocate all of the memory that we require.
+	 */
+
+	i = 1;
+
+	if (template != NULL)
+		while (template->type_types[i - 1] != 0xffffffffu)
+			i++;
 
 	new = heap_alloc(sizeof(struct dialogue_block));
 	if (new == NULL)
@@ -491,16 +501,16 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path)
 		new->type_types = NULL;
 		new->contents_text = NULL;
 
-		if (flex_alloc((flex_ptr) &(new->path), strlen(path) + 1) == 0)
+		if (flex_alloc((flex_ptr) &(new->path), strlen((template != NULL) ? template->path : path) + 1) == 0)
 			mem_ok = FALSE;
 
-		if (flex_alloc((flex_ptr) &(new->filename), strlen("") + 1) == 0)
+		if (flex_alloc((flex_ptr) &(new->filename), strlen((template != NULL) ? template->filename : "") + 1) == 0)
 			mem_ok = FALSE;
 
-		if (flex_alloc((flex_ptr) &(new->type_types), sizeof(unsigned)) == 0)
+		if (flex_alloc((flex_ptr) &(new->type_types), i * sizeof(unsigned)) == 0)
 			mem_ok = FALSE;
 
-		if (flex_alloc((flex_ptr) &(new->contents_text), strlen("") + 1) == 0)
+		if (flex_alloc((flex_ptr) &(new->contents_text), strlen((template != NULL) ? template->contents_text : "") + 1) == 0)
 			mem_ok = FALSE;
 
 	}
@@ -514,76 +524,79 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path)
 
 	new->file = file;
 
-	new->pane = DIALOGUE_PANE_SIZE;
+	new->pane = (template != NULL) ? template->pane : DIALOGUE_PANE_SIZE;
 
-	strcpy(new->path, path);
+	strcpy(new->path, (template != NULL) ? template->path : path);
 
 	/* Filename Details */
 
-	strcpy(new->filename, "");
-	new->ignore_case = TRUE;
+	strcpy(new->filename, (template != NULL) ? template->filename : "");
+	new->ignore_case = (template != NULL) ? template->ignore_case : TRUE;
 
 	/* Size Details */
 
-	new->size_mode = DIALOGUE_SIZE_NOT_IMPORTANT;
-	new->size_min = 0;
-	new->size_min_unit = DIALOGUE_SIZE_KBYTES;
-	new->size_max = 0;
-	new->size_max_unit = DIALOGUE_SIZE_KBYTES;
+	new->size_mode = (template != NULL) ? template->size_mode : DIALOGUE_SIZE_NOT_IMPORTANT;
+	new->size_min = (template != NULL) ? template->size_min : 0;
+	new->size_min_unit = (template != NULL) ? template->size_min_unit : DIALOGUE_SIZE_KBYTES;
+	new->size_max = (template != NULL) ? template->size_max : 0;
+	new->size_max_unit = (template != NULL) ? template->size_max_unit : DIALOGUE_SIZE_KBYTES;
 
 	/* Date and Age Details. */
 
-	new->use_age = FALSE;
+	new->use_age = (template != NULL) ? template->use_age : FALSE;
 
-	new->date_mode = DIALOGUE_DATE_AT_ANY_TIME;
+	new->date_mode = (template != NULL) ? template->date_mode : DIALOGUE_DATE_AT_ANY_TIME;
 	for (i = 0; i < 5; i++) {
-		new->date_min[i] = 0;
-		new->date_max[i] = 0;
+		new->date_min[i] = (template != NULL) ? template->date_min[i] : 0;
+		new->date_max[i] = (template != NULL) ? template->date_max[i] : 0;
 	}
-	new->date_min_status = DATETIME_DATE_INVALID;
-	new->date_max_status = DATETIME_DATE_INVALID;
+	new->date_min_status = (template != NULL) ? template->date_min_status : DATETIME_DATE_INVALID;
+	new->date_max_status = (template != NULL) ? template->date_max_status : DATETIME_DATE_INVALID;
 
-	new->age_mode = DIALOGUE_AGE_ANY_AGE;
-	new->age_min = 0;
-	new->age_min_unit = DIALOGUE_AGE_DAYS;
-	new->age_max = 0;
-	new->age_max_unit = DIALOGUE_AGE_DAYS;
-
+	new->age_mode = (template != NULL) ? template->age_mode : DIALOGUE_AGE_ANY_AGE;
+	new->age_min = (template != NULL) ? template->age_min : 0;
+	new->age_min_unit = (template != NULL) ? template->age_min_unit : DIALOGUE_AGE_DAYS;
+	new->age_max = (template != NULL) ? template->age_max : 0;
+	new->age_max_unit = (template != NULL) ? template->age_max_unit : DIALOGUE_AGE_DAYS;
 
 	/* Type Details. */
 
-	new->type_files = TRUE;
-	new->type_directories = TRUE;
-	new->type_applications = TRUE;
-	new->type_mode = DIALOGUE_TYPE_OF_ANY;
-	new->type_types[0] = 0xffffffffu;
+	new->type_files = (template != NULL) ? template->type_files : TRUE;
+	new->type_directories = (template != NULL) ? template->type_directories : TRUE;
+	new->type_applications = (template != NULL) ? template->type_applications : TRUE;
+	new->type_mode = (template != NULL) ? template->type_mode : DIALOGUE_TYPE_OF_ANY;
+
+	for (i = 0; template != NULL && template->type_types[i] != 0xffffffffu; i++)
+		new->type_types[i] = template->type_types[i];
+
+	new->type_types[i] = 0xffffffffu;
 
 	/* Attribute Details. */
 
-	new->attributes_locked = FALSE;
-	new->attributes_locked_yes = FALSE;
-	new->attributes_owner_read = FALSE;
-	new->attributes_owner_read_yes = TRUE;
-	new->attributes_owner_write = FALSE;
-	new->attributes_owner_write_yes = TRUE;
-	new->attributes_public_read = FALSE;
-	new->attributes_public_read_yes = TRUE;
-	new->attributes_public_write = FALSE;
-	new->attributes_public_write_yes = TRUE;
+	new->attributes_locked = (template != NULL) ? template->attributes_locked : FALSE;
+	new->attributes_locked_yes = (template != NULL) ? template->attributes_locked_yes : FALSE;
+	new->attributes_owner_read = (template != NULL) ? template->attributes_owner_read : FALSE;
+	new->attributes_owner_read_yes = (template != NULL) ? template->attributes_owner_read_yes : TRUE;
+	new->attributes_owner_write = (template != NULL) ? template->attributes_owner_write : FALSE;
+	new->attributes_owner_write_yes = (template != NULL) ? template->attributes_owner_write_yes : TRUE;
+	new->attributes_public_read = (template != NULL) ? template->attributes_public_read : FALSE;
+	new->attributes_public_read_yes = (template != NULL) ? template->attributes_public_read_yes : TRUE;
+	new->attributes_public_write = (template != NULL) ? template->attributes_public_write : FALSE;
+	new->attributes_public_write_yes = (template != NULL) ? template->attributes_public_write_yes : TRUE;
 
 	/* Contents Details. */
 
-	new->contents_mode = DIALOGUE_CONTENTS_ARE_NOT_IMPORTANT;
-	strcpy(new->contents_text, "");
-	new->contents_ignore_case = TRUE;
-	new->contents_ctrl_chars = FALSE;
+	new->contents_mode = (template != NULL) ? template->contents_mode : DIALOGUE_CONTENTS_ARE_NOT_IMPORTANT;
+	strcpy(new->contents_text, (template != NULL) ? template->contents_text : "");
+	new->contents_ignore_case = (template != NULL) ? template->contents_ignore_case : TRUE;
+	new->contents_ctrl_chars = (template != NULL) ? template->contents_ctrl_chars : FALSE;
 
 	/* Search Options */
 
-	new->background = config_opt_read("Multitask");
-	new->ignore_imagefs = config_opt_read("ImageFS");
-	new->suppress_errors = config_opt_read("SuppressErrors");
-	new->full_info = config_opt_read("FullInfoDisplay");
+	new->background = (template != NULL) ? template->background : config_opt_read("Multitask");
+	new->ignore_imagefs = (template != NULL) ? template->ignore_imagefs : config_opt_read("ImageFS");
+	new->suppress_errors = (template != NULL) ? template->suppress_errors : config_opt_read("SuppressErrors");
+	new->full_info = (template != NULL) ? template->full_info : config_opt_read("FullInfoDisplay");
 
 	return new;
 }
@@ -642,6 +655,18 @@ void dialogue_open_window(struct dialogue_block *dialogue, wimp_pointer *pointer
 	dialogue_toggle_size(FALSE);
 
 	icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
+}
+
+
+/**
+ * Identify whether the Search Dialogue window is currently open.
+ *
+ * \return		TRUE if the window is open; else FALSE.
+ */
+
+osbool dialogue_window_is_open(void)
+{
+	return windows_get_open(dialogue_window);
 }
 
 
