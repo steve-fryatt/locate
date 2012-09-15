@@ -38,6 +38,7 @@
 
 #include "dialogue.h"
 
+#include "dataxfer.h"
 #include "datetime.h"
 #include "flexutils.h"
 #include "ihelp.h"
@@ -328,6 +329,8 @@ static osbool	dialogue_keypress_handler(wimp_key *key);
 static void	dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void	dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
 static void	dialogue_menu_close_handler(wimp_w w, wimp_menu *menu);
+static void	dialogue_drag_end_handler(wimp_pointer *pointer, void *data);
+static osbool	dialogue_xfer_save_handler(char *filename);
 static osbool	dialogue_icon_drop_handler(wimp_message *message);
 static void	dialogue_start_search(struct dialogue_block *dialogue);
 static int	dialogue_scale_size(unsigned base, enum dialogue_size_unit unit, osbool top);
@@ -1271,6 +1274,11 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		case DIALOGUE_ICON_SHOW_OPTS:
 			dialogue_toggle_size(icons_get_selected(dialogue_window, DIALOGUE_ICON_SHOW_OPTS));
 			break;
+
+		case DIALOGUE_ICON_DRAG:
+			if (pointer->buttons == wimp_DRAG_SELECT)
+				dataxfer_save_window_drag(dialogue_window, DIALOGUE_ICON_DRAG, dialogue_drag_end_handler, NULL);
+			break;
 		}
 	} else if (pointer->w == dialogue_panes[DIALOGUE_PANE_DATE]) {
 		dialogue_shade_date_pane();
@@ -1286,8 +1294,8 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 /**
  * Process keypresses in the Search window.
  *
- * \param *key		The keypress event block to handle.
- * \return		TRUE if the event was handled; else FALSE.
+ * \param *key			The keypress event block to handle.
+ * \return			TRUE if the event was handled; else FALSE.
  */
 
 static osbool dialogue_keypress_handler(wimp_key *key)
@@ -1322,9 +1330,9 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 /**
  * Process menu prepare events in the Search window.
  *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
- * \param *pointer	The pointer position, or NULL for a re-open.
+ * \param w			The handle of the owning window.
+ * \param *menu			The menu handle.
+ * \param *pointer		The pointer position, or NULL for a re-open.
  */
 
 static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
@@ -1341,9 +1349,9 @@ static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointe
 /**
  * Process menu selections in the Search window.
  *
- * \param window	The window to handle an event for.
- * \param *menu		The menu from which the selection was made.
- * \param *selection	The selection made.
+ * \param window		The window to handle an event for.
+ * \param *menu			The menu from which the selection was made.
+ * \param *selection		The selection made.
  */
 
 static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection)
@@ -1382,8 +1390,8 @@ static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp
 /**
  * Process menu close events in the Search window.
  *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
+ * \param w			The handle of the owning window.
+ * \param *menu			The menu handle.
  */
 
 static void dialogue_menu_close_handler(wimp_w w, wimp_menu *menu)
@@ -1393,6 +1401,56 @@ static void dialogue_menu_close_handler(wimp_w w, wimp_menu *menu)
 //	report_format_font_icon = -1;
 }
 
+
+/**
+ * Process the termination of icon drags from the Search window.
+ *
+ * \param *pointer		The pointer location at the end of the drag.
+ * \param *data			Data passed to the icon drag routine.
+ */
+
+static void dialogue_drag_end_handler(wimp_pointer *pointer, void *data)
+{
+	dataxfer_start_save(pointer, "NULL", 0, 0xffffffffu, dialogue_xfer_save_handler);
+}
+
+
+/**
+ * Process data transfer results for the directory drag by updating the search
+ * path.  Exit FALSE because we don't want the message protocol to be completed.
+ *
+ * \param *filename		The destination of the dragged folder.
+ * \return			FALSE to end the transfer.
+ */
+
+static osbool dialogue_xfer_save_handler(char *filename)
+{
+	char				*insert, *end, path[256], *p;
+
+	strcpy(path, filename);
+
+	string_find_pathname(path);
+
+	insert = icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
+	end = insert + icons_get_indirected_text_length(dialogue_window, DIALOGUE_ICON_SEARCH_PATH) - 1;
+
+	/* Copy the new path across. */
+
+	p = path;
+
+	while (*p != '\0' && insert < end)
+		*insert++ = *p++;
+
+	*insert = '\0';
+
+	if (*p != '\0')
+		error_msgs_report_error("PathBufFull");
+
+	icons_replace_caret_in_window(dialogue_window);
+	wimp_set_icon_state(dialogue_window, DIALOGUE_ICON_SEARCH_PATH, 0, 0);
+
+	return FALSE;
+}
 
 /**
  * Check incoming Message_DataSave to see if it's a file being dropped into the

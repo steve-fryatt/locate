@@ -12,9 +12,9 @@
 
 /* OSLib header files */
 
-#include "oslib/wimp.h"
 #include "oslib/dragasprite.h"
 #include "oslib/osbyte.h"
+#include "oslib/wimp.h"
 #include "oslib/wimpspriteop.h"
 
 /* SF-Lib header files. */
@@ -40,28 +40,50 @@
  * Global variables.
  */
 
-/**
- * Boolean to indicate whether DragASprite is in use or not.
- */
-
-static int			dragging_sprite = 0;
 
 /**
- * The type of save drag: to differentiate Save PDF from Save As.
+ * Data associated with a message exchange.
  */
 
-static enum dataxfer_dragtype	drag_type = 0;
+enum dataxfer_message_type {
+	DATAXFER_MESSAGE_NONE = 0,						/**< An unset message block.						*/
+	DATAXFER_MESSAGE_SAVE,							/**< A message block associated with a Message_DataSave.		*/
+	DATAXFER_MESSAGE_LOAD							/**< A message block associated with a Message_DataLoad.		*/
+};
 
-static char			*drag_save_leafname = NULL;
+struct dataxfer_descriptor {
+	enum dataxfer_message_type	type;					/**< The type of message that the block describes.			*/
+
+	int				my_ref;					/**< The MyRef of the sent message.					*/
+	wimp_t				task;					/**< The task handle of the recipient task.				*/
+	osbool				(*callback)(char *filename);		/**< The callback function to be used if a save is required.		*/
+
+	struct dataxfer_descriptor		*next;					/**< The next message block in the chain, or NULL.			*/
+};
+
+
+static osbool	dataxfer_dragging_sprite = FALSE;				/**< TRUE if we're dragging a sprite, FALSE if dragging a dotted-box.	*/
+static void	(*dataxfer_drag_end_callback)(wimp_pointer *, void *) = NULL;	/**< The callback function to be used by the icon drag code.		*/
+
+static struct dataxfer_descriptor	*dataxfer_descriptors = NULL;		/**< List of currently active message operations.			*/
+
 
 /**
  * Function prototypes.
  */
 
-static void		terminate_user_drag(wimp_dragged *drag, void *data);
-static osbool		message_data_save_reply(wimp_message *message);
-static osbool		message_data_save_ack_reply(wimp_message *message);
-static osbool		message_data_load_reply(wimp_message *message);
+static void				dataxfer_terminate_user_drag(wimp_dragged *drag, void *data);
+static osbool				dataxfer_message_data_save_ack(wimp_message *message);
+static osbool				dataxfer_message_data_load_ack(wimp_message *message);
+static osbool				dataxfer_message_bounced(wimp_message *message);
+
+static struct dataxfer_descriptor	*dataxfer_new_descriptor(void);
+static struct dataxfer_descriptor	*dataxfer_find_descriptor(int ref, enum dataxfer_message_type type);
+static void				dataxfer_delete_descriptor(struct dataxfer_descriptor *message);
+
+
+//static osbool		message_data_save_reply(wimp_message *message);
+//static osbool		message_data_load_reply(wimp_message *message);
 
 
 /**
@@ -70,39 +92,50 @@ static osbool		message_data_load_reply(wimp_message *message);
 
 void dataxfer_initialise(void)
 {
-	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, message_data_save_reply);
-	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_INCOMING, message_data_save_ack_reply);
-	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, message_data_load_reply);
+	//event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, message_data_save_reply);
+	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_data_save_ack);
+	//event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, message_data_load_reply);
+	event_add_message_handler(message_DATA_LOAD_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_data_load_ack);
+
+	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
+	event_add_message_handler(message_DATA_LOAD_ACK, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
 }
 
 
 /**
- * Start dragging the icon from the save dialogue.  Called in response to an attempt to drag the icon.
+ * Start dragging an icon from a dialogue, creating a sprite to drag and starting
+ * a drag action.  When the action completes, a callback will be made to the
+ * supplied function.
  *
- * \param type		The drag type to start.
  * \param w		The window where the drag is starting.
  * \param i		The icon to be dragged.
- * \param *filename	The filename to be used as a starting point.
+ * \param callback	A callback function
  */
 
-void start_save_window_drag(enum dataxfer_dragtype type, wimp_w w, wimp_i i, char *filename)
+void dataxfer_save_window_drag(wimp_w w, wimp_i i, void (* drag_end_callback)(wimp_pointer *pointer, void *data), void *drag_end_data)
 {
 	wimp_window_state	window;
 	wimp_icon_state		icon;
 	wimp_drag		drag;
 	int			ox, oy;
 
+
+	/* If there's no callback, there's no point bothering. */
+
+	if (drag_end_callback == NULL)
+		return;
+
 	/* Get the basic information about the window and icon. */
 
 	window.w = w;
-	wimp_get_window_state (&window);
+	wimp_get_window_state(&window);
 
 	ox = window.visible.x0 - window.xscroll;
 	oy = window.visible.y1 - window.yscroll;
 
 	icon.w = window.w;
 	icon.i = i;
-	wimp_get_icon_state (&icon);
+	wimp_get_icon_state(&icon);
 
 	/* Set up the drag parameters. */
 
@@ -119,23 +152,23 @@ void start_save_window_drag(enum dataxfer_dragtype type, wimp_w w, wimp_i i, cha
 	drag.bbox.x1 = 0x7fffffff;
 	drag.bbox.y1 = 0x7fffffff;
 
-
 	/* Read CMOS RAM to see if solid drags are required. */
 
-	dragging_sprite = ((osbyte2 (osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
+	dataxfer_dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
 			osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0);
 
-	if (dragging_sprite)
-		dragasprite_start (dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE |
+	dataxfer_drag_end_callback = drag_end_callback;
+
+	/* Start the drag and set an eventlib callback. */
+
+	if (dataxfer_dragging_sprite)
+		dragasprite_start(dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE |
 			dragasprite_NO_BOUND | dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW,
 			wimpspriteop_AREA, icon.icon.data.indirected_text.text, &(drag.initial), &(drag.bbox));
 	else
-		wimp_drag_box (&drag);
+		wimp_drag_box(&drag);
 
-	drag_save_leafname = string_find_leafname(filename);
-
-	drag_type = type;
-	event_set_drag_handler(terminate_user_drag, NULL, NULL);
+	event_set_drag_handler(dataxfer_terminate_user_drag, NULL, drag_end_data);
 }
 
 
@@ -148,24 +181,213 @@ void start_save_window_drag(enum dataxfer_dragtype type, wimp_w w, wimp_i i, cha
  * \param  *data		NULL (unused).
  */
 
-static void terminate_user_drag(wimp_dragged *drag, void *data)
+static void dataxfer_terminate_user_drag(wimp_dragged *drag, void *data)
 {
 	wimp_pointer		pointer;
 
-	if (dragging_sprite)
-		dragasprite_stop ();
+	if (dataxfer_dragging_sprite)
+		dragasprite_stop();
 
-	wimp_get_pointer_info (&pointer);
+	wimp_get_pointer_info(&pointer);
 
-	switch (drag_type) {
-	case DRAGTYPE_CONVERT:
-		//transfer_save_start_callback(pointer.w, pointer.i, pointer.pos, 0, convert_save_file, 0, TEXT_FILE_TYPE, drag_save_leafname);
-		break;
-	default:
-		break;
-	}
+	if (dataxfer_drag_end_callback != NULL)
+		dataxfer_drag_end_callback(&pointer, data);
+
+	dataxfer_drag_end_callback = NULL;
 }
 
+
+/**
+ * Start a data save action by sending a message to another task.  The data
+ * transfer protocol will be started, and at an appropriate time a callback
+ * will be made to save the data.
+ *
+ * \param *pointer		The Wimp pointer details of the save target.
+ * \param *name			The proposed file leafname.
+ * \param size			The estimated file size.
+ * \param type			The proposed file type.
+ * \param *save_callback	The function to be called with the full pathname
+ *				to save the file.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, osbool (*save_callback)(char *filename))
+{
+	struct dataxfer_descriptor	*descriptor;
+	wimp_full_message_data_xfer	message;
+	os_error			*error;
+
+
+	if (save_callback == NULL)
+		return FALSE;
+
+	/* Allocate a block to store details of the message. */
+
+	descriptor = dataxfer_new_descriptor();
+	if (descriptor == NULL)
+		return FALSE;
+
+	descriptor->callback = save_callback;
+
+	/* Set up and send the datasave message. If it fails, give an error
+	 * and delete the message details as we won't need them again.
+	 */
+
+	message.size = WORDALIGN(45 + strlen(name));
+	message.your_ref = 0;
+	message.action = message_DATA_SAVE;
+	message.w = pointer->w;
+	message.i = pointer->i;
+	message.pos = pointer->pos;
+	message.est_size = size;
+	message.file_type = type;
+
+	strncpy(message.file_name, name, 212);
+	message.file_name[211] = '\0';
+
+	error = xwimp_send_message_to_window(wimp_USER_MESSAGE_RECORDED, (wimp_message *) &message, pointer->w, pointer->i, &(descriptor->task));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		dataxfer_delete_descriptor(descriptor);
+		return FALSE;
+	}
+
+	/* Complete the message descriptor information. */
+
+	descriptor->type = DATAXFER_MESSAGE_SAVE;
+	descriptor->my_ref = message.my_ref;
+
+	debug_printf("Sent Message_DataSave with descriptor 0x%x", descriptor);
+
+	return TRUE;
+}
+
+
+/**
+ * Handle the receipt of a Message_DataSaveAck in response our starting a
+ * save action.
+ *
+ * \param *message		The associated Wimp message block.
+ * \return			TRUE to show that the message was handled.
+ */
+
+static osbool dataxfer_message_data_save_ack(wimp_message *message)
+{
+	struct dataxfer_descriptor	*descriptor;
+	wimp_full_message_data_xfer	*datasaveack = (wimp_full_message_data_xfer *) message;
+	os_error			*error;
+
+
+	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_SAVE);
+	if (descriptor == NULL)
+		return FALSE;
+
+	debug_printf("Received Message_DataSaveAck with descriptor 0x%x", descriptor);
+
+	/* We now know the message in question, so see if our client wants to
+	 * make use of the data.  If there's a callback, call it.  If it
+	 * returns FALSE then we don't want to send a Message_DataLoad so
+	 * free the information block and quit marking the incoming
+	 * message as handled.
+	 */
+
+	if (descriptor->callback != NULL && !descriptor->callback(datasaveack->file_name)) {
+		dataxfer_delete_descriptor(descriptor);
+		return TRUE;
+	}
+
+	/* The client saved something, so finish off the data transfer. */
+
+	datasaveack->your_ref = datasaveack->my_ref;
+	datasaveack->action = message_DATA_LOAD;
+
+	error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) datasaveack, datasaveack->sender);
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+
+		dataxfer_delete_descriptor(descriptor);
+		return TRUE;
+	}
+
+	descriptor->my_ref = datasaveack->my_ref;
+
+	debug_printf("Sent Message_DataLoad with descriptor 0x%x", descriptor);
+
+	return TRUE;
+}
+
+
+/**
+ * Handle the receipt of a Message_DataLoadAck in response our starting a
+ * save action.
+ *
+ * \param *message		The associated Wimp message block.
+ * \return			TRUE to show that the message was handled.
+ */
+
+static osbool dataxfer_message_data_load_ack(wimp_message *message)
+{
+	struct dataxfer_descriptor	*descriptor;
+
+	/* This is the tail end of a data save, so just clean up and claim the
+	 * message.
+	 */
+
+	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_SAVE);
+	if (descriptor == NULL)
+		return FALSE;
+
+	debug_printf("Received Message_DataLoadAck with descriptor 0x%x", descriptor);
+
+	dataxfer_delete_descriptor(descriptor);
+	return TRUE;
+}
+
+/**
+ * Handle the bounce of a Message_DataSave or Message_DataLoad.
+ *
+ * \param *message		The associated Wimp message block.
+ * \return			TRUE to show that the message was handled.
+ */
+
+static osbool dataxfer_message_bounced(wimp_message *message)
+{
+	struct dataxfer_descriptor	*descriptor;
+
+	debug_printf("We have a bounced message!");
+
+	/* The message has bounced, so just clean up. */
+
+	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_SAVE);
+	if (descriptor != NULL) {
+		debug_printf("Save message bounced with descriptor 0x%x", descriptor);
+
+		dataxfer_delete_descriptor(descriptor);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0
 
 /**
  * Handle the receipt of a Message_DataSaveAck, usually in response to another
@@ -208,21 +430,6 @@ static osbool message_data_save_reply(wimp_message *message)
 
 
 /**
- * Handle the receipt of a Message_DataSaveAck.
- *
- * \param *message		The associated Wimp message block.
- * \return			TRUE to show that the message was handled.
- */
-
-static osbool message_data_save_ack_reply(wimp_message *message)
-{
-	transfer_save_reply_datasaveack(message);
-
-	return TRUE;
-}
-
-
-/**
  * Handle the receipt of a Message_DataLoad, generally as a result of a file
  * being dragged from the Filer to one of our windows or icons.
  *
@@ -256,5 +463,78 @@ static osbool message_data_load_reply(wimp_message *message)
 	}
 
 	return handled;
+}
+
+#endif
+
+
+/**
+ * Create a new message descriptor with no data and return a pointer.
+ *
+ * \return			The new block, or NULL on failure.
+ */
+
+static struct dataxfer_descriptor *dataxfer_new_descriptor(void)
+{
+	struct dataxfer_descriptor		*new;
+
+	new = malloc(sizeof(struct dataxfer_descriptor));
+	if (new != NULL) {
+		new->type = DATAXFER_MESSAGE_NONE;
+
+		new->next = dataxfer_descriptors;
+		dataxfer_descriptors = new;
+	}
+
+	return new;
+}
+
+
+/**
+ * Find a record for a message, based on type and reference.
+ *
+ * \param ref			The message reference field to match.
+ * \param type			The message type to match.
+ * \return			The message descriptor, or NULL if not found.
+ */
+
+
+static struct dataxfer_descriptor *dataxfer_find_descriptor(int ref, enum dataxfer_message_type type)
+{
+	struct dataxfer_descriptor		*list = dataxfer_descriptors;
+
+	while (list != NULL && list->type != type && list->my_ref != ref)
+		list = list->next;
+
+	return list;
+}
+
+
+/**
+ * Delete a message descriptor.
+ *
+ * \param *message		The message descriptor to be deleted.
+ */
+
+static void dataxfer_delete_descriptor(struct dataxfer_descriptor *message)
+{
+	struct dataxfer_descriptor		*list = dataxfer_descriptors;
+
+	if (message == NULL)
+		return;
+
+	if (dataxfer_descriptors == message) {
+		dataxfer_descriptors = message->next;
+		free(message);
+		return;
+	}
+
+	while (list != NULL && list->next != message)
+		list = list->next;
+
+	if (list != NULL)
+		list->next = message->next;
+
+	free(message);
 }
 
