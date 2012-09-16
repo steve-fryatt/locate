@@ -97,8 +97,8 @@ void dataxfer_initialise(void)
 	//event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, message_data_load_reply);
 	event_add_message_handler(message_DATA_LOAD_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_data_load_ack);
 
-	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
-	event_add_message_handler(message_DATA_LOAD_ACK, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
+	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
+	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
 }
 
 
@@ -353,8 +353,6 @@ static osbool dataxfer_message_data_load_ack(wimp_message *message)
 static osbool dataxfer_message_bounced(wimp_message *message)
 {
 	struct dataxfer_descriptor	*descriptor;
-
-	debug_printf("We have a bounced message!");
 
 	/* The message has bounced, so just clean up. */
 
