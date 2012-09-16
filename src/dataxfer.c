@@ -58,7 +58,7 @@ struct dataxfer_descriptor {
 	wimp_t				task;					/**< The task handle of the recipient task.				*/
 	osbool				(*callback)(char *filename);		/**< The callback function to be used if a save is required.		*/
 
-	struct dataxfer_descriptor		*next;					/**< The next message block in the chain, or NULL.			*/
+	struct dataxfer_descriptor	*next;					/**< The next message block in the chain, or NULL.			*/
 };
 
 
