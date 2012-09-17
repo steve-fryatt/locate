@@ -33,8 +33,16 @@
 
 #include "dataxfer.h"
 
+#include "ihelp.h"
 #include "main.h"
 #include "templates.h"
+
+
+#define DATAXFER_SAVEAS_ICON_SAVE 0
+#define DATAXFER_SAVEAS_ICON_CANCEL 1
+#define DATAXFER SAVEAS_ICON_FILENAME 2
+#define DATAXFER_SAVEAS_ICON_FILE 3
+#define DATAXFER_SAVEAS_ICON_SELECTION 4
 
 /* ==================================================================================================================
  * Global variables.
@@ -61,16 +69,34 @@ struct dataxfer_descriptor {
 	struct dataxfer_descriptor	*next;					/**< The next message block in the chain, or NULL.			*/
 };
 
+static struct dataxfer_descriptor	*dataxfer_descriptors = NULL;		/**< List of currently active message operations.			*/
+
+/* Data associated with the Save As window. */
+
+struct dataxfer_savebox {
+	char				full_filename[256];			/**< The full filename to be used in the savebox.			*/
+	char				selection_filename[256];		/**< The selection filename to be used in the savebox.			*/
+	char				sprite[16];				/**< The sprite to be used in the savebox.				*/
+
+	osbool				remember_filenames;			/**< TRUE to record filanames when files are saved; else FALSE.		*/
+	osbool				uses_selection;				/**< TRUE if the savebox has a Selection option; else FALSE.		*/
+}
+
+static wimp_w				dataxfer_saveas_window = NULL;		/**< The Save As window handle.						*/
+static wimp_w				dataxfer_saveas_sel_window = NULL;	/**< The Save As window with selection icon.				*/
+
+/* Data asscoiated with drag box handling. */
 
 static osbool	dataxfer_dragging_sprite = FALSE;				/**< TRUE if we're dragging a sprite, FALSE if dragging a dotted-box.	*/
 static void	(*dataxfer_drag_end_callback)(wimp_pointer *, void *) = NULL;	/**< The callback function to be used by the icon drag code.		*/
-
-static struct dataxfer_descriptor	*dataxfer_descriptors = NULL;		/**< List of currently active message operations.			*/
 
 
 /**
  * Function prototypes.
  */
+
+static void				dataxfer_saveas_click_handler(wimp_pointer *pointer);
+static osbool				dataxfer_saveas_keypress_handler(wimp_key *key);
 
 static void				dataxfer_terminate_user_drag(wimp_dragged *drag, void *data);
 static osbool				dataxfer_message_data_save_ack(wimp_message *message);
@@ -92,6 +118,19 @@ static void				dataxfer_delete_descriptor(struct dataxfer_descriptor *message);
 
 void dataxfer_initialise(void)
 {
+	dataxfer_saveas_window = templates_create_window("SaveAs");
+	ihelp_add_window(dataxfer_saveas_window, "SaveAs", NULL);
+	event_add_window_mouse_event(dataxfer_saveas_window, dataxfer_saveas_click_handler);
+	event_add_window_key_event(dataxfer_saveas_window, dataxfer_saveas_keypress_handler);
+	templates_link_menu_dialogue("save_as", dataxfer_saveas_window);
+
+	dataxfer_saveas_sel_window = templates_create_window("SaveAsSel");
+	ihelp_add_window(dataxfer_saveas_sel_window, "SaveAs", NULL);
+	event_add_window_mouse_event(dataxfer_saveas_sel_window, dataxfer_saveas_click_handler);
+	event_add_window_key_event(dataxfer_saveas_sel_window, dataxfer_saveas_keypress_handler);
+	templates_link_menu_dialogue("save_as_sel", dataxfer_saveas_sel_window);
+
+
 	//event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, message_data_save_reply);
 	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_data_save_ack);
 	//event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, message_data_load_reply);
@@ -99,6 +138,72 @@ void dataxfer_initialise(void)
 
 	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
+}
+
+
+/**
+ * Open the Save As dialogue at the pointer.
+ *
+ * \param *pointer		The pointer location to open the dialogue.
+ */
+
+void dataxfer_open_saveas_window(wimp_pointer *pointer)
+{
+	//menus_create_standard_menu((wimp_menu *) dataxfer_saveas_window, pointer);
+}
+
+
+/**
+ * Process mouse clicks in the Save As dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void dataxfer_saveas_click_handler(wimp_pointer *pointer)
+{
+	switch (pointer->i) {
+	case DATAXFER_SAVEAS_ICON_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			wimp_create_menu(NULL, 0, 0);
+		break;
+
+	case DATAXFER_SAVEAS_ICON_SAVE:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			//immediate_window_save();
+		break;
+
+	case DATAXFER_SAVEAS_ICON_FILE:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			//start_save_window_drag();
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in the Save As dialogue.
+ *
+ * \param *key		The keypress event block to handle.
+ * \return		TRUE if the event was handled; else FALSE.
+ */
+
+static osbool dataxfer_saveas_keypress_handler(wimp_key *key)
+{
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+		//immediate_window_save();
+		break;
+
+	case wimp_KEY_ESCAPE:
+		wimp_create_menu(NULL, 0, 0);
+		break;
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
 }
 
 
@@ -536,3 +641,19 @@ static void dataxfer_delete_descriptor(struct dataxfer_descriptor *message)
 	free(message);
 }
 
+
+
+
+
+struct dataxfer_savebox *dataxfer_new_savebox(
+{
+	struct dataxfer_savebox		*new;
+
+	new = malloc(sizeof(struct dataxfer_savebox));
+	if (new == NULL)
+		return NULL;
+
+
+
+	return new;
+}

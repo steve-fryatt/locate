@@ -152,6 +152,10 @@
 #define DIALOGUE_CONTENTS_ICON_IGNORE_CASE 4
 #define DIALOGUE_CONTENTS_ICON_CTRL_CHARS 5
 
+/* Dialogue Menu Entries */
+
+#define DIALOGUE_MENU_SAVE_SEARCH 0
+
 #define DIALOGUE_MAX_FILE_LINE 1024
 
 #define MAX_BUFFER(current, size) (((size) > (current)) ? (size) : (current))
@@ -327,6 +331,7 @@ static void	dialogue_redraw_window(void);
 static void	dialogue_click_handler(wimp_pointer *pointer);
 static osbool	dialogue_keypress_handler(wimp_key *key);
 static void	dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+static void	dialogue_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void	dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
 static void	dialogue_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void	dialogue_drag_end_handler(wimp_pointer *pointer, void *data);
@@ -372,6 +377,7 @@ void dialogue_initialise(void)
 	event_add_window_menu(dialogue_window, dialogue_menu);
 	event_add_window_mouse_event(dialogue_window, dialogue_click_handler);
 	event_add_window_key_event(dialogue_window, dialogue_keypress_handler);
+	event_add_window_menu_warning(dialogue_window, dialogue_menu_warning_handler);
 	event_add_window_menu_selection(dialogue_window, dialogue_menu_selection_handler);
 	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_SIZE, FALSE);
 	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_DATE, FALSE);
@@ -386,6 +392,7 @@ void dialogue_initialise(void)
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_keypress_handler);
+	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_warning_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_selection_handler);
 	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MODE_MENU,
 			dialogue_size_mode_menu, DIALOGUE_SIZE_ICON_MODE, "SizeMode");
@@ -401,6 +408,7 @@ void dialogue_initialise(void)
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_keypress_handler);
+	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_warning_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_menu_selection_handler);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE, FALSE);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE, FALSE);
@@ -421,6 +429,7 @@ void dialogue_initialise(void)
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_keypress_handler);
 	event_add_window_menu_prepare(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_prepare_handler);
+	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_warning_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_selection_handler);
 	event_add_window_menu_close(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_close_handler);
 	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_MODE_MENU,
@@ -435,6 +444,7 @@ void dialogue_initialise(void)
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_keypress_handler);
+	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_warning_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_menu_selection_handler);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED_YES, TRUE);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED_NO, TRUE);
@@ -454,6 +464,7 @@ void dialogue_initialise(void)
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_keypress_handler);
+	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_warning_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_menu_selection_handler);
 	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_MODE_MENU,
 			dialogue_contents_mode_menu, DIALOGUE_CONTENTS_ICON_MODE, "ContentsMode");
@@ -1343,6 +1354,28 @@ static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointe
 	dialogue_type_list_menu = typemenu_build();
 	event_set_menu_block(dialogue_type_list_menu);
 	templates_set_menu(TEMPLATES_MENU_TYPES, dialogue_type_list_menu);
+}
+
+
+/**
+ * Process submenu warning events in the Search window.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *warning	The submenu warning message data.
+ */
+
+static void dialogue_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
+{
+	if (menu != dialogue_menu)
+		return;
+
+	switch (warning->selection.items[0]) {
+	case DIALOGUE_MENU_SAVE_SEARCH:
+		//fill_save_as_window(windat->file, SAVE_BOX_FILE);
+		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+		break;
+	}
 }
 
 

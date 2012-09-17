@@ -34,7 +34,7 @@ menu(icon_bar_menu, "Locate") {
 
 menu(search_window_menu, "Locate") {
 	item("Save search") {
-		d_box(save_search_window) {
+		d_box(save_as) {
 			warning;
 		}
 	}
@@ -77,18 +77,18 @@ menu(display_menu, "Display") {
 
 menu(save_menu, "Save") {
 	item("Results") {
-		d_box(save_window) {
+		d_box(save_as_sel) {
 			warning;
 		}
 	}
 	item("Path names") {
-		d_box(save_window) {
+		d_box(save_as_sel) {
 			warning;
 		}
 		dotted;
 	}
 	item("Search options") {
-		d_box(save_window) {
+		d_box(save_as_sel) {
 			warning;
 		}
 	}
