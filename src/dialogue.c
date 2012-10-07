@@ -314,6 +314,8 @@ static wimp_menu		*dialogue_type_mode_menu = NULL;		/**< The Type Mode popup men
 static wimp_menu		*dialogue_type_list_menu = NULL;		/**< The Filetype List popup menu.			*/
 static wimp_menu		*dialogue_contents_mode_menu = NULL;		/**< The Contents Mode popup menu.			*/
 
+static struct dataxfer_savebox	*dialogue_save_search = NULL;			/**< The Save Search savebox data handle.		*/
+
 
 static void	dialogue_close_window(void);
 static void	dialogue_change_pane(unsigned pane);
@@ -340,6 +342,7 @@ static osbool	dialogue_icon_drop_handler(wimp_message *message);
 static void	dialogue_start_search(struct dialogue_block *dialogue);
 static int	dialogue_scale_size(unsigned base, enum dialogue_size_unit unit, osbool top);
 static void	dialogue_scale_age(os_date_and_time date, unsigned base, enum dialogue_age_unit unit, int round);
+static osbool	dialogue_save_settings(char *filename, osbool selection);
 static void	dialogue_dump_settings(struct dialogue_block *dialogue);
 
 
@@ -366,6 +369,8 @@ void dialogue_initialise(void)
 	dialogue_type_mode_menu = templates_get_menu(TEMPLATES_MENU_TYPE_MODE);
 	dialogue_contents_mode_menu = templates_get_menu(TEMPLATES_MENU_CONTENTS_MODE);
 
+	dialogue_save_search = dataxfer_new_savebox("file_1a1", dialogue_save_settings);
+
 	/* Initialise the main window. */
 
 	def->icons[DIALOGUE_ICON_SEARCH_PATH].data.indirected_text.text = heap_alloc(buf_size);
@@ -377,6 +382,7 @@ void dialogue_initialise(void)
 	event_add_window_menu(dialogue_window, dialogue_menu);
 	event_add_window_mouse_event(dialogue_window, dialogue_click_handler);
 	event_add_window_key_event(dialogue_window, dialogue_keypress_handler);
+	event_add_window_menu_prepare(dialogue_window, dialogue_menu_prepare_handler);
 	event_add_window_menu_warning(dialogue_window, dialogue_menu_warning_handler);
 	event_add_window_menu_selection(dialogue_window, dialogue_menu_selection_handler);
 	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_SIZE, FALSE);
@@ -392,6 +398,7 @@ void dialogue_initialise(void)
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_keypress_handler);
+	event_add_window_menu_prepare(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_prepare_handler);
 	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_warning_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_selection_handler);
 	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MODE_MENU,
@@ -408,7 +415,8 @@ void dialogue_initialise(void)
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_keypress_handler);
-	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_warning_handler);
+	event_add_window_menu_prepare(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_menu_prepare_handler);
+	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_menu_warning_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_menu_selection_handler);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE, FALSE);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE, FALSE);
@@ -429,7 +437,7 @@ void dialogue_initialise(void)
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_keypress_handler);
 	event_add_window_menu_prepare(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_prepare_handler);
-	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_warning_handler);
+	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_warning_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_selection_handler);
 	event_add_window_menu_close(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu_close_handler);
 	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_MODE_MENU,
@@ -444,7 +452,8 @@ void dialogue_initialise(void)
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_keypress_handler);
-	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_warning_handler);
+	event_add_window_menu_prepare(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_menu_prepare_handler);
+	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_menu_warning_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_menu_selection_handler);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED_YES, TRUE);
 	event_add_window_icon_radio(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], DIALOGUE_ATTRIBUTES_ICON_LOCKED_NO, TRUE);
@@ -464,7 +473,8 @@ void dialogue_initialise(void)
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_keypress_handler);
-	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu_warning_handler);
+	event_add_window_menu_prepare(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_menu_prepare_handler);
+	event_add_window_menu_warning(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_menu_warning_handler);
 	event_add_window_menu_selection(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_menu_selection_handler);
 	event_add_window_icon_popup(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_MODE_MENU,
 			dialogue_contents_mode_menu, DIALOGUE_CONTENTS_ICON_MODE, "ContentsMode");
@@ -1348,12 +1358,20 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
-	if (pointer == NULL || pointer->w != dialogue_panes[DIALOGUE_PANE_TYPE] || pointer->i != DIALOGUE_TYPE_ICON_TYPE_MENU)
+	if (pointer == NULL)
 		return;
 
-	dialogue_type_list_menu = typemenu_build();
-	event_set_menu_block(dialogue_type_list_menu);
-	templates_set_menu(TEMPLATES_MENU_TYPES, dialogue_type_list_menu);
+	if (menu == dialogue_menu) {
+		dataxfer_savebox_initialise(dialogue_save_search, "File", "Selection", FALSE);
+		return;
+	}
+
+	if (pointer->w == dialogue_panes[DIALOGUE_PANE_TYPE] && pointer->i == DIALOGUE_TYPE_ICON_TYPE_MENU) {
+		dialogue_type_list_menu = typemenu_build();
+		event_set_menu_block(dialogue_type_list_menu);
+		templates_set_menu(TEMPLATES_MENU_TYPES, dialogue_type_list_menu);
+		return;
+	}
 }
 
 
@@ -1372,7 +1390,7 @@ static void dialogue_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_messag
 
 	switch (warning->selection.items[0]) {
 	case DIALOGUE_MENU_SAVE_SEARCH:
-		//fill_save_as_window(windat->file, SAVE_BOX_FILE);
+		dataxfer_savebox_warning(dialogue_save_search, warning->sub_menu);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -1896,6 +1914,24 @@ static void dialogue_scale_age(os_date_and_time date, unsigned base, enum dialog
 		break;
 	}
 }
+
+
+/**
+ * Save the current dialogue settings to file.  Used as a DataXfer callback, so
+ * must return TRUE on success or FALSE on failure.
+ *
+ * \param *filename		The filename to save to.
+ * \param selection		TRUE to save just the selection, else FALSE.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+static osbool dialogue_save_settings(char *filename, osbool selection)
+{
+	debug_printf("Save file to %s with selection at %d", filename, selection);
+
+	return FALSE;
+}
+
 
 
 /**

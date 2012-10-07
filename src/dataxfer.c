@@ -40,9 +40,13 @@
 
 #define DATAXFER_SAVEAS_ICON_SAVE 0
 #define DATAXFER_SAVEAS_ICON_CANCEL 1
-#define DATAXFER SAVEAS_ICON_FILENAME 2
+#define DATAXFER_SAVEAS_ICON_FILENAME 2
 #define DATAXFER_SAVEAS_ICON_FILE 3
 #define DATAXFER_SAVEAS_ICON_SELECTION 4
+
+
+#define DATAXFER_MAX_FILENAME 256
+#define DATAXFER_MAX_SPRNAME 16
 
 /* ==================================================================================================================
  * Global variables.
@@ -54,41 +58,43 @@
  */
 
 enum dataxfer_message_type {
-	DATAXFER_MESSAGE_NONE = 0,						/**< An unset message block.						*/
-	DATAXFER_MESSAGE_SAVE,							/**< A message block associated with a Message_DataSave.		*/
-	DATAXFER_MESSAGE_LOAD							/**< A message block associated with a Message_DataLoad.		*/
+	DATAXFER_MESSAGE_NONE = 0,							/**< An unset message block.						*/
+	DATAXFER_MESSAGE_SAVE,								/**< A message block associated with a Message_DataSave.		*/
+	DATAXFER_MESSAGE_LOAD								/**< A message block associated with a Message_DataLoad.		*/
 };
 
 struct dataxfer_descriptor {
-	enum dataxfer_message_type	type;					/**< The type of message that the block describes.			*/
+	enum dataxfer_message_type	type;						/**< The type of message that the block describes.			*/
 
-	int				my_ref;					/**< The MyRef of the sent message.					*/
-	wimp_t				task;					/**< The task handle of the recipient task.				*/
-	osbool				(*callback)(char *filename);		/**< The callback function to be used if a save is required.		*/
+	int				my_ref;						/**< The MyRef of the sent message.					*/
+	wimp_t				task;						/**< The task handle of the recipient task.				*/
+	osbool				(*callback)(char *filename);			/**< The callback function to be used if a save is required.		*/
 
-	struct dataxfer_descriptor	*next;					/**< The next message block in the chain, or NULL.			*/
+	struct dataxfer_descriptor	*next;						/**< The next message block in the chain, or NULL.			*/
 };
 
-static struct dataxfer_descriptor	*dataxfer_descriptors = NULL;		/**< List of currently active message operations.			*/
+static struct dataxfer_descriptor	*dataxfer_descriptors = NULL;			/**< List of currently active message operations.			*/
 
 /* Data associated with the Save As window. */
 
 struct dataxfer_savebox {
-	char				full_filename[256];			/**< The full filename to be used in the savebox.			*/
-	char				selection_filename[256];		/**< The selection filename to be used in the savebox.			*/
-	char				sprite[16];				/**< The sprite to be used in the savebox.				*/
+	char				full_filename[DATAXFER_MAX_FILENAME];		/**< The full filename to be used in the savebox.			*/
+	char				selection_filename[DATAXFER_MAX_FILENAME];	/**< The selection filename to be used in the savebox.			*/
+	char				sprite[DATAXFER_MAX_SPRNAME];			/**< The sprite to be used in the savebox.				*/
 
-	osbool				remember_filenames;			/**< TRUE to record filanames when files are saved; else FALSE.		*/
-	osbool				uses_selection;				/**< TRUE if the savebox has a Selection option; else FALSE.		*/
-}
+	osbool				selected;					/**< TRUE if the selection icon is ticked; else FALSE.			*/
 
-static wimp_w				dataxfer_saveas_window = NULL;		/**< The Save As window handle.						*/
-static wimp_w				dataxfer_saveas_sel_window = NULL;	/**< The Save As window with selection icon.				*/
+	osbool				(*callback)(char *filename, osbool selection);	/**< The callback function to be used if a save is required.		*/
+};
+
+
+static wimp_w				dataxfer_saveas_window = NULL;			/**< The Save As window handle.						*/
+static wimp_w				dataxfer_saveas_sel_window = NULL;		/**< The Save As window with selection icon.				*/
 
 /* Data asscoiated with drag box handling. */
 
-static osbool	dataxfer_dragging_sprite = FALSE;				/**< TRUE if we're dragging a sprite, FALSE if dragging a dotted-box.	*/
-static void	(*dataxfer_drag_end_callback)(wimp_pointer *, void *) = NULL;	/**< The callback function to be used by the icon drag code.		*/
+static osbool	dataxfer_dragging_sprite = FALSE;					/**< TRUE if we're dragging a sprite, FALSE if dragging a dotted-box.	*/
+static void	(*dataxfer_drag_end_callback)(wimp_pointer *, void *) = NULL;		/**< The callback function to be used by the icon drag code.		*/
 
 
 /**
@@ -106,6 +112,8 @@ static osbool				dataxfer_message_bounced(wimp_message *message);
 static struct dataxfer_descriptor	*dataxfer_new_descriptor(void);
 static struct dataxfer_descriptor	*dataxfer_find_descriptor(int ref, enum dataxfer_message_type type);
 static void				dataxfer_delete_descriptor(struct dataxfer_descriptor *message);
+
+static void				dataxfer_drag_end_handler(wimp_pointer *pointer, void *data);
 
 
 //static osbool		message_data_save_reply(wimp_message *message);
@@ -161,6 +169,15 @@ void dataxfer_open_saveas_window(wimp_pointer *pointer)
 
 static void dataxfer_saveas_click_handler(wimp_pointer *pointer)
 {
+	struct dataxfer_savebox		*handle;
+
+	if (pointer == NULL || (pointer->w != dataxfer_saveas_window && pointer->w != dataxfer_saveas_sel_window))
+		return;
+
+	handle = event_get_window_user_data(pointer->w);
+	if (handle == NULL)
+		return;
+
 	switch (pointer->i) {
 	case DATAXFER_SAVEAS_ICON_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT)
@@ -173,8 +190,8 @@ static void dataxfer_saveas_click_handler(wimp_pointer *pointer)
 		break;
 
 	case DATAXFER_SAVEAS_ICON_FILE:
-		if (pointer->buttons == wimp_CLICK_SELECT)
-			//start_save_window_drag();
+		if (pointer->buttons == wimp_DRAG_SELECT)
+			dataxfer_save_window_drag(pointer->w, DATAXFER_SAVEAS_ICON_FILE, dataxfer_drag_end_handler, handle);
 		break;
 	}
 }
@@ -645,7 +662,7 @@ static void dataxfer_delete_descriptor(struct dataxfer_descriptor *message)
 
 
 
-struct dataxfer_savebox *dataxfer_new_savebox(
+struct dataxfer_savebox *dataxfer_new_savebox(char *sprite, osbool (*save_callback)(char *filename))
 {
 	struct dataxfer_savebox		*new;
 
@@ -653,7 +670,80 @@ struct dataxfer_savebox *dataxfer_new_savebox(
 	if (new == NULL)
 		return NULL;
 
+	debug_printf("Creating new savebox, handle 0x%x", new);
 
+	new->full_filename[0] = '\0';
+	new->selection_filename[0] = '\0';
+	strncpy(new->sprite, (sprite != NULL) ? sprite : "", DATAXFER_MAX_SPRNAME);
+
+	new->selected = FALSE;
+	new->callback = save_callback;
 
 	return new;
 }
+
+void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname, char *selectname, osbool selected)
+{
+	debug_printf("Initialising savebox handle 0x%x", handle);
+
+	if (handle == NULL)
+		return;
+
+	debug_printf("Accepted");
+
+	strncpy(handle->full_filename, (fullname != NULL) ? fullname : "", DATAXFER_MAX_FILENAME);
+	strncpy(handle->selection_filename, (selectname != NULL) ? selectname : "", DATAXFER_MAX_FILENAME);
+
+	handle->selected = selected;
+}
+
+
+void dataxfer_savebox_warning(struct dataxfer_savebox *handle, wimp_menu *menu)
+{
+	wimp_w		window = (wimp_w) menu;
+
+	debug_printf("Menu warning on savebox handle 0x%x", handle);
+
+	if (handle == NULL || (window != dataxfer_saveas_window && window != dataxfer_saveas_sel_window))
+		return;
+
+	event_add_window_user_data(window, handle);
+
+	debug_printf("Accepted");
+
+	icons_printf(window, DATAXFER_SAVEAS_ICON_FILE, handle->sprite);
+
+	if (window == dataxfer_saveas_window) {
+		icons_printf(window, DATAXFER_SAVEAS_ICON_FILENAME, handle->full_filename);
+	} else {
+		icons_set_selected(window, DATAXFER_SAVEAS_ICON_SELECTION, handle->selected);
+		icons_printf(window, DATAXFER_SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
+	}
+}
+
+
+
+
+
+
+/**
+ * Process the termination of icon drags from the Save dialogues.
+ *
+ * \param *pointer		The pointer location at the end of the drag.
+ * \param *data			Data passed to the icon drag routine.
+ */
+
+static void dataxfer_drag_end_handler(wimp_pointer *pointer, void *data)
+{
+	struct dataxfer_savebox		*handle = data;
+
+	if (handle == NULL)
+		return;
+
+	dataxfer_start_save(pointer, "NULL", 0, 0xffffffffu, handle->callback);
+
+	wimp_create_menu(NULL, 0, 0);
+}
+
+
+

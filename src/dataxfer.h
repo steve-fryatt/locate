@@ -12,6 +12,13 @@
 
 
 #define TEXT_FILE_TYPE 0xfff
+#define LOCATE_FILE_TYPE 0x1a1;
+
+/**
+ * A savebox data handle.
+ */
+
+struct dataxfer_savebox;
 
 /**
  * Initialise the data transfer system.
@@ -48,6 +55,12 @@ void dataxfer_save_window_drag(wimp_w w, wimp_i i, void (* drag_end_callback)(wi
  */
 
 osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, osbool (*save_callback)(char *filename));
+
+
+
+struct dataxfer_savebox *dataxfer_new_savebox(char *sprite, osbool (*save_callback)(char *filename, osbool selection));
+void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname, char *selectname, osbool selected);
+void dataxfer_savebox_warning(struct dataxfer_savebox *handle, wimp_menu *menu);
 
 #endif
 
