@@ -68,7 +68,8 @@ struct dataxfer_descriptor {
 
 	int				my_ref;						/**< The MyRef of the sent message.					*/
 	wimp_t				task;						/**< The task handle of the recipient task.				*/
-	osbool				(*callback)(char *filename);			/**< The callback function to be used if a save is required.		*/
+	osbool				(*callback)(char *filename, void *data);	/**< The callback function to be used if a save is required.		*/
+	void				*callback_data;					/**< Data to be passed to the callback function.			*/
 
 	struct dataxfer_descriptor	*next;						/**< The next message block in the chain, or NULL.			*/
 };
@@ -82,6 +83,7 @@ struct dataxfer_savebox {
 	char				selection_filename[DATAXFER_MAX_FILENAME];	/**< The selection filename to be used in the savebox.			*/
 	char				sprite[DATAXFER_MAX_SPRNAME];			/**< The sprite to be used in the savebox.				*/
 
+	wimp_w				window;						/**< The window handle of the savebox to be used.			*/
 	osbool				selected;					/**< TRUE if the selection icon is ticked; else FALSE.			*/
 
 	osbool				(*callback)(char *filename, osbool selection);	/**< The callback function to be used if a save is required.		*/
@@ -114,6 +116,7 @@ static struct dataxfer_descriptor	*dataxfer_find_descriptor(int ref, enum dataxf
 static void				dataxfer_delete_descriptor(struct dataxfer_descriptor *message);
 
 static void				dataxfer_drag_end_handler(wimp_pointer *pointer, void *data);
+static osbool				dataxfer_save_handler(char *filename, void *data);
 
 
 //static osbool		message_data_save_reply(wimp_message *message);
@@ -330,10 +333,11 @@ static void dataxfer_terminate_user_drag(wimp_dragged *drag, void *data)
  * \param type			The proposed file type.
  * \param *save_callback	The function to be called with the full pathname
  *				to save the file.
+ * \param *data			Data to be passed to the callback function.
  * \return			TRUE on success; FALSE on failure.
  */
 
-osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, osbool (*save_callback)(char *filename))
+osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, osbool (*save_callback)(char *filename, void *data), void *data)
 {
 	struct dataxfer_descriptor	*descriptor;
 	wimp_full_message_data_xfer	message;
@@ -350,6 +354,7 @@ osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits typ
 		return FALSE;
 
 	descriptor->callback = save_callback;
+	descriptor->callback_data = data;
 
 	/* Set up and send the datasave message. If it fails, give an error
 	 * and delete the message details as we won't need them again.
@@ -413,7 +418,7 @@ static osbool dataxfer_message_data_save_ack(wimp_message *message)
 	 * message as handled.
 	 */
 
-	if (descriptor->callback != NULL && !descriptor->callback(datasaveack->file_name)) {
+	if (descriptor->callback != NULL && !descriptor->callback(datasaveack->file_name, descriptor->callback_data)) {
 		dataxfer_delete_descriptor(descriptor);
 		return TRUE;
 	}
@@ -662,7 +667,7 @@ static void dataxfer_delete_descriptor(struct dataxfer_descriptor *message)
 
 
 
-struct dataxfer_savebox *dataxfer_new_savebox(char *sprite, osbool (*save_callback)(char *filename))
+struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, osbool (*save_callback)(char *filename, osbool selection))
 {
 	struct dataxfer_savebox		*new;
 
@@ -670,12 +675,11 @@ struct dataxfer_savebox *dataxfer_new_savebox(char *sprite, osbool (*save_callba
 	if (new == NULL)
 		return NULL;
 
-	debug_printf("Creating new savebox, handle 0x%x", new);
-
 	new->full_filename[0] = '\0';
 	new->selection_filename[0] = '\0';
 	strncpy(new->sprite, (sprite != NULL) ? sprite : "", DATAXFER_MAX_SPRNAME);
 
+	new->window = (selection) ? dataxfer_saveas_sel_window : dataxfer_saveas_window;
 	new->selected = FALSE;
 	new->callback = save_callback;
 
@@ -684,12 +688,8 @@ struct dataxfer_savebox *dataxfer_new_savebox(char *sprite, osbool (*save_callba
 
 void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname, char *selectname, osbool selected)
 {
-	debug_printf("Initialising savebox handle 0x%x", handle);
-
 	if (handle == NULL)
 		return;
-
-	debug_printf("Accepted");
 
 	strncpy(handle->full_filename, (fullname != NULL) ? fullname : "", DATAXFER_MAX_FILENAME);
 	strncpy(handle->selection_filename, (selectname != NULL) ? selectname : "", DATAXFER_MAX_FILENAME);
@@ -698,26 +698,20 @@ void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname
 }
 
 
-void dataxfer_savebox_warning(struct dataxfer_savebox *handle, wimp_menu *menu)
+void dataxfer_savebox_prepare(struct dataxfer_savebox *handle)
 {
-	wimp_w		window = (wimp_w) menu;
-
-	debug_printf("Menu warning on savebox handle 0x%x", handle);
-
-	if (handle == NULL || (window != dataxfer_saveas_window && window != dataxfer_saveas_sel_window))
+	if (handle == NULL)
 		return;
 
-	event_add_window_user_data(window, handle);
+	event_add_window_user_data(handle->window, handle);
 
-	debug_printf("Accepted");
+	icons_printf(handle->window, DATAXFER_SAVEAS_ICON_FILE, handle->sprite);
 
-	icons_printf(window, DATAXFER_SAVEAS_ICON_FILE, handle->sprite);
-
-	if (window == dataxfer_saveas_window) {
-		icons_printf(window, DATAXFER_SAVEAS_ICON_FILENAME, handle->full_filename);
+	if (handle->window == dataxfer_saveas_window) {
+		icons_printf(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, handle->full_filename);
 	} else {
-		icons_set_selected(window, DATAXFER_SAVEAS_ICON_SELECTION, handle->selected);
-		icons_printf(window, DATAXFER_SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
+		icons_set_selected(handle->window, DATAXFER_SAVEAS_ICON_SELECTION, handle->selected);
+		icons_printf(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
 	}
 }
 
@@ -730,7 +724,7 @@ void dataxfer_savebox_warning(struct dataxfer_savebox *handle, wimp_menu *menu)
  * Process the termination of icon drags from the Save dialogues.
  *
  * \param *pointer		The pointer location at the end of the drag.
- * \param *data			Data passed to the icon drag routine.
+ * \param *data			The dataxfer_savebox data for the drag.
  */
 
 static void dataxfer_drag_end_handler(wimp_pointer *pointer, void *data)
@@ -740,9 +734,37 @@ static void dataxfer_drag_end_handler(wimp_pointer *pointer, void *data)
 	if (handle == NULL)
 		return;
 
-	dataxfer_start_save(pointer, "NULL", 0, 0xffffffffu, handle->callback);
+	if (handle->window == dataxfer_saveas_window) {
+		icons_copy_text(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, handle->full_filename);
+		handle->selected = FALSE;
+	} else {
+		handle->selected = icons_get_selected(handle->window, DATAXFER_SAVEAS_ICON_SELECTION);
+		icons_copy_text(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, handle->selection_filename);
+	}
+
+
+	dataxfer_start_save(pointer, filename, 0, 0xffffffffu, dataxfer_save_handler, handle);
 
 	wimp_create_menu(NULL, 0, 0);
+}
+
+
+/**
+ * Process data transfer results for the
+ *
+ * \param *filename		The destination of the dragged file.
+ * \param *data			Context data.
+ * \return			TRUE if the save succeeded; FALSE if it failed.
+ */
+
+static osbool dataxfer_save_handler(char *filename, void *data)
+{
+	struct dataxfer_savebox		*handle = data;
+
+	if (handle == NULL || handle->callback == NULL)
+		return FALSE;
+
+	return handle->callback(filename, handle->selected);
 }
 
 

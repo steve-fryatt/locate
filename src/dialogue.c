@@ -337,7 +337,7 @@ static void	dialogue_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_messag
 static void	dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
 static void	dialogue_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void	dialogue_drag_end_handler(wimp_pointer *pointer, void *data);
-static osbool	dialogue_xfer_save_handler(char *filename);
+static osbool	dialogue_xfer_save_handler(char *filename, void *data);
 static osbool	dialogue_icon_drop_handler(wimp_message *message);
 static void	dialogue_start_search(struct dialogue_block *dialogue);
 static int	dialogue_scale_size(unsigned base, enum dialogue_size_unit unit, osbool top);
@@ -369,7 +369,7 @@ void dialogue_initialise(void)
 	dialogue_type_mode_menu = templates_get_menu(TEMPLATES_MENU_TYPE_MODE);
 	dialogue_contents_mode_menu = templates_get_menu(TEMPLATES_MENU_CONTENTS_MODE);
 
-	dialogue_save_search = dataxfer_new_savebox("file_1a1", dialogue_save_settings);
+	dialogue_save_search = dataxfer_new_savebox(FALSE, "file_1a1", dialogue_save_settings);
 
 	/* Initialise the main window. */
 
@@ -1390,7 +1390,7 @@ static void dialogue_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_messag
 
 	switch (warning->selection.items[0]) {
 	case DIALOGUE_MENU_SAVE_SEARCH:
-		dataxfer_savebox_warning(dialogue_save_search, warning->sub_menu);
+		dataxfer_savebox_prepare(dialogue_save_search);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -1462,7 +1462,7 @@ static void dialogue_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 static void dialogue_drag_end_handler(wimp_pointer *pointer, void *data)
 {
-	dataxfer_start_save(pointer, "NULL", 0, 0xffffffffu, dialogue_xfer_save_handler);
+	dataxfer_start_save(pointer, "NULL", 0, 0xffffffffu, dialogue_xfer_save_handler, NULL);
 }
 
 
@@ -1471,10 +1471,11 @@ static void dialogue_drag_end_handler(wimp_pointer *pointer, void *data)
  * path.  Exit FALSE because we don't want the message protocol to be completed.
  *
  * \param *filename		The destination of the dragged folder.
+ * \param *data			Context data (unused).
  * \return			FALSE to end the transfer.
  */
 
-static osbool dialogue_xfer_save_handler(char *filename)
+static osbool dialogue_xfer_save_handler(char *filename, void *data)
 {
 	char				*insert, *end, path[256], *p;
 

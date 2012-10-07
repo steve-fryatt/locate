@@ -51,16 +51,17 @@ void dataxfer_save_window_drag(wimp_w w, wimp_i i, void (* drag_end_callback)(wi
  * \param type			The proposed file type.
  * \param *save_callback	The function to be called with the full pathname
  *				to save the file.
+ * \param *data			Data to be passed to the callback function.
  * \return			TRUE on success; FALSE on failure.
  */
 
-osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, osbool (*save_callback)(char *filename));
+osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, osbool (*save_callback)(char *filename, void *data), void *data);
 
 
 
-struct dataxfer_savebox *dataxfer_new_savebox(char *sprite, osbool (*save_callback)(char *filename, osbool selection));
+struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, osbool (*save_callback)(char *filename, osbool selection));
 void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname, char *selectname, osbool selected);
-void dataxfer_savebox_warning(struct dataxfer_savebox *handle, wimp_menu *menu);
+void dataxfer_savebox_prepare(struct dataxfer_savebox *handle);
 
 #endif
 
