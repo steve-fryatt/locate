@@ -134,12 +134,14 @@ void dataxfer_initialise(void)
 	event_add_window_mouse_event(dataxfer_saveas_window, dataxfer_saveas_click_handler);
 	event_add_window_key_event(dataxfer_saveas_window, dataxfer_saveas_keypress_handler);
 	templates_link_menu_dialogue("save_as", dataxfer_saveas_window);
+	event_add_window_user_data(dataxfer_saveas_window, NULL);
 
 	dataxfer_saveas_sel_window = templates_create_window("SaveAsSel");
 	ihelp_add_window(dataxfer_saveas_sel_window, "SaveAs", NULL);
 	event_add_window_mouse_event(dataxfer_saveas_sel_window, dataxfer_saveas_click_handler);
 	event_add_window_key_event(dataxfer_saveas_sel_window, dataxfer_saveas_keypress_handler);
 	templates_link_menu_dialogue("save_as_sel", dataxfer_saveas_sel_window);
+	event_add_window_user_data(dataxfer_saveas_sel_window, NULL);
 
 
 	//event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, message_data_save_reply);
@@ -195,6 +197,13 @@ static void dataxfer_saveas_click_handler(wimp_pointer *pointer)
 	case DATAXFER_SAVEAS_ICON_FILE:
 		if (pointer->buttons == wimp_DRAG_SELECT)
 			dataxfer_save_window_drag(pointer->w, DATAXFER_SAVEAS_ICON_FILE, dataxfer_drag_end_handler, handle);
+		break;
+
+	case DATAXFER_SAVEAS_ICON_SELECTION:
+		handle->selected = icons_get_selected(handle->window, DATAXFER_SAVEAS_ICON_SELECTION);
+		icons_copy_text(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, (handle->selected) ? handle->full_filename : handle->selection_filename);
+		icons_strncpy(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
+		wimp_set_icon_state(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, 0, 0);
 		break;
 	}
 }
@@ -695,13 +704,29 @@ void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname
 	strncpy(handle->selection_filename, (selectname != NULL) ? selectname : "", DATAXFER_MAX_FILENAME);
 
 	handle->selected = selected;
+
+	event_add_window_user_data(dataxfer_saveas_window, NULL);
+	event_add_window_user_data(dataxfer_saveas_sel_window, NULL);
 }
 
 
 void dataxfer_savebox_prepare(struct dataxfer_savebox *handle)
 {
+	struct dataxfer_savebox		*old_handle;
+
 	if (handle == NULL)
 		return;
+
+	old_handle = event_get_window_user_data(handle->window);
+	if (old_handle != NULL) {
+		if (old_handle->window == dataxfer_saveas_window) {
+			icons_copy_text(old_handle->window, DATAXFER_SAVEAS_ICON_FILENAME, old_handle->full_filename);
+			old_handle->selected = FALSE;
+		} else {
+			old_handle->selected = icons_get_selected(old_handle->window, DATAXFER_SAVEAS_ICON_SELECTION);
+			icons_copy_text(old_handle->window, DATAXFER_SAVEAS_ICON_FILENAME, (old_handle->selected) ? handle->selection_filename : handle->full_filename);
+		}
+	}
 
 	event_add_window_user_data(handle->window, handle);
 
@@ -714,9 +739,6 @@ void dataxfer_savebox_prepare(struct dataxfer_savebox *handle)
 		icons_printf(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
 	}
 }
-
-
-
 
 
 
@@ -739,11 +761,11 @@ static void dataxfer_drag_end_handler(wimp_pointer *pointer, void *data)
 		handle->selected = FALSE;
 	} else {
 		handle->selected = icons_get_selected(handle->window, DATAXFER_SAVEAS_ICON_SELECTION);
-		icons_copy_text(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, handle->selection_filename);
+		icons_copy_text(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
 	}
 
 
-	dataxfer_start_save(pointer, filename, 0, 0xffffffffu, dataxfer_save_handler, handle);
+	dataxfer_start_save(pointer, (handle->selected) ? handle->selection_filename : handle->full_filename, 0, 0xffffffffu, dataxfer_save_handler, handle);
 
 	wimp_create_menu(NULL, 0, 0);
 }

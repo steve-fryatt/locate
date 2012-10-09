@@ -37,6 +37,7 @@
 
 #include "results.h"
 
+#include "dataxfer.h"
 #include "dialogue.h"
 #include "file.h"
 #include "fileicon.h"
@@ -172,10 +173,15 @@ static wimp_menu			*results_window_menu = NULL;		/**< The results window menu.		
 
 static osspriteop_area			*results_sprite_area = NULL;		/**< The application sprite area.					*/
 
+static struct dataxfer_savebox		*results_save_results = NULL;		/**< The Save Results savebox data handle.		*/
+static struct dataxfer_savebox		*results_save_paths = NULL;		/**< The Save Paths savebox data handle.		*/
+static struct dataxfer_savebox		*results_save_options = NULL;		/**< The Save Options savebox data handle.		*/
+
 
 /* Local function prototypes. */
 
 static void	results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+static void	results_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void	results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
@@ -213,6 +219,10 @@ void results_initialise(osspriteop_area *sprites)
 		error_msgs_report_fatal("BadTemplate");
 
 	results_sprite_area = sprites;
+
+	results_save_results = dataxfer_new_savebox(TRUE, "file_1a1", NULL);
+	results_save_paths = dataxfer_new_savebox(TRUE, "file_fff", NULL);
+	results_save_options = dataxfer_new_savebox(TRUE, "file_1a1", NULL);
 }
 
 
@@ -336,10 +346,12 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	event_add_window_close_event(new->window, results_close_handler);
 	event_add_window_menu(new->window, results_window_menu);
 	event_add_window_menu_prepare(new->window, results_menu_prepare);
+	event_add_window_menu_warning(new->window, results_menu_warning);
 	event_add_window_menu_selection(new->window, results_menu_selection);
 
 	event_add_window_menu(new->status, results_window_menu);
 	event_add_window_menu_prepare(new->status, results_menu_prepare);
+	event_add_window_menu_warning(new->status, results_menu_warning);
 	event_add_window_menu_selection(new->status, results_menu_selection);
 
 	windows_open(new->window);
@@ -401,6 +413,46 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 
 	menus_shade_entry(results_window_menu, RESULTS_MENU_MODIFY_SEARCH, dialogue_window_is_open());
 	menus_shade_entry(results_window_menu, RESULTS_MENU_STOP_SEARCH, !file_search_active(handle->file));
+
+	dataxfer_savebox_initialise(results_save_results, "Results", "Selection", FALSE);
+	dataxfer_savebox_initialise(results_save_paths, "FileName", "Selection", FALSE);
+	dataxfer_savebox_initialise(results_save_options, "Search", "Selection", FALSE);
+}
+
+
+/**
+ * Process submenu warning events for the results menu.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *warning	The submenu warning message data.
+ */
+
+static void results_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
+{
+	struct results_window	*handle = event_get_window_user_data(w);
+
+	if (handle == NULL)
+		return;
+
+	switch (warning->selection.items[0]) {
+	case RESULTS_MENU_SAVE:
+		switch (warning->selection.items[1]) {
+		case RESULTS_MENU_SAVE_RESULTS:
+			dataxfer_savebox_prepare(results_save_results);
+			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+			break;
+		case RESULTS_MENU_SAVE_PATH_NAMES:
+			dataxfer_savebox_prepare(results_save_results);
+			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+			break;
+		case RESULTS_MENU_SAVE_SEARCH_OPTIONS:
+			dataxfer_savebox_prepare(results_save_results);
+			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+			break;
+		}
+		break;
+	}
 }
 
 
