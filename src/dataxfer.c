@@ -84,6 +84,7 @@ struct dataxfer_savebox {
 	char				sprite[DATAXFER_MAX_SPRNAME];			/**< The sprite to be used in the savebox.				*/
 
 	wimp_w				window;						/**< The window handle of the savebox to be used.			*/
+	osbool				selection;					/**< TRUE if the selection icon is enabled; else FALSE.			*/
 	osbool				selected;					/**< TRUE if the selection icon is ticked; else FALSE.			*/
 
 	osbool				(*callback)(char *filename, osbool selection);	/**< The callback function to be used if a save is required.		*/
@@ -188,6 +189,7 @@ struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, os
 	strncpy(new->sprite, (sprite != NULL) ? sprite : "", DATAXFER_MAX_SPRNAME);
 
 	new->window = (selection) ? dataxfer_saveas_sel_window : dataxfer_saveas_window;
+	new->selection = FALSE;
 	new->selected = FALSE;
 	new->callback = save_callback;
 
@@ -203,10 +205,11 @@ struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, os
  * \param *handle		The handle of the save dialogue to be initialised.
  * \param *fullname		Pointer to the filename for a full save.
  * \param *selectname		Pointer to the filename for a selection save.
+ * \param selection		TRUE if the Selection option is enabled; else FALSE.
  * \param selected		TRUE if the Selection option is selected; else FALSE.
  */
 
-void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname, char *selectname, osbool selected)
+void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname, char *selectname, osbool selection, osbool selected)
 {
 	if (handle == NULL)
 		return;
@@ -214,7 +217,8 @@ void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname
 	strncpy(handle->full_filename, (fullname != NULL) ? fullname : "", DATAXFER_MAX_FILENAME);
 	strncpy(handle->selection_filename, (selectname != NULL) ? selectname : "", DATAXFER_MAX_FILENAME);
 
-	handle->selected = selected;
+	handle->selection = selection;
+	handle->selected = (selection) ? selected : FALSE;
 
 	event_add_window_user_data(dataxfer_saveas_window, NULL);
 	event_add_window_user_data(dataxfer_saveas_sel_window, NULL);
@@ -254,6 +258,7 @@ void dataxfer_savebox_prepare(struct dataxfer_savebox *handle)
 	if (handle->window == dataxfer_saveas_window) {
 		icons_printf(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, handle->full_filename);
 	} else {
+		icons_set_shaded(handle->window, DATAXFER_SAVEAS_ICON_SELECTION, !handle->selection);
 		icons_set_selected(handle->window, DATAXFER_SAVEAS_ICON_SELECTION, handle->selected);
 		icons_printf(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
 	}

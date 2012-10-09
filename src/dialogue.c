@@ -1362,7 +1362,7 @@ static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointe
 		return;
 
 	if (menu == dialogue_menu) {
-		dataxfer_savebox_initialise(dialogue_save_search, "File", "Selection", FALSE);
+		dataxfer_savebox_initialise(dialogue_save_search, "File", "Selection", FALSE, FALSE);
 		return;
 	}
 
