@@ -220,9 +220,9 @@ void results_initialise(osspriteop_area *sprites)
 
 	results_sprite_area = sprites;
 
-	results_save_results = dataxfer_new_savebox(TRUE, "file_1a1", NULL);
+	results_save_results = dataxfer_new_savebox(FALSE, "file_1a1", NULL);
 	results_save_paths = dataxfer_new_savebox(TRUE, "file_fff", NULL);
-	results_save_options = dataxfer_new_savebox(TRUE, "file_1a1", NULL);
+	results_save_options = dataxfer_new_savebox(FALSE, "file_1a1", NULL);
 }
 
 
@@ -407,6 +407,7 @@ void results_destroy(struct results_window *handle)
 static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
 	struct results_window	*handle = event_get_window_user_data(w);
+	char	filename[64], selection[64];
 
 	if (handle == NULL)
 		return;
@@ -414,9 +415,13 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 	menus_shade_entry(results_window_menu, RESULTS_MENU_MODIFY_SEARCH, dialogue_window_is_open());
 	menus_shade_entry(results_window_menu, RESULTS_MENU_STOP_SEARCH, !file_search_active(handle->file));
 
-	dataxfer_savebox_initialise(results_save_results, "Results", "Selection", TRUE, FALSE);
-	dataxfer_savebox_initialise(results_save_paths, "FileName", "Selection", TRUE, FALSE);
-	dataxfer_savebox_initialise(results_save_options, "Search", "Selection", FALSE, FALSE);
+	msgs_lookup("FileName", filename, 64);
+	dataxfer_savebox_initialise(results_save_results, filename, NULL, TRUE, FALSE);
+	msgs_lookup("ExptName", filename, 64);
+	msgs_lookup("SelectName", selection, 64);
+	dataxfer_savebox_initialise(results_save_paths, filename, selection, TRUE, FALSE);
+	msgs_lookup("SrchName", filename, 64);
+	dataxfer_savebox_initialise(results_save_options, filename, NULL, FALSE, FALSE);
 }
 
 

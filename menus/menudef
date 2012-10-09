@@ -77,7 +77,7 @@ menu(display_menu, "Display") {
 
 menu(save_menu, "Save") {
 	item("Results") {
-		d_box(save_as_sel) {
+		d_box(save_as) {
 			warning;
 		}
 	}
@@ -88,7 +88,7 @@ menu(save_menu, "Save") {
 		dotted;
 	}
 	item("Search options") {
-		d_box(save_as_sel) {
+		d_box(save_as) {
 			warning;
 		}
 	}
