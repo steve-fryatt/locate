@@ -28,6 +28,42 @@ void dataxfer_initialise(void);
 
 
 /**
+ * Create a new save dialogue definition.
+ *
+ * \param: selection		TRUE if the dialogue has a Selection switch; FALSE if not.
+ * \param: *sprite		Pointer to the sprite name for the dialogue.
+ * \param: *save_callback	The callback function for saving data.
+ */
+
+struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, osbool (*save_callback)(char *filename, osbool selection));
+
+
+/**
+ * Initialise a save dialogue definition with two filenames, and an indication of
+ * the selection icon status.  This is called when opening a menu or creating a
+ * dialogue from a toolbar.
+ *
+ * \param *handle		The handle of the save dialogue to be initialised.
+ * \param *fullname		Pointer to the filename for a full save.
+ * \param *selectname		Pointer to the filename for a selection save.
+ * \param selected		TRUE if the Selection option is selected; else FALSE.
+ */
+
+void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname, char *selectname, osbool selected);
+
+
+/**
+ * Prepare the physical save dialogue based on the current state of the given
+ * dialogue data.  Any existing data will be saved into the appropriate
+ * dialogue definition first.
+ *
+ * \param *handle		The handle of the save dialogue to prepare.
+ */
+
+void dataxfer_savebox_prepare(struct dataxfer_savebox *handle);
+
+
+/**
  * Start dragging an icon from a dialogue, creating a sprite to drag and starting
  * a drag action.  When the action completes, a callback will be made to the
  * supplied function.
@@ -56,12 +92,6 @@ void dataxfer_save_window_drag(wimp_w w, wimp_i i, void (* drag_end_callback)(wi
  */
 
 osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, osbool (*save_callback)(char *filename, void *data), void *data);
-
-
-
-struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, osbool (*save_callback)(char *filename, osbool selection));
-void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname, char *selectname, osbool selected);
-void dataxfer_savebox_prepare(struct dataxfer_savebox *handle);
 
 #endif
 

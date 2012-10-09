@@ -443,11 +443,11 @@ static void results_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_wa
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 		case RESULTS_MENU_SAVE_PATH_NAMES:
-			dataxfer_savebox_prepare(results_save_results);
+			dataxfer_savebox_prepare(results_save_paths);
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 		case RESULTS_MENU_SAVE_SEARCH_OPTIONS:
-			dataxfer_savebox_prepare(results_save_results);
+			dataxfer_savebox_prepare(results_save_options);
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 		}
