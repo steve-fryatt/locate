@@ -108,6 +108,10 @@ static void	(*dataxfer_drag_end_callback)(wimp_pointer *, void *) = NULL;		/**< 
 static void				dataxfer_saveas_click_handler(wimp_pointer *pointer);
 static osbool				dataxfer_saveas_keypress_handler(wimp_key *key);
 
+static void				dataxfer_drag_end_handler(wimp_pointer *pointer, void *data);
+static osbool				dataxfer_save_handler(char *filename, void *data);
+static void				dataxfer_immediate_save(struct dataxfer_savebox *handle);
+
 static void				dataxfer_terminate_user_drag(wimp_dragged *drag, void *data);
 static osbool				dataxfer_message_data_save_ack(wimp_message *message);
 static osbool				dataxfer_message_data_load_ack(wimp_message *message);
@@ -116,10 +120,6 @@ static osbool				dataxfer_message_bounced(wimp_message *message);
 static struct dataxfer_descriptor	*dataxfer_new_descriptor(void);
 static struct dataxfer_descriptor	*dataxfer_find_descriptor(int ref, enum dataxfer_message_type type);
 static void				dataxfer_delete_descriptor(struct dataxfer_descriptor *message);
-
-static void				dataxfer_drag_end_handler(wimp_pointer *pointer, void *data);
-static osbool				dataxfer_save_handler(char *filename, void *data);
-
 
 //static osbool		message_data_save_reply(wimp_message *message);
 //static osbool		message_data_load_reply(wimp_message *message);
@@ -298,7 +298,7 @@ static void dataxfer_saveas_click_handler(wimp_pointer *pointer)
 
 	case DATAXFER_SAVEAS_ICON_SAVE:
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			//immediate_window_save();
+			dataxfer_immediate_save(handle);
 		break;
 
 	case DATAXFER_SAVEAS_ICON_FILE:
@@ -326,9 +326,15 @@ static void dataxfer_saveas_click_handler(wimp_pointer *pointer)
 
 static osbool dataxfer_saveas_keypress_handler(wimp_key *key)
 {
+	struct dataxfer_savebox		*handle;
+
+	handle = event_get_window_user_data(key->w);
+	if (handle == NULL)
+		return FALSE;
+
 	switch (key->c) {
 	case wimp_KEY_RETURN:
-		//immediate_window_save();
+		dataxfer_immediate_save(handle);
 		break;
 
 	case wimp_KEY_ESCAPE:
@@ -389,6 +395,40 @@ static osbool dataxfer_save_handler(char *filename, void *data)
 		return FALSE;
 
 	return handle->callback(filename, handle->selected);
+}
+
+
+/**
+ * Perform an immediate save based on the information in a save
+ * dialogue.
+ *
+ * \param *handle		The handle of the save dialogue.
+ */
+
+static void dataxfer_immediate_save(struct dataxfer_savebox *handle)
+{
+	char	*filename;
+
+	if (handle == NULL)
+		return;
+
+	if (handle->window == dataxfer_saveas_window) {
+		icons_copy_text(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, handle->full_filename);
+		handle->selected = FALSE;
+	} else {
+		handle->selected = icons_get_selected(handle->window, DATAXFER_SAVEAS_ICON_SELECTION);
+		icons_copy_text(handle->window, DATAXFER_SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
+	}
+
+	filename = (handle->selected) ? handle->selection_filename : handle->full_filename;
+
+	if (strchr(filename, '.') == NULL) {
+		error_msgs_report_info("BadSave");
+		return;
+	}
+
+	if (handle->callback !=NULL)
+		handle->callback(filename, handle->selected);
 }
 
 
