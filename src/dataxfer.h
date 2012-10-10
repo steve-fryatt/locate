@@ -44,8 +44,8 @@ struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, os
  * dialogue from a toolbar.
  *
  * \param *handle		The handle of the save dialogue to be initialised.
- * \param *fullname		Pointer to the filename for a full save.
- * \param *selectname		Pointer to the filename for a selection save.
+ * \param *fullname		Pointer to the filename token for a full save.
+ * \param *selectname		Pointer to the filename token for a selection save.
  * \param selection		TRUE if the Selection option is enabled; else FALSE.
  * \param selected		TRUE if the Selection option is selected; else FALSE.
  */

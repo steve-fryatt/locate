@@ -27,6 +27,7 @@
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/general.h"
+#include "sflib/msgs.h"
 #include "sflib/config.h"
 
 /* Application header files */
@@ -203,8 +204,8 @@ struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, os
  * dialogue from a toolbar.
  *
  * \param *handle		The handle of the save dialogue to be initialised.
- * \param *fullname		Pointer to the filename for a full save.
- * \param *selectname		Pointer to the filename for a selection save.
+ * \param *fullname		Pointer to the filename token for a full save.
+ * \param *selectname		Pointer to the filename token for a selection save.
  * \param selection		TRUE if the Selection option is enabled; else FALSE.
  * \param selected		TRUE if the Selection option is selected; else FALSE.
  */
@@ -214,8 +215,15 @@ void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname
 	if (handle == NULL)
 		return;
 
-	strncpy(handle->full_filename, (fullname != NULL) ? fullname : "", DATAXFER_MAX_FILENAME);
-	strncpy(handle->selection_filename, (selectname != NULL) ? selectname : "", DATAXFER_MAX_FILENAME);
+	if (fullname != NULL)
+		msgs_lookup(fullname, handle->full_filename, DATAXFER_MAX_FILENAME);
+	else
+		handle->full_filename[0] = '\0';
+
+	if (selectname != NULL)
+		msgs_lookup(selectname, handle->selection_filename, DATAXFER_MAX_FILENAME);
+	else
+		handle->selection_filename[0] = '\0';
 
 	handle->selection = selection;
 	handle->selected = (selection) ? selected : FALSE;
