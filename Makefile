@@ -109,7 +109,7 @@ TEXTHELP := HelpText,fff
 SHHELP := Locate,3d6
 HTMLHELP := manual.html
 README := ReadMe,fff
-LICENSE := License,fff
+LICENSE := Licence,fff
 
 
 # Set up the source files.
