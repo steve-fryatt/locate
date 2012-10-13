@@ -66,7 +66,7 @@
 #define CHOICE_ICON_SAVE 1
 #define CHOICE_ICON_CANCEL 2
 #define CHOICE_ICON_SEARCH_PATH 6
-#define CHOICE_ICON_BACKGROUND_SEARCH 7
+#define CHOICE_ICON_STORE_ALL 7
 #define CHOICE_ICON_IMAGE_FS 8
 #define CHOICE_ICON_SUPPRESS_ERRORS 9
 #define CHOICE_ICON_FULL_INFO 10
@@ -156,7 +156,7 @@ static void choices_set_window(void)
 {
 	icons_printf(choices_window, CHOICE_ICON_SEARCH_PATH, "%s", config_str_read("SearchPath"));
 
-	icons_set_selected(choices_window, CHOICE_ICON_BACKGROUND_SEARCH, config_opt_read("Multitask"));
+	icons_set_selected(choices_window, CHOICE_ICON_STORE_ALL, config_opt_read("StoreAllFiles"));
 	icons_set_selected(choices_window, CHOICE_ICON_IMAGE_FS, config_opt_read("ImageFS"));
 	icons_set_selected(choices_window, CHOICE_ICON_SUPPRESS_ERRORS, config_opt_read("SuppressErrors"));
 	icons_set_selected(choices_window, CHOICE_ICON_FULL_INFO, config_opt_read("FullInfoDisplay"));
@@ -180,7 +180,7 @@ static void choices_read_window(void)
 
 	config_str_set("SearchPath", icons_get_indirected_text_addr(choices_window, CHOICE_ICON_SEARCH_PATH));
 
-	config_opt_set("Multitask", icons_get_selected(choices_window, CHOICE_ICON_BACKGROUND_SEARCH));
+	config_opt_set("StoreAllFiles", icons_get_selected(choices_window, CHOICE_ICON_STORE_ALL));
 	config_opt_set("ImageFS", icons_get_selected(choices_window, CHOICE_ICON_IMAGE_FS));
 	config_opt_set("SuppressErrors", icons_get_selected(choices_window, CHOICE_ICON_SUPPRESS_ERRORS));
 	config_opt_set("FullInfoDisplay", icons_get_selected(choices_window, CHOICE_ICON_FULL_INFO));

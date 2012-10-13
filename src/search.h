@@ -66,12 +66,13 @@ void search_destroy(struct search_block *search);
  *
  * \param *search		The search to set the options for.
  * \param search_imagefs	TRUE to search into ImageFSs; FALSE to skip.
+ * \param store_all		TRUE to store all file details; FALSE to store matches.
  * \param include_files		TRUE to include files; FALSE to exclude.
  * \param include_directories	TRUE to include directories; FALSE to exclude.
  * \param include_applications	TRUE to include applications; FALSE to exclude.
  */
 
-void search_set_options(struct search_block *search, osbool search_imagefs,
+void search_set_options(struct search_block *search, osbool search_imagefs, osbool store_all,
 		osbool include_files, osbool include_directories, osbool include_applications);
 
 

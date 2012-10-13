@@ -98,7 +98,7 @@
 #define DIALOGUE_ICON_IGNORE_CASE 12
 #define DIALOGUE_ICON_SHOW_OPTS 13
 #define DIALOGUE_ICON_SEARCH_PATH 20
-#define DIALOGUE_ICON_BACKGROUND_SEARCH 16
+#define DIALOGUE_ICON_STORE_ALL 16
 #define DIALOGUE_ICON_IMAGE_FS 17
 #define DIALOGUE_ICON_SUPPRESS_ERRORS 18
 #define DIALOGUE_ICON_FULL_INFO 21
@@ -312,7 +312,7 @@ struct dialogue_block {
 
 	/* The Search Options. */
 
-	osbool				background;				/**< Search in the background.				*/
+	osbool				store_all;				/**< Store all file details.				*/
 	osbool				ignore_imagefs;				/**< Ignore the contents of image filing systems.	*/
 	osbool				suppress_errors;			/**< Suppress errors during the search.			*/
 	osbool				full_info;				/**< Use a full-info display by default.		*/
@@ -642,7 +642,7 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
 
 	/* Search Options */
 
-	new->background = (template != NULL) ? template->background : config_opt_read("Multitask");
+	new->store_all = (template != NULL) ? template->store_all : config_opt_read("StoreAll");
 	new->ignore_imagefs = (template != NULL) ? template->ignore_imagefs : config_opt_read("ImageFS");
 	new->suppress_errors = (template != NULL) ? template->suppress_errors : config_opt_read("SuppressErrors");
 	new->full_info = (template != NULL) ? template->full_info : config_opt_read("FullInfoDisplay");
@@ -909,7 +909,7 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 
 	/* Set the search options. */
 
-	icons_set_selected(dialogue_window, DIALOGUE_ICON_BACKGROUND_SEARCH, dialogue->background);
+	icons_set_selected(dialogue_window, DIALOGUE_ICON_STORE_ALL, dialogue->store_all);
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_IMAGE_FS, dialogue->ignore_imagefs);
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_SUPPRESS_ERRORS, dialogue->suppress_errors);
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_FULL_INFO, dialogue->full_info);
@@ -1161,7 +1161,7 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 
 	/* Set the search options. */
 
-	dialogue->background = icons_get_selected(dialogue_window, DIALOGUE_ICON_BACKGROUND_SEARCH);
+	dialogue->store_all = icons_get_selected(dialogue_window, DIALOGUE_ICON_STORE_ALL);
 	dialogue->ignore_imagefs = icons_get_selected(dialogue_window, DIALOGUE_ICON_IMAGE_FS);
 	dialogue->suppress_errors = icons_get_selected(dialogue_window, DIALOGUE_ICON_SUPPRESS_ERRORS);
 	dialogue->full_info = icons_get_selected(dialogue_window, DIALOGUE_ICON_FULL_INFO);
@@ -1642,7 +1642,8 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 
 	/* Set the generic search options. */
 
-	search_set_options(search, !dialogue->ignore_imagefs, dialogue->type_files, dialogue->type_directories, dialogue->type_applications);
+	search_set_options(search, !dialogue->ignore_imagefs, dialogue->store_all,
+			dialogue->type_files, dialogue->type_directories, dialogue->type_applications);
 
 	/* Set the filename search options. */
 
@@ -2032,7 +2033,7 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 
 	/* Set the search options. */
 
-	debug_printf("Search In Background: %s", config_return_opt_string(dialogue->background));
+	debug_printf("Store All Files: %s", config_return_opt_string(dialogue->store_all));
 	debug_printf("Ignore ImageFS Contents: %s", config_return_opt_string(dialogue->ignore_imagefs));
 	debug_printf("Suppress Errors: %s", config_return_opt_string(dialogue->suppress_errors));
 	debug_printf("Display Full Info: %s", config_return_opt_string(dialogue->full_info));

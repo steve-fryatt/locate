@@ -172,7 +172,7 @@ Help.Search.Contents:\Ssee the search options concerning the file contents.
 Help.Search.11:Drag \s to set the search directory.|MDouble click \s to open the search directory.
 Help.Search.Case:\Stoggle whether the case of filenames is ignored.
 Help.Search.Options:\Stoggle the display of the search options.
-Help.Search.Background:\Stoggle whether you can still use the computer while searches take place (that is, whether searches multitask).
+Help.Search.StoreAll:\Stoggle whether the full details of the search directory are recorded to allow future off-line searches.
 Help.Search.ImageFS:\Stoggle whether the contents of Image Filing System directories are searched (eg. ArcFS, SparkFS).
 Help.Search.Suppress:\Stoggle whether errors from filing systems are reported in an error box or logged in the results window.
 Help.Search.Path:Enter the directories to search in, separated by commas.|MDrag a directory or application here to add it to the list.|MDrag a file here to add its parent directory to the list.|MShift-drag objects to replace the list.
@@ -249,7 +249,7 @@ Help.Choices.Apply:\Sclose the choices \w and use the changes|M\Ause the changes
 Help.Choices.Save:\Sclose the choices \w, using the changes and saving them to disc.|M\Ause the changes and save them.
 Help.Choices.Cancel:\Sclose the choices \w and forget any changes made.|M\Aforget the changes made since the window was opened.
 Help.Choices.Path:Enter the directories to search in, separated by commas.|MDrag a directory or application here to add it to the list.|MDrag a file here to add its parent directory to the list.|MShift-drag objects to replace the list.
-Help.Choices.Background:\Stoggle whether searches take place in the background by default.
+Help.Choices.StoreAll:\Stoggle whether the full details of the search directory are recorded to allow future off-line searches.
 Help.Choices.ImageFS:\Stoggle whether the contents of Image Filing System directories are searched by default.
 Help.Choices.Suppress:\Stoggle whether errors from filing systems are reported in an error box or logged in the results window by default.
 Help.Choices.FullInfo:\Stoggle if a full info display is used by default for new searches.
