@@ -82,6 +82,7 @@ struct search_stack {
 	int			next;						/**< The number of the next item to read from the block.		*/
 	unsigned		data_offset;					/**< Offset to the data for the next item to be read from the block.	*/
 
+	unsigned		key;						/**< The object database key of the item.				*/
 	unsigned		parent;						/**< The object database key of the parent item.			*/
 
 	unsigned		filetype;					/**< The filetype of the current file.					*/
@@ -249,7 +250,7 @@ struct search_block *search_create(struct file_block *file, struct objdb_block *
 	/* The Search criteria. */
 
 	new->include_imagefs = FALSE;
-	new->store_all = TRUE;
+	new->store_all = FALSE;
 
 	new->include_files = TRUE;
 	new->include_directories = TRUE;
@@ -772,10 +773,9 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 			/* Add the file to the database. */
 
-			object_key = OBJDB_NULL_KEY;
+			object_key = objdb_add_file(search->objects, search->stack[stack].parent, file_data);
+			search->stack[stack].key = object_key;
 
-			if (search->store_all)
-				object_key = objdb_add_file(search->objects, search->stack[stack].parent, file_data);
 
 			/* Work out a filetype using the convention 0x000-0xfff, 0x1000, 0x2000, 0x3000. */
 
@@ -826,10 +826,6 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 					) {
 				search->file_count++;
 
-				if (object_key == OBJDB_NULL_KEY)
-					object_key = objdb_add_file(search->objects, search->stack[stack].parent, file_data);
-
-
 				*filename = '\0';
 
 				for (i = 0; i <= stack; i++) {
@@ -841,15 +837,13 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				strcat(filename, ".");
 				strcat(filename, file_data->name);
 
-				results_add_file(search->results, object_key);
+				results_add_file(search->results, search->stack[stack].key);
+				search->stack[stack].key = OBJDB_NULL_KEY;
 			}
 
 			/* If the object is a folder, recurse down into it. */
 
 			if (file_data->obj_type == fileswitch_IS_DIR || (search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE)) {
-				if (object_key == OBJDB_NULL_KEY)
-					object_key = objdb_add_file(search->objects, search->stack[stack].parent, file_data);
-
 				/* Take a copy of the name before we shift the flex heap. */
 
 				strncpy(leafname, file_data->name, SEARCH_MAX_FILENAME);
@@ -860,6 +854,9 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				search->stack[stack].parent = object_key;
 
 				continue;
+			} else if (search->stack[stack].key != OBJDB_NULL_KEY && !search->store_all) {
+				objdb_delete_last_key(search->objects, search->stack[stack].key);
+				search->stack[stack].key = OBJDB_NULL_KEY;
 			}
 		}
 
@@ -869,6 +866,11 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 		if ((search->stack[stack].next >= search->stack[stack].read) && (search->stack[stack].context == -1)) {
 			stack = search_drop_stack(search);
+
+			if (stack != SEARCH_NULL && search->stack[stack].key != OBJDB_NULL_KEY && !search->store_all) {
+				objdb_delete_last_key(search->objects, search->stack[stack].key);
+				search->stack[stack].key = OBJDB_NULL_KEY;
+			}
 
 			continue;
 		}

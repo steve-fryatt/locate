@@ -512,7 +512,9 @@ void objdb_delete_last_key(struct objdb_block *handle, unsigned key)
 	 * accesses.
 	 */
 
-	if (handle->list[index].key + 1 == key)
+	debug_printf("\\ODeleting key %u", handle->list[index].key);
+
+	if (handle->list[index].key + 1 == handle->key)
 		handle->key--;
 
 	handle->objects--;
