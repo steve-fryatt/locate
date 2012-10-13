@@ -106,16 +106,5 @@ char *textdump_get_base(struct textdump_block *text);
 
 unsigned textdump_store(struct textdump_block *handle, char *text);
 
-
-/**
- * Dump details of a textdump's hash to Reporter to aid debugging.
- *
- * \TODO -- Remove once unused.
- *
- * \param *handle		The handle of the relevant text dump.
- */
-
-void textdump_output_hash_data(struct textdump_block *handle);
-
 #endif
 

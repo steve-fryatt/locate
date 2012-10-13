@@ -262,35 +262,3 @@ static int textdump_make_hash(struct textdump_block *handle, char *text)
 	return hash % handle->hashes;
 }
 
-
-/**
- * Dump details of a textdump's hash to Reporter to aid debugging.
- *
- * \TODO -- Remove once unused.
- *
- * \param *handle		The handle of the relevant text dump.
- */
-
-void textdump_output_hash_data(struct textdump_block *handle)
-{
-	int		i, items;
-	unsigned	next;
-
-	if (handle == NULL || handle->hashes == 0)
-		return;
-
-	debug_printf("\\GHash contents for textdump 0x%x", handle);
-
-	for (i = 0; i < handle->hashes; i++) {
-		items = 0;
-		next = handle->hash[i];
-
-		while (next != TEXTDUMP_NULL) {
-			items++;
-			next = ((struct textdump_header *) (handle->text + next))->next;
-		}
-
-		debug_printf("Hash %02d contains %d items", i, items);
-	}
-}
-

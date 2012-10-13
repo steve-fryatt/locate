@@ -214,16 +214,5 @@ unsigned objdb_get_next_key(struct objdb_block *handle, unsigned key);
 //osbool objdb_set_button_info(unsigned key, int x_pos, int y_pos, char *name, char *sprite,
 //		char *command, osbool local_copy, osbool filer_boot);
 
-
-/**
- * Dump details of a database's text hash to Reporter for debugging.
- *
- * \TODO -- Remove once unused.
- *
- * \param *handle		The database to dump the details from.
- */
-
-void objdb_output_hash_data(struct objdb_block *handle);
-
 #endif
 

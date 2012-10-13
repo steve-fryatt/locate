@@ -588,10 +588,6 @@ void search_stop(struct search_block *search)
 
 	search_searches_active--;
 
-	/* Dump the details of the object database for debugging. */
-
-	objdb_output_hash_data(search->objects);
-
 	/* Free any stack that's allocated.
 	 *
 	 * NB: This will need to be reallocated if the search is restarted, so

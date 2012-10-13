@@ -683,20 +683,3 @@ static void objdb_delete(struct objdb_block *handle, int index)
 			-sizeof(struct object));
 }
 
-
-/**
- * Dump details of a database's text hash to Reporter for debugging.
- *
- * \TODO -- Remove once unused.
- *
- * \param *handle		The database to dump the details from.
- */
-
-void objdb_output_hash_data(struct objdb_block *handle)
-{
-	if (handle == NULL || handle->text == NULL)
-		return;
-
-	textdump_output_hash_data(handle->text);
-}
-
