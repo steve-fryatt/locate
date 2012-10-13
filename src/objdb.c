@@ -485,6 +485,41 @@ void objdb_delete_key(struct objdb_block *handle, unsigned key)
 
 
 /**
+ * Delete an entry from the database, if it was the last one to be added.
+ * This allows a recursive filesearch routine to add all nodes to the database,
+ * then delete the unused ones once it knows that they won't be required.  This
+ * only works if all of the chidren for a node are added immediately followng
+ * the node.
+ *
+ * \param *handle		The database which to delete the entry.
+ * \param key			The key of the entry to delete.
+ */
+
+void objdb_delete_last_key(struct objdb_block *handle, unsigned key)
+{
+	int		index;
+
+	if (handle == NULL || key == OBJDB_NULL_KEY || handle->objects == 0)
+		return;
+
+	index = handle->objects - 1;
+	if (handle->list[index].key != key)
+		return;
+
+	/* Don't bother to free up memory; just release the last allocated
+	 * block for reuse, and also free up the key value if it is also the
+	 * last one to be allocated, to keep the two in step and speed up
+	 * accesses.
+	 */
+
+	if (handle->list[index].key + 1 == key)
+		handle->key--;
+
+	handle->objects--;
+}
+
+
+/**
  * Given a database key, return the next key from the database.
  *
  * \param *handle		The database to iterate through.

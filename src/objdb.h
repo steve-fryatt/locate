@@ -165,6 +165,20 @@ void objdb_delete_key(struct objdb_block *handle, unsigned key);
 
 
 /**
+ * Delete an entry from the database, if it was the last one to be added.
+ * This allows a recursive filesearch routine to add all nodes to the database,
+ * then delete the unused ones once it knows that they won't be required.  This
+ * only works if all of the chidren for a node are added immediately followng
+ * the node.
+ *
+ * \param *handle		The database which to delete the entry.
+ * \param key			The key of the entry to delete.
+ */
+
+void objdb_delete_last_key(struct objdb_block *handle, unsigned key);
+
+
+/**
  * Given a database key, return the next key from the database.
  *
  * \param *handle		The database to iterate through.
