@@ -796,8 +796,6 @@ void results_add_file(struct results_window *handle, unsigned key)
 	//objdb_get_name(handle->objects, key, name, sizeof(name));
 	type = objdb_get_filetype(handle->objects, key);
 
-	debug_printf("Returned filetype 0x%x", type);
-
 	//offt = textdump_store(handle->text, name);
 	offv = fileicon_get_type_icon(type, "", &small);
 

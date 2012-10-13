@@ -613,8 +613,6 @@ osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits typ
 	descriptor->type = DATAXFER_MESSAGE_SAVE;
 	descriptor->my_ref = message.my_ref;
 
-	debug_printf("Sent Message_DataSave with descriptor 0x%x", descriptor);
-
 	return TRUE;
 }
 
@@ -637,8 +635,6 @@ static osbool dataxfer_message_data_save_ack(wimp_message *message)
 	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_SAVE);
 	if (descriptor == NULL)
 		return FALSE;
-
-	debug_printf("Received Message_DataSaveAck with descriptor 0x%x", descriptor);
 
 	/* We now know the message in question, so see if our client wants to
 	 * make use of the data.  If there's a callback, call it.  If it
@@ -667,8 +663,6 @@ static osbool dataxfer_message_data_save_ack(wimp_message *message)
 
 	descriptor->my_ref = datasaveack->my_ref;
 
-	debug_printf("Sent Message_DataLoad with descriptor 0x%x", descriptor);
-
 	return TRUE;
 }
 
@@ -693,8 +687,6 @@ static osbool dataxfer_message_data_load_ack(wimp_message *message)
 	if (descriptor == NULL)
 		return FALSE;
 
-	debug_printf("Received Message_DataLoadAck with descriptor 0x%x", descriptor);
-
 	dataxfer_delete_descriptor(descriptor);
 	return TRUE;
 }
@@ -714,8 +706,6 @@ static osbool dataxfer_message_bounced(wimp_message *message)
 
 	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_SAVE);
 	if (descriptor != NULL) {
-		debug_printf("Save message bounced with descriptor 0x%x", descriptor);
-
 		dataxfer_delete_descriptor(descriptor);
 		return TRUE;
 	}

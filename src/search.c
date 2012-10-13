@@ -394,8 +394,6 @@ void search_set_size(struct search_block *search, osbool in_limits, int minimum,
 	search->size_logic = in_limits;
 	search->minimum_size = minimum;
 	search->maximum_size = maximum;
-
-	debug_printf("Setting size options: %d to %d on logic %u", minimum, maximum, in_limits);
 }
 
 

@@ -1751,13 +1751,6 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 		case DIALOGUE_DATE_AT_ANY_TIME:
 			break;
 		}
-
-		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(min_date),
-				line, DIALOGUE_MAX_FILE_LINE, "%DY/%MN/%CE%YR.%24:%MI.%SE");
-		debug_printf("Min Date: '%s'", line);
-		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(max_date),
-				line, DIALOGUE_MAX_FILE_LINE, "%DY/%MN/%CE%YR.%24:%MI.%SE");
-		debug_printf("Max Date: '%s'", line);
 	}
 
 	if (dialogue->use_age && dialogue->age_mode != DIALOGUE_AGE_ANY_AGE) {
@@ -1811,17 +1804,6 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 		case DIALOGUE_AGE_ANY_AGE:
 			break;
 		}
-
-		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(now.utc),
-				line, DIALOGUE_MAX_FILE_LINE, "%DY/%MN/%CE%YR.%24:%MI.%SE");
-		debug_printf("Now: '%s'", line);
-		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(min_date),
-				line, DIALOGUE_MAX_FILE_LINE, "%DY/%MN/%CE%YR.%24:%MI.%SE");
-		debug_printf("Min Date: '%s'", line);
-		territory_convert_date_and_time(territory_CURRENT, (const os_date_and_time *) &(max_date),
-				line, DIALOGUE_MAX_FILE_LINE, "%DY/%MN/%CE%YR.%24:%MI.%SE");
-		debug_printf("Max Date: '%s'", line);
-
 	}
 
 	/* Set the filetype search options. */
