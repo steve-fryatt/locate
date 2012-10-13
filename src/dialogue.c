@@ -42,6 +42,7 @@
 
 #include "oslib/os.h"
 #include "oslib/osbyte.h"
+#include "oslib/osfile.h"
 #include "oslib/osword.h"
 #include "oslib/osfscontrol.h"
 #include "oslib/territory.h"
@@ -1936,9 +1937,22 @@ static void dialogue_scale_age(os_date_and_time date, unsigned base, enum dialog
 
 static osbool dialogue_save_settings(char *filename, osbool selection)
 {
+	FILE	*out;
+
 	debug_printf("Save file to %s with selection at %d", filename, selection);
 
-	return FALSE;
+
+
+	out = fopen(filename, "w");
+	if (out == NULL)
+		return FALSE;
+
+	fprintf(out, "# >Locate Settings File\n#\n# Written by Locate\n\n");
+
+	fclose(out);
+	osfile_set_type(filename, (bits) LOCATE_FILE_TYPE);
+
+	return TRUE;
 }
 
 

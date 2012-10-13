@@ -36,7 +36,7 @@
 
 
 #define TEXT_FILE_TYPE 0xfff
-#define LOCATE_FILE_TYPE 0x1a1;
+#define LOCATE_FILE_TYPE 0x1a1
 
 /**
  * A savebox data handle.
