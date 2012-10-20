@@ -84,8 +84,8 @@
 
 enum dataxfer_message_type {
 	DATAXFER_MESSAGE_NONE = 0,							/**< An unset message block.						*/
-	DATAXFER_MESSAGE_SAVE,								/**< A message block associated with a Message_DataSave.		*/
-	DATAXFER_MESSAGE_LOAD								/**< A message block associated with a Message_DataLoad.		*/
+	DATAXFER_MESSAGE_SAVE = 1,							/**< A message block associated with a save operation.			*/
+	DATAXFER_MESSAGE_LOAD = 2							/**< A message block associated with a load operation.			*/
 };
 
 struct dataxfer_descriptor {
@@ -100,6 +100,20 @@ struct dataxfer_descriptor {
 };
 
 static struct dataxfer_descriptor	*dataxfer_descriptors = NULL;			/**< List of currently active message operations.			*/
+
+struct dataxfer_incoming_target {
+	wimp_w				window;						/**< The required target window handle, or 0 for none.			*/
+	//wimp_i			icon;						/**< The required target icon handle, or -1 for none.			*/
+	//unsigned			type;						/**< The required filetype, or 0xffffffffu for none.			*/
+
+	osbool (*(*callback)(wimp_w w, wimp_i i, unsigned filetype))
+			(char *filename, void *data);					/**< The callback function to be used to screen incoming files.		*/
+	void				*callback_data;					/**< Data to be passed to the callback function.			*/
+
+	struct dataxfer_incoming_target	*next;						/**< The next target in the chain, or NULL.				*/
+};
+
+struct dataxfer_incoming_target		*dataxfer_incoming_targets = NULL;		/**< List of defined incoming targets.					*/
 
 /* Data associated with the Save As window. */
 
@@ -139,14 +153,13 @@ static void				dataxfer_immediate_save(struct dataxfer_savebox *handle);
 static void				dataxfer_terminate_user_drag(wimp_dragged *drag, void *data);
 static osbool				dataxfer_message_data_save_ack(wimp_message *message);
 static osbool				dataxfer_message_data_load_ack(wimp_message *message);
+static osbool				dataxfer_message_data_save(wimp_message *message);
+static osbool				dataxfer_message_data_load(wimp_message *message);
 static osbool				dataxfer_message_bounced(wimp_message *message);
 
 static struct dataxfer_descriptor	*dataxfer_new_descriptor(void);
 static struct dataxfer_descriptor	*dataxfer_find_descriptor(int ref, enum dataxfer_message_type type);
 static void				dataxfer_delete_descriptor(struct dataxfer_descriptor *message);
-
-//static osbool		message_data_save_reply(wimp_message *message);
-//static osbool		message_data_load_reply(wimp_message *message);
 
 
 /**
@@ -170,13 +183,14 @@ void dataxfer_initialise(void)
 	event_add_window_user_data(dataxfer_saveas_sel_window, NULL);
 
 
-	//event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, message_data_save_reply);
+	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, dataxfer_message_data_save);
 	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_data_save_ack);
-	//event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, message_data_load_reply);
+	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, dataxfer_message_data_load);
 	event_add_message_handler(message_DATA_LOAD_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_data_load_ack);
 
 	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
+	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
 }
 
 
@@ -691,38 +705,201 @@ static osbool dataxfer_message_data_load_ack(wimp_message *message)
 	return TRUE;
 }
 
-/**
- * Handle the bounce of a Message_DataSave or Message_DataLoad.
- *
- * \param *message		The associated Wimp message block.
- * \return			TRUE to show that the message was handled.
- */
 
-static osbool dataxfer_message_bounced(wimp_message *message)
+
+
+
+
+
+osbool dataxfer_set_load_target(wimp_w window, osbool (*(*callback)(wimp_w w, wimp_i i, unsigned filetype))(char *filename, void *data), void *data)
 {
-	struct dataxfer_descriptor	*descriptor;
+	struct dataxfer_incoming_target		*new;
 
-	/* The message has bounced, so just clean up. */
+	new = malloc(sizeof(struct dataxfer_incoming_target));
+	if (new == NULL)
+		return FALSE;
 
-	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_SAVE);
-	if (descriptor != NULL) {
+	new->window = window;
+
+	new->callback = callback;
+	new->callback_data = data;
+
+	new->next = dataxfer_incoming_targets;
+	dataxfer_incoming_targets = new;
+
+	return TRUE;
+}
+
+
+#if 0
+
+struct dataxfer_incoming_target {
+	wimp_w				window;						/**< The required target window handle, or 0 for none.			*/
+	wimp_i				icon;						/**< The required target icon handle, or -1 for none.			*/
+	unsigned			type;						/**< The required filetype, or 0xffffffffu for none.			*/
+
+	osbool				(*callback)(char filename, void *data);		/**< The callback function to be used if a save is required.		*/
+	void				*callback_data;					/**< Data to be passed to the callback function.			*/
+
+	struct dataxfer_incoming_target	*next;						/**< The next target in the chain, or NULL.				*/
+}
+
+struct dataxfer_incoming_target		*dataxfer_incoming_targets = NULL;		/**< List of defined incoming targets.					*/
+
+
+
+
+
+
+
+
+
+
+
+static osbool dataxfer_message_data_save(wimp_message *message)
+{
+	wimp_full_message_data_xfer	*datasave = (wimp_full_message_data_xfer *) message;
+	os_error			*error;
+	struct dataxfer_incoming_target	*target;
+
+	/* We don't want to respond to our own save requests. */
+
+	if (message->sender == main_task_handle)
+		return TRUE;
+
+	/* See if the window is one of the registered targets. */
+
+	target = dataxfer_incoming_targets;
+
+	while (target != NULL && target->window != datasave->w)
+		target = target->next;
+
+	if (target == NULL)
+		return FALSE;
+
+	/* If we've got a target, get a descriptor to track the message exchange. */
+
+	descriptor = dataxfer_new_descriptor();
+	if (descriptor == NULL)
+		return FALSE;
+
+	descriptor->callback = target->callback;
+	descriptor->callback_data = target->callback_data;
+
+	/* Update the message block and send an acknowledgement. */
+
+	datasave->your_ref = datasave->my_ref;
+	datasave->action = message_DATA_SAVE_ACK;
+	strcpy(datasave->file_name, "<Wimp$Scrap>");
+	datasave->size = WORDALIGN(45 + strlen(datasave->file_name));
+
+	error = xwimp_send_message(wimp_USER_MESSAGE_RECORDED, (wimp_message *) datasave, datasave->sender);
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+
 		dataxfer_delete_descriptor(descriptor);
 		return TRUE;
 	}
 
-	return FALSE;
+	descriptor->type = DATAXFER_MESSAGE_LOAD;
+	descriptor->my_ref = datasaveack->my_ref;
+
+	return TRUE;
+}
+
+
+static osbool dataxfer_message_data_load(wimp_message *message);
+
+
+
+
+
+
+
+	if (datasave->w == wimp_ICON_BAR && datasave->file_type == TEXT_FILE_TYPE) {
+		datasave->your_ref = datasave->my_ref;
+		datasave->action = message_DATA_SAVE_ACK;
+
+		switch (datasave->file_type) {
+		case TEXT_FILE_TYPE:
+			strcpy(datasave->file_name, "<Wimp$Scrap>");
+			break;
+		}
+
+		datasave->size = WORDALIGN(45 + strlen(datasave->file_name));
+
+		error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) datasave, datasave->sender);
+		if (error != NULL)
+			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+	}
+
+	return TRUE;
 }
 
 
 
 
+	descriptor = dataxfer_new_descriptor();
+	if (descriptor == NULL)
+		return FALSE;
+
+	descriptor->callback = save_callback;
+	descriptor->callback_data = data;
+
+	/* Set up and send the datasave message. If it fails, give an error
+	 * and delete the message details as we won't need them again.
+	 */
+
+	message.size = WORDALIGN(45 + strlen(name));
+	message.your_ref = 0;
+	message.action = message_DATA_SAVE;
+	message.w = pointer->w;
+	message.i = pointer->i;
+	message.pos = pointer->pos;
+	message.est_size = size;
+	message.file_type = type;
+
+	strncpy(message.file_name, name, 212);
+	message.file_name[211] = '\0';
+
+	error = xwimp_send_message_to_window(wimp_USER_MESSAGE_RECORDED, (wimp_message *) &message, pointer->w, pointer->i, &(descriptor->task));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		dataxfer_delete_descriptor(descriptor);
+		return FALSE;
+	}
+
+	/* Complete the message descriptor information. */
+
+	descriptor->type = DATAXFER_MESSAGE_SAVE;
+	descriptor->my_ref = message.my_ref;
+
+	return TRUE;
+
+
+
+	/* The client saved something, so finish off the data transfer. */
+
+	datasaveack->your_ref = datasaveack->my_ref;
+	datasaveack->action = message_DATA_LOAD;
+
+	error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) datasaveack, datasaveack->sender);
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+
+		dataxfer_delete_descriptor(descriptor);
+		return TRUE;
+	}
+
+	descriptor->my_ref = datasaveack->my_ref;
+
+	return TRUE;
 
 
 
 
 
-
-
+#endif
 
 
 
@@ -812,6 +989,31 @@ static osbool message_data_load_reply(wimp_message *message)
 #endif
 
 
+
+
+/**
+ * Handle the bounce of a Message during a load or save operation.
+ *
+ * \param *message		The associated Wimp message block.
+ * \return			TRUE to show that the message was handled.
+ */
+
+static osbool dataxfer_message_bounced(wimp_message *message)
+{
+	struct dataxfer_descriptor	*descriptor;
+
+	/* The message has bounced, so just clean up. */
+
+	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_SAVE | DATAXFER_MESSAGE_LOAD);
+	if (descriptor != NULL) {
+		dataxfer_delete_descriptor(descriptor);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+
 /**
  * Create a new message descriptor with no data and return a pointer.
  *
@@ -838,16 +1040,15 @@ static struct dataxfer_descriptor *dataxfer_new_descriptor(void)
  * Find a record for a message, based on type and reference.
  *
  * \param ref			The message reference field to match.
- * \param type			The message type to match.
+ * \param type			The message type(s) to match.
  * \return			The message descriptor, or NULL if not found.
  */
-
 
 static struct dataxfer_descriptor *dataxfer_find_descriptor(int ref, enum dataxfer_message_type type)
 {
 	struct dataxfer_descriptor		*list = dataxfer_descriptors;
 
-	while (list != NULL && list->type != type && list->my_ref != ref)
+	while (list != NULL && (list->type & type) != 0 && list->my_ref != ref)
 		list = list->next;
 
 	return list;

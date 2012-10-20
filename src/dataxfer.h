@@ -118,5 +118,10 @@ void dataxfer_save_window_drag(wimp_w w, wimp_i i, void (* drag_end_callback)(wi
 
 osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, osbool (*save_callback)(char *filename, void *data), void *data);
 
+
+
+osbool dataxfer_set_load_target(wimp_w window, osbool (*(*callback)(wimp_w w, wimp_i i, unsigned filetype))(char *filename, void *data), void *data);
+
+
 #endif
 

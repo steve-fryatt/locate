@@ -1,0 +1,59 @@
+File contains a set of search results (searching for files and directories
+on a disc), along with the search parameters for the search.
+
+The format consists of a 12 byte header, containing a Magic Word, version and flags, followed by blocks of data.  Each block is preceded by its length (stored in a word); the number of blocks is inferred by the version number or by encountering an EOF.  Blocks can be zero length (in which case they just have a length word of zero); in this situation the data isn't present (so a file could just contain settings, for example).
+
+The current version number is 1; the version word may be subdivided up.
+Note that search parameter files (no results) can still be saved as version 0 to allow back compatibility.
+
+
+Offset  Data
+------  ----
+0	Magic Word 'SRCH'
+4	File Version (currently 1)
+8	Flags (reserved, must all be zero)
+
+12	Length of data block
+16...	Data Block
+
+a	Length of title block
+a+4...	Title Block
+
+b	Length of settings block
+b+4...	Settings block
+
+
+The individual blocks contain internal data from Locate.  The data block contains (items in brackets indicate internal useage):
+
+Offset	Data
+------	----
+0	Zero (pointer to next data block)
+4	Zero (pointer to window redraw data)
+8	Zero (window handle)
+12	Number of items in list
+16	Zero (pointer to search options; as per Settings Block)
+20	Zero (number of selections in window)
+24	Zero (matches found at last window update)
+28	Length of block header - 44 (data pointer at last window update)
+32	Zero (window handle of pane)
+36	Display flags
+40	Results entry height in OS units.
+44      Zero (pointer to file info block)
+48      Zero (number of selectable items)
+
+52	Start of data
+	Each entry contains:
+		<Path name of match>+CHR$13
+		"S"+<sprite name for file>+CHR$13
+		Flag byte
+
+The title block contains the text of the window title, CHR$13 terminated.
+
+The settings block contains:
+
+Offset	Data
+------	----
+0	Flags word (zero)
+4	Total length of block
+
+8	Start of data
