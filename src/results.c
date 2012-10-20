@@ -203,6 +203,8 @@ static struct dataxfer_savebox		*results_save_options = NULL;		/**< The Save Opt
 
 /* Local function prototypes. */
 
+static void	results_click_handler(wimp_pointer *pointer);
+static osbool	results_keypress_handler(wimp_key *key);
 static void	results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void	results_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void	results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
@@ -210,6 +212,8 @@ static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
 static void	results_update_extent(struct results_window *handle);
 static unsigned	results_add_line(struct results_window *handle, osbool show);
+static int	results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state);
+
 //static unsigned	results_add_fileblock(struct results_window *handle);
 
 
@@ -367,6 +371,8 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 
 	event_add_window_redraw_event(new->window, results_redraw_handler);
 	event_add_window_close_event(new->window, results_close_handler);
+	event_add_window_mouse_event(new->window, results_click_handler);
+	//event_add_window_key_event(new->window, results_keypress_handler);
 	event_add_window_menu(new->window, results_window_menu);
 	event_add_window_menu_prepare(new->window, results_menu_prepare);
 	event_add_window_menu_warning(new->window, results_menu_warning);
@@ -416,6 +422,110 @@ void results_destroy(struct results_window *handle)
 	heap_free(title);
 	heap_free(status);
 	heap_free(handle);
+}
+
+
+/**
+ * Process mouse clicks in results window.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void results_click_handler(wimp_pointer *pointer)
+{
+	struct results_window	*handle = event_get_window_user_data(pointer->w);
+	wimp_window_state	state;
+	int			row;
+
+	if (handle == NULL || pointer== NULL)
+		return;
+
+	state.w = pointer->w;
+	if (xwimp_get_window_state(&state) != NULL)
+		return;
+
+	row = results_calculate_window_click_row(handle, &(pointer->pos), &state);
+	debug_printf("Click on row %d", row);
+
+/*
+	if (pointer->w == dialogue_window) {
+		switch ((int) pointer->i) {
+		case DIALOGUE_ICON_SEARCH:
+			if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
+				dialogue_read_window(dialogue_data);
+				dialogue_start_search(dialogue_data);
+
+				if (pointer->buttons == wimp_CLICK_SELECT) {
+					settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
+					dialogue_close_window();
+				}
+			}
+			break;
+
+		case DIALOGUE_ICON_CANCEL:
+			if (pointer->buttons == wimp_CLICK_SELECT) {
+				if (dialogue_data != NULL)
+					file_destroy(dialogue_data->file);
+				settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
+				dialogue_close_window();
+			} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+				dialogue_set_window(dialogue_data);
+				dialogue_redraw_window();
+			}
+			break;
+
+		case DIALOGUE_ICON_SIZE:
+		case DIALOGUE_ICON_DATE:
+		case DIALOGUE_ICON_TYPE:
+		case DIALOGUE_ICON_ATTRIBUTES:
+		case DIALOGUE_ICON_CONTENTS:
+			dialogue_change_pane(icons_get_radio_group_selected(dialogue_window, DIALOGUE_PANES,
+				DIALOGUE_ICON_SIZE, DIALOGUE_ICON_DATE, DIALOGUE_ICON_TYPE,
+				DIALOGUE_ICON_ATTRIBUTES, DIALOGUE_ICON_CONTENTS));
+			break;
+
+		case DIALOGUE_ICON_SHOW_OPTS:
+			dialogue_toggle_size(icons_get_selected(dialogue_window, DIALOGUE_ICON_SHOW_OPTS));
+			break;
+
+		case DIALOGUE_ICON_DRAG:
+			if (pointer->buttons == wimp_DRAG_SELECT)
+				dataxfer_save_window_drag(dialogue_window, DIALOGUE_ICON_DRAG, dialogue_drag_end_handler, NULL);
+			break;
+		}
+	} else if (pointer->w == dialogue_panes[DIALOGUE_PANE_DATE]) {
+		dialogue_shade_date_pane();
+		if (pointer->i == DIALOGUE_DATE_ICON_DATE_FROM_SET || pointer->i == DIALOGUE_DATE_ICON_DATE_TO_SET)
+			settime_open(pointer->w, (pointer->i == DIALOGUE_DATE_ICON_DATE_FROM_SET) ? DIALOGUE_DATE_ICON_DATE_FROM : DIALOGUE_DATE_ICON_DATE_TO, pointer);
+	} else if (pointer->w == dialogue_panes[DIALOGUE_PANE_TYPE])
+		dialogue_shade_type_pane();
+	else if (pointer->w == dialogue_panes[DIALOGUE_PANE_ATTRIBUTES])
+		dialogue_shade_attributes_pane();
+
+		*/
+}
+
+
+/**
+ * Process keypresses in a results window.
+ *
+ * \param *key			The keypress event block to handle.
+ * \return			TRUE if the event was handled; else FALSE.
+ */
+
+static osbool results_keypress_handler(wimp_key *key)
+{
+	if (key == NULL)
+		return FALSE;
+
+	switch (key->c) {
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
 }
 
 
@@ -961,5 +1071,35 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 		handle->redraw[handle->display_lines++].index = offset;
 
 	return offset;
+}
+
+
+/**
+ * Calculate the row that the mouse was clicked over in a results window.
+ *
+ * \param  *handle		The handle of the results window.
+ * \param  *pointer		The Wimp pointer data.
+ * \param  *state		The results window state.
+ * \return			The row (from 0) or -1 if none.
+ */
+
+static int results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state)
+{
+	int	y, row, row_y_pos;
+
+	if (handle == NULL || state == NULL)
+		return -1;
+
+	y = state->visible.y1 - pos->y - state->yscroll;
+
+	row = (y - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) / RESULTS_LINE_HEIGHT;
+	row_y_pos = ((y - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) % RESULTS_LINE_HEIGHT);
+
+	if (row >= handle->redraw_lines ||
+			row_y_pos < (RESULTS_LINE_HEIGHT - (RESULTS_LINE_OFFSET + RESULTS_ICON_HEIGHT)) ||
+			row_y_pos > (RESULTS_LINE_HEIGHT - RESULTS_LINE_OFFSET))
+		row = -1;
+
+	return row;
 }
 
