@@ -106,8 +106,10 @@ struct dataxfer_incoming_target {
 	//wimp_i			icon;						/**< The required target icon handle, or -1 for none.			*/
 	//unsigned			type;						/**< The required filetype, or 0xffffffffu for none.			*/
 
-	osbool (*(*callback)(wimp_w w, wimp_i i, unsigned filetype))
+	osbool (*(*screen_callback)(wimp_w w, wimp_i i, unsigned filetype))
 			(char *filename, void *data);					/**< The callback function to be used to screen incoming files.		*/
+
+	osbool				(*load_callback)(char *filename, void *data);	/**< The callback function to be used if a load is required.		*/
 	void				*callback_data;					/**< Data to be passed to the callback function.			*/
 
 	struct dataxfer_incoming_target	*next;						/**< The next target in the chain, or NULL.				*/
@@ -153,6 +155,9 @@ static void				dataxfer_immediate_save(struct dataxfer_savebox *handle);
 static void				dataxfer_terminate_user_drag(wimp_dragged *drag, void *data);
 static osbool				dataxfer_message_data_save_ack(wimp_message *message);
 static osbool				dataxfer_message_data_load_ack(wimp_message *message);
+
+static osbool				dataxfer_load_handler(char *filename, void *data);
+
 static osbool				dataxfer_message_data_save(wimp_message *message);
 static osbool				dataxfer_message_data_load(wimp_message *message);
 static osbool				dataxfer_message_bounced(wimp_message *message);
@@ -181,7 +186,6 @@ void dataxfer_initialise(void)
 	event_add_window_key_event(dataxfer_saveas_sel_window, dataxfer_saveas_keypress_handler);
 	templates_link_menu_dialogue("save_as_sel", dataxfer_saveas_sel_window);
 	event_add_window_user_data(dataxfer_saveas_sel_window, NULL);
-
 
 	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_INCOMING, dataxfer_message_data_save);
 	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_data_save_ack);
@@ -706,10 +710,20 @@ static osbool dataxfer_message_data_load_ack(wimp_message *message)
 }
 
 
-
-
-
-
+/**
+ * Specify a window as a load target, so that any drags from external sources
+ * which terminate inside it are reported via the supplied callback function
+ * with details of window, icon and filetype.
+ *
+ * If the callback decides to take the dragged object, then it should return a
+ * standard load/save function to be called once the transfer protocol has
+ * progressed to the relevant stage; if not, it should return NULL.
+ *
+ * \param window		The window to register as a target.
+ * \param *callback		The vetting callback function.
+ * \param *data			Data to be passed to load functions, or NULL.
+ * \return			TRUE if successfully registered; else FALSE.
+ */
 
 osbool dataxfer_set_load_target(wimp_w window, osbool (*(*callback)(wimp_w w, wimp_i i, unsigned filetype))(char *filename, void *data), void *data)
 {
@@ -721,13 +735,33 @@ osbool dataxfer_set_load_target(wimp_w window, osbool (*(*callback)(wimp_w w, wi
 
 	new->window = window;
 
-	new->callback = callback;
+	new->filter_callback = callback;
 	new->callback_data = data;
+	new->load_callback = NULL;
 
 	new->next = dataxfer_incoming_targets;
 	dataxfer_incoming_targets = new;
 
 	return TRUE;
+}
+
+
+/**
+ * Process data transfer results for file load actions.
+ *
+ * \param *filename		The destination of the dragged file.
+ * \param *data			Context data.
+ * \return			TRUE if the save succeeded; FALSE if it failed.
+ */
+
+static osbool dataxfer_load_handler(char *filename, void *data)
+{
+	struct dataxfer_incoming_target	*handle = data;
+
+	if (handle == NULL || handle->load_callback == NULL)
+		return FALSE;
+
+	return handle->load_callback(filename, handle->callback_data);
 }
 
 
@@ -748,7 +782,7 @@ struct dataxfer_incoming_target		*dataxfer_incoming_targets = NULL;		/**< List o
 
 
 
-
+#endif
 
 
 
@@ -759,8 +793,11 @@ struct dataxfer_incoming_target		*dataxfer_incoming_targets = NULL;		/**< List o
 static osbool dataxfer_message_data_save(wimp_message *message)
 {
 	wimp_full_message_data_xfer	*datasave = (wimp_full_message_data_xfer *) message;
+	struct dataxfer_descriptor	*descriptor;
 	os_error			*error;
 	struct dataxfer_incoming_target	*target;
+	osbool				(*callback)(char *filename, void *data);
+
 
 	/* We don't want to respond to our own save requests. */
 
@@ -774,8 +811,14 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 	while (target != NULL && target->window != datasave->w)
 		target = target->next;
 
-	if (target == NULL)
+	if (target == NULL || target->filter_callback == NULL)
 		return FALSE;
+
+	callback = target->filter_callback(datasave->w, datasave->i, datasave->file_type);
+	if (callback == NULL)
+		return FALSE;
+
+	target->load_callback = callback;
 
 	/* If we've got a target, get a descriptor to track the message exchange. */
 
@@ -783,8 +826,8 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 	if (descriptor == NULL)
 		return FALSE;
 
-	descriptor->callback = target->callback;
-	descriptor->callback_data = target->callback_data;
+	descriptor->callback = dataxfer_load_handler;
+	descriptor->callback_data = target;
 
 	/* Update the message block and send an acknowledgement. */
 
@@ -802,10 +845,82 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 	}
 
 	descriptor->type = DATAXFER_MESSAGE_LOAD;
-	descriptor->my_ref = datasaveack->my_ref;
+	descriptor->my_ref = datasave->my_ref;
 
 	return TRUE;
 }
+
+
+
+
+static osbool dataxfer_message_data_load(wimp_message *message)
+{
+	wimp_full_message_data_xfer	*dataload = (wimp_full_message_data_xfer *) message;
+	struct dataxfer_descriptor	*descriptor = NULL;
+	os_error			*error;
+	struct dataxfer_incoming_target	*target;
+	osbool				(*callback)(char *filename, void *data);
+
+
+	/* We don't want to respond to our own save requests. */
+
+	if (message->sender == main_task_handle)
+		return TRUE;
+
+	/* See if we know about this transfer already.  If we do, this is the
+	 * closing stage of a full transfer; if not, we must ask the client
+	 * if we need to proceed.
+	 */
+
+	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_LOAD);
+	if (descriptor == NULL) {
+		/* See if the window is one of the registered targets. */
+
+		target = dataxfer_incoming_targets;
+
+		while (target != NULL && target->window != datasave->w)
+			target = target->next;
+
+		if (target == NULL || target->filter_callback == NULL)
+			return FALSE;
+
+		callback = target->filter_callback(datasave->w, datasave->i, datasave->file_type);
+		if (callback == NULL)
+			return FALSE;
+
+		target->load_callback = callback;
+	} else {
+		target = descriptor->callback_data;
+	}
+
+	// \TODO -- Load the file here.
+
+	if (descriptor != NULL) {
+		// \TODO -- Delete the file here.
+		dataxfer_delete_descriptor(descriptor);
+	}
+
+	/* Update the message block and send an acknowledgement. */
+
+	dataload->your_ref = datasave->my_ref;
+	dataload->action = message_DATA_LOAD_ACK;
+
+	error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) dataload, dataload->sender);
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return TRUE;
+	}
+
+	descriptor->type = DATAXFER_MESSAGE_LOAD;
+	descriptor->my_ref = datasave->my_ref;
+
+	return TRUE;
+}
+
+
+
+
+#if 0
 
 
 static osbool dataxfer_message_data_load(wimp_message *message);
