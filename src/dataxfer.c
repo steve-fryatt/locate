@@ -884,17 +884,20 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 		target = descriptor->callback_data;
 	}
 
+	/* If there's no load callback function, abandon the transfer here. */
+
 	if (target->load_callback == NULL)
 		return FALSE;
+
+	/* If the load faile, abandon the transfer here. */
 
 	if (target->load_callback(dataload->file_name, target->callback_data) == FALSE)
 		return FALSE;
 
-	if (descriptor != NULL) {
-		debug_printf("Deleting scrap file.");
-		xosfscontrol_wipe(dataload->file_name, NONE, 0, 0, 0, 0);
+	/* If this was an inter-application transfer, tidy up. */
 
-		// \TODO -- Delete the file here.
+	if (descriptor != NULL) {
+		xosfscontrol_wipe(dataload->file_name, NONE, 0, 0, 0, 0);
 		dataxfer_delete_descriptor(descriptor);
 	}
 
