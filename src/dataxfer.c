@@ -108,11 +108,14 @@ static struct dataxfer_descriptor	*dataxfer_descriptors = NULL;			/**< List of c
 
 struct dataxfer_incoming_target {
 	unsigned			filetype;					/**< The target filetype.						*/
+	wimp_w				window;						/**< The target window (used in window and icon lists).			*/
+	wimp_i				icon;						/**< The target icon (used in icon lists).				*/
 
-	osbool (*(*screen_callback)(wimp_w w, wimp_i i, unsigned filetype))
-			(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);					/**< The callback function to be used to screen incoming files.		*/
-	osbool				(*load_callback)(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);	/**< The callback function to be used if a load is required.		*/
+	osbool				(*callback)(wimp_w w, wimp_i i,
+			unsigned filetype, char *filename, void *data);			/**< The callback function to be used if a load is required.		*/
 	void				*callback_data;					/**< Data to be passed to the callback function.			*/
+
+	struct dataxfer_incoming_target	*children;					/**< Pointer to a list of child targets (window or icon lists).		*/
 
 	struct dataxfer_incoming_target	*next;						/**< The next target in the chain, or NULL.				*/
 };
@@ -721,36 +724,122 @@ static osbool dataxfer_message_data_load_ack(wimp_message *message)
 
 
 /**
- * Specify a filetype of interest for double-clicks and drags, so that any
- * attempts to load it are reported via the supplied callback function
- * with details of window, icon and filetype.
+ * Specify a handler for files which are double-clicked or dragged into a window.
+ * Files which match on type, target window and target icon are passed to the
+ * appropriate handler for attention.
  *
- * If the callback decides to take the dragged object, then it should return a
- * standard load/save function to be called once the transfer protocol has
- * progressed to the relevant stage; if not, it should return NULL.
+ * To specify a generic handler for a type, set window to NULL and icon to -1.
+ * To specify a generic handler for all the icons in a window, set icon to -1.
  *
- * \param window		The window to register as a target.
- * \param *callback		The vetting callback function.
+ * Double-clicked files (Message_DataOpen) will be passed to a generic type
+ * handler or a type handler for a window with the handle wimp_ICON_BAR.
+ *
+ * \param filetype		The window to register as a target.
+ * \param w			The target window, or NULL.
+ * \param i			The target icon, or -1.
+ * \param *callback		The load callback function.
  * \param *data			Data to be passed to load functions, or NULL.
  * \return			TRUE if successfully registered; else FALSE.
  */
 
-osbool dataxfer_set_load_target(unsigned filetype, osbool (*(*callback)(wimp_w w, wimp_i i, unsigned filetype))(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data), void *data)
+osbool dataxfer_set_load_target(unsigned filetype, wimp_w w, wimp_i i, osbool (*callback)(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data), void *data)
 {
-	struct dataxfer_incoming_target		*new;
+	struct dataxfer_incoming_target		*type, *window, *icon;
 
-	new = malloc(sizeof(struct dataxfer_incoming_target));
-	if (new == NULL)
+	/* Validate the input: if there's an icon, there must be a window. */
+
+	if (w == NULL && i != -1)
 		return FALSE;
 
-	new->filetype = filetype;
+	/* Set up the top-level filetype target. */
 
-	new->screen_callback = callback;
-	new->callback_data = data;
-	new->load_callback = NULL;
+	type = dataxfer_incoming_targets;
 
-	new->next = dataxfer_incoming_targets;
-	dataxfer_incoming_targets = new;
+	while (type != NULL && type->filetype != filetype)
+		type = type->next;
+
+	if (type == NULL) {
+		type = malloc(sizeof(struct dataxfer_incoming_target));
+		if (type == NULL)
+			return FALSE;
+
+		type->filetype = filetype;
+		type->window = 0;
+		type->icon = 0;
+
+		type->callback = NULL;
+		type->callback_data = NULL;
+
+		type->children = NULL;
+
+		type->next = dataxfer_incoming_targets;
+		dataxfer_incoming_targets = type;
+	}
+
+	if (w == NULL) {
+		type->callback = callback;
+		type->callback_data = data;
+		return TRUE;
+	}
+
+	/* Set up the window target. */
+
+	window = type->children;
+
+	while (window != NULL && window->window != w)
+		window = window->next;
+
+	if (window == NULL) {
+		window = malloc(sizeof(struct dataxfer_incoming_target));
+		if (window == NULL)
+			return FALSE;
+
+		window->filetype = filetype;
+		window->window = w;
+		window->icon = 0;
+
+		window->callback = NULL;
+		window->callback_data = NULL;
+
+		window->children = NULL;
+
+		window->next = type->children;
+		type->children = window;
+	}
+
+	if (i == -1) {
+		window->callback = callback;
+		window->callback_data = data;
+		return TRUE;
+	}
+
+	/* Set up the icon target. */
+
+	icon = window->children;
+
+	while (icon != NULL && icon->icon != i)
+		icon = icon->next;
+
+	if (icon == NULL) {
+		icon = malloc(sizeof(struct dataxfer_incoming_target));
+		if (icon == NULL)
+			return FALSE;
+
+		icon->filetype = filetype;
+		icon->window = w;
+		icon->icon = i;
+
+		icon->callback = NULL;
+		icon->callback_data = NULL;
+
+		icon->children = NULL;
+
+		icon->next = window->children;
+		window->children = icon;
+	}
+
+	icon->callback = callback;
+	icon->callback_data = data;
 
 	return TRUE;
 }
@@ -770,7 +859,6 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 	struct dataxfer_descriptor	*descriptor;
 	os_error			*error;
 	struct dataxfer_incoming_target	*target;
-	osbool				(*callback)(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
 
 	/* We don't want to respond to our own save requests. */
@@ -782,14 +870,8 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 
 	target = dataxfer_find_incoming_target(datasave->w, datasave->i, datasave->file_type);
 
-	if (target == NULL || target->screen_callback == NULL)
+	if (target == NULL || target->callback == NULL)
 		return FALSE;
-
-	callback = target->screen_callback(datasave->w, datasave->i, datasave->file_type);
-	if (callback == NULL)
-		return FALSE;
-
-	target->load_callback = callback;
 
 	/* If we've got a target, get a descriptor to track the message exchange. */
 
@@ -837,7 +919,6 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 	struct dataxfer_descriptor	*descriptor = NULL;
 	os_error			*error;
 	struct dataxfer_incoming_target	*target;
-	osbool				(*callback)(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
 
 	/* We don't want to respond to our own save requests. */
@@ -856,26 +937,20 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 
 		target = dataxfer_find_incoming_target(dataload->w, dataload->i, dataload->file_type);
 
-		if (target == NULL || target->screen_callback == NULL)
+		if (target == NULL || target->callback == NULL)
 			return FALSE;
-
-		callback = target->screen_callback(dataload->w, dataload->i, dataload->file_type);
-		if (callback == NULL)
-			return FALSE;
-
-		target->load_callback = callback;
 	} else {
 		target = descriptor->callback_data;
 	}
 
 	/* If there's no load callback function, abandon the transfer here. */
 
-	if (target->load_callback == NULL)
+	if (target->callback == NULL)
 		return FALSE;
 
 	/* If the load faile, abandon the transfer here. */
 
-	if (target->load_callback(dataload->w, dataload->i, dataload->file_type, dataload->file_name, target->callback_data) == FALSE)
+	if (target->callback(dataload->w, dataload->i, dataload->file_type, dataload->file_name, target->callback_data) == FALSE)
 		return FALSE;
 
 	/* If this was an inter-application transfer, tidy up. */
@@ -912,14 +987,39 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 
 static struct dataxfer_incoming_target *dataxfer_find_incoming_target(wimp_w w, wimp_i i, unsigned filetype)
 {
-	struct dataxfer_incoming_target		*target;
+	struct dataxfer_incoming_target		*type, *window, *icon;
 
-	target = dataxfer_incoming_targets;
+	/* Search for a filetype. */
 
-	while (target != NULL && target->filetype != filetype)
-		target = target->next;
+	type = dataxfer_incoming_targets;
 
-	return target;
+	while (type != NULL && type->filetype != filetype)
+		type = type->next;
+
+	if (type == NULL)
+		return NULL;
+
+	/* Now search for a window. */
+
+	window = type->children;
+
+	while (window != NULL && window->window != w)
+		window = window->next;
+
+	if (window == NULL)
+		return type;
+
+	/* Now search for an icon. */
+
+	icon = window->children;
+
+	while (icon != NULL && icon->icon != i)
+		icon = icon->next;
+
+	if (icon == NULL)
+		return window;
+
+	return icon;
 }
 
 

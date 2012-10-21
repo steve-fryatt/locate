@@ -121,21 +121,25 @@ osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits typ
 
 
 /**
- * Specify a filetype of interest for double-clicks and drags, so that any
- * attempts to load it are reported via the supplied callback function
- * with details of window, icon and filetype.
+ * Specify a handler for files which are double-clicked or dragged into a window.
+ * Files which match on type, target window and target icon are passed to the
+ * appropriate handler for attention.
  *
- * If the callback decides to take the dragged object, then it should return a
- * standard load/save function to be called once the transfer protocol has
- * progressed to the relevant stage; if not, it should return NULL.
+ * To specify a generic handler for a type, set window to NULL and icon to -1.
+ * To specify a generic handler for all the icons in a window, set icon to -1.
+ *
+ * Double-clicked files (Message_DataOpen) will be passed to a generic type
+ * handler or a type handler for a window with the handle wimp_ICON_BAR.
  *
  * \param filetype		The window to register as a target.
- * \param *callback		The vetting callback function.
+ * \param w			The target window, or NULL.
+ * \param i			The target icon, or -1.
+ * \param *callback		The load callback function.
  * \param *data			Data to be passed to load functions, or NULL.
  * \return			TRUE if successfully registered; else FALSE.
  */
 
-osbool dataxfer_set_load_target(unsigned filetype, osbool (*(*callback)(wimp_w w, wimp_i i, unsigned filetype))(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data), void *data);
+osbool dataxfer_set_load_target(unsigned filetype, wimp_w w, wimp_i i, osbool (*callback)(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data), void *data);
 
 #endif
 
