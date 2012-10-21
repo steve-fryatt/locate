@@ -167,6 +167,7 @@ static osbool				dataxfer_message_data_load_ack(wimp_message *message);
 
 static osbool				dataxfer_message_data_save(wimp_message *message);
 static osbool				dataxfer_message_data_load(wimp_message *message);
+static osbool				dataxfer_message_data_open(wimp_message *message);
 
 static struct dataxfer_incoming_target	*dataxfer_find_incoming_target(wimp_w w, wimp_i i, unsigned filetype);
 
@@ -201,6 +202,7 @@ void dataxfer_initialise(void)
 	event_add_message_handler(message_DATA_SAVE_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_data_save_ack);
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, dataxfer_message_data_load);
 	event_add_message_handler(message_DATA_LOAD_ACK, EVENT_MESSAGE_INCOMING, dataxfer_message_data_load_ack);
+	event_add_message_handler(message_DATA_OPEN, EVENT_MESSAGE_INCOMING, dataxfer_message_data_open);
 
 	event_add_message_handler(message_DATA_SAVE, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_ACKNOWLEDGE, dataxfer_message_bounced);
@@ -948,7 +950,7 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 	if (target->callback == NULL)
 		return FALSE;
 
-	/* If the load faile, abandon the transfer here. */
+	/* If the load failed, abandon the transfer here. */
 
 	if (target->callback(dataload->w, dataload->i, dataload->file_type, dataload->file_name, target->callback_data) == FALSE)
 		return FALSE;
@@ -970,6 +972,51 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return TRUE;
 	}
+
+	return TRUE;
+}
+
+
+/**
+ * Handle the receipt of a Message_DataOpen due to a double-click in the Filer.
+ *
+ * \param *message		The associated Wimp message block.
+ * \return			TRUE to show that the message was handled.
+ */
+
+static osbool dataxfer_message_data_open(wimp_message *message)
+{
+	wimp_full_message_data_xfer	*dataopen = (wimp_full_message_data_xfer *) message;
+	os_error			*error;
+	struct dataxfer_incoming_target	*target;
+
+
+	target = dataxfer_find_incoming_target(wimp_ICON_BAR, -1, dataopen->file_type);
+
+	if (target == NULL || target->callback == NULL)
+		return FALSE;
+
+	/* If there's no load callback function, abandon the transfer here. */
+
+	if (target->callback == NULL)
+		return FALSE;
+
+	/* Update the message block and send an acknowledgement. Do this before
+	 * calling the load callback, to meet the requirements of the PRM.
+	 */
+
+	dataopen->your_ref = dataopen->my_ref;
+	dataopen->action = message_DATA_LOAD_ACK;
+
+	error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) dataopen, dataopen->sender);
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		return TRUE;
+	}
+
+	/* Call the load callback. */
+
+	target->callback(NULL, -1, dataopen->file_type, dataopen->file_name, target->callback_data);
 
 	return TRUE;
 }
@@ -1003,7 +1050,7 @@ static struct dataxfer_incoming_target *dataxfer_find_incoming_target(wimp_w w, 
 
 	window = type->children;
 
-	while (window != NULL && window->window != w)
+	while (w != NULL && window != NULL && window->window != w)
 		window = window->next;
 
 	if (window == NULL)
@@ -1013,7 +1060,7 @@ static struct dataxfer_incoming_target *dataxfer_find_incoming_target(wimp_w w, 
 
 	icon = window->children;
 
-	while (icon != NULL && icon->icon != i)
+	while (i != -1 && icon != NULL && icon->icon != i)
 		icon = icon->next;
 
 	if (icon == NULL)
