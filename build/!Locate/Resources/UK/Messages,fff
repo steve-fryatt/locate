@@ -57,6 +57,7 @@ BadFiletype:Type %0 was not recognised.
 
 
 
+
 NoFiles:No matching objects were found
 NotHere:(The object is no longer in this location)
 NameTooLong:Filename too long
@@ -68,6 +69,7 @@ Errors:; %0 error(s) occurred
 BadRdrwHndl:The data for the window redraw can not be found.
 BadSave:To save, drag the icon to a directory viewer.
 RAMXferFail:The file was not received correctly by the other application.
+XferFail:Transfer failed: receiver died.
 BadFile:This file is not compatible with the version of Locate currently running.
 FileError:There was an error while loading the file: the load has been aborted.
 NoLoadNow:Searching is in progress: load file once completed.

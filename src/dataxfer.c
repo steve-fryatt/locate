@@ -1085,6 +1085,13 @@ static osbool dataxfer_message_bounced(wimp_message *message)
 
 	descriptor = dataxfer_find_descriptor(message->your_ref, DATAXFER_MESSAGE_SAVE | DATAXFER_MESSAGE_LOAD);
 	if (descriptor != NULL) {
+		if (message->action == message_DATA_LOAD) {
+			wimp_full_message_data_xfer *dataload = (wimp_full_message_data_xfer *) message;
+
+			xosfscontrol_wipe(dataload->file_name, NONE, 0, 0, 0, 0);
+			error_msgs_report_error("XferFail");
+		}
+
 		dataxfer_delete_descriptor(descriptor);
 		return TRUE;
 	}
