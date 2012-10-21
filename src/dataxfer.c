@@ -102,14 +102,15 @@ struct dataxfer_descriptor {
 
 static struct dataxfer_descriptor	*dataxfer_descriptors = NULL;			/**< List of currently active message operations.			*/
 
+/**
+ * Data associated with incoming transfer targets.
+ */
+
 struct dataxfer_incoming_target {
 	wimp_w				window;						/**< The required target window handle, or 0 for none.			*/
-	//wimp_i			icon;						/**< The required target icon handle, or -1 for none.			*/
-	//unsigned			type;						/**< The required filetype, or 0xffffffffu for none.			*/
 
 	osbool (*(*screen_callback)(wimp_w w, wimp_i i, unsigned filetype))
 			(char *filename, void *data);					/**< The callback function to be used to screen incoming files.		*/
-
 	osbool				(*load_callback)(char *filename, void *data);	/**< The callback function to be used if a load is required.		*/
 	void				*callback_data;					/**< Data to be passed to the callback function.			*/
 
@@ -118,7 +119,9 @@ struct dataxfer_incoming_target {
 
 struct dataxfer_incoming_target		*dataxfer_incoming_targets = NULL;		/**< List of defined incoming targets.					*/
 
-/* Data associated with the Save As window. */
+/**
+ * Data associated with the Save As window.
+ */
 
 struct dataxfer_savebox {
 	char				full_filename[DATAXFER_MAX_FILENAME];		/**< The full filename to be used in the savebox.			*/
@@ -129,7 +132,9 @@ struct dataxfer_savebox {
 	osbool				selection;					/**< TRUE if the selection icon is enabled; else FALSE.			*/
 	osbool				selected;					/**< TRUE if the selection icon is ticked; else FALSE.			*/
 
-	osbool				(*callback)(char *filename, osbool selection);	/**< The callback function to be used if a save is required.		*/
+	osbool				(*callback)
+			(char *filename, osbool selection, void *data);			/**< The callback function to be used if a save is required.		*/
+	void				*callback_data;					/**< Data to be passed to the callback function.			*/
 };
 
 
@@ -220,7 +225,7 @@ void dataxfer_open_saveas_window(wimp_pointer *pointer)
  * \return			The handle to use for the new save dialogue.
  */
 
-struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, osbool (*save_callback)(char *filename, osbool selection))
+struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, osbool (*save_callback)(char *filename, osbool selection, void *data))
 {
 	struct dataxfer_savebox		*new;
 
@@ -236,6 +241,7 @@ struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, os
 	new->selection = FALSE;
 	new->selected = FALSE;
 	new->callback = save_callback;
+	new->callback_data = NULL;
 
 	return new;
 }
@@ -251,9 +257,10 @@ struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, os
  * \param *selectname		Pointer to the filename token for a selection save.
  * \param selection		TRUE if the Selection option is enabled; else FALSE.
  * \param selected		TRUE if the Selection option is selected; else FALSE.
+ * \param *data			Data to pass to any save callbacks, or NULL.
  */
 
-void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname, char *selectname, osbool selection, osbool selected)
+void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname, char *selectname, osbool selection, osbool selected, void *data)
 {
 	if (handle == NULL)
 		return;
@@ -270,6 +277,7 @@ void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname
 
 	handle->selection = selection;
 	handle->selected = (selection) ? selected : FALSE;
+	handle->callback_data = data;
 
 	event_add_window_user_data(dataxfer_saveas_window, NULL);
 	event_add_window_user_data(dataxfer_saveas_sel_window, NULL);
@@ -437,7 +445,7 @@ static osbool dataxfer_save_handler(char *filename, void *data)
 	if (handle == NULL || handle->callback == NULL)
 		return FALSE;
 
-	return handle->callback(filename, handle->selected);
+	return handle->callback(filename, handle->selected, handle->callback_data);
 }
 
 
@@ -471,7 +479,7 @@ static void dataxfer_immediate_save(struct dataxfer_savebox *handle)
 	}
 
 	if (handle->callback !=NULL)
-		handle->callback(filename, handle->selected);
+		handle->callback(filename, handle->selected, handle->callback_data);
 }
 
 

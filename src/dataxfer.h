@@ -59,7 +59,7 @@ void dataxfer_initialise(void);
  * \param: *save_callback	The callback function for saving data.
  */
 
-struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, osbool (*save_callback)(char *filename, osbool selection));
+struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, osbool (*save_callback)(char *filename, osbool selection, void *data));
 
 
 /**
@@ -72,9 +72,10 @@ struct dataxfer_savebox *dataxfer_new_savebox(osbool selection, char *sprite, os
  * \param *selectname		Pointer to the filename token for a selection save.
  * \param selection		TRUE if the Selection option is enabled; else FALSE.
  * \param selected		TRUE if the Selection option is selected; else FALSE.
+ * \param *data			Data to pass to any save callbacks, or NULL.
  */
 
-void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname, char *selectname, osbool selection, osbool selected);
+void dataxfer_savebox_initialise(struct dataxfer_savebox *handle, char *fullname, char *selectname, osbool selection, osbool selected, void *data);
 
 
 /**

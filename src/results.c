@@ -547,9 +547,9 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 	menus_shade_entry(results_window_menu, RESULTS_MENU_MODIFY_SEARCH, dialogue_window_is_open());
 	menus_shade_entry(results_window_menu, RESULTS_MENU_STOP_SEARCH, !file_search_active(handle->file));
 
-	dataxfer_savebox_initialise(results_save_results, "FileName", NULL, TRUE, FALSE);
-	dataxfer_savebox_initialise(results_save_paths, "ExptName", "SelectName", TRUE, FALSE);
-	dataxfer_savebox_initialise(results_save_options, "SrchName", NULL, FALSE, FALSE);
+	dataxfer_savebox_initialise(results_save_results, "FileName", NULL, TRUE, FALSE, NULL);
+	dataxfer_savebox_initialise(results_save_paths, "ExptName", "SelectName", TRUE, FALSE, NULL);
+	dataxfer_savebox_initialise(results_save_options, "SrchName", NULL, FALSE, FALSE, NULL);
 }
 
 

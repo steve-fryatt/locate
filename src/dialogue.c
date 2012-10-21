@@ -368,7 +368,7 @@ static osbool	dialogue_icon_drop_handler(wimp_message *message);
 static void	dialogue_start_search(struct dialogue_block *dialogue);
 static int	dialogue_scale_size(unsigned base, enum dialogue_size_unit unit, osbool top);
 static void	dialogue_scale_age(os_date_and_time date, unsigned base, enum dialogue_age_unit unit, int round);
-static osbool	dialogue_save_settings(char *filename, osbool selection);
+static osbool	dialogue_save_settings(char *filename, osbool selection, void *data);
 static void	dialogue_dump_settings(struct dialogue_block *dialogue);
 
 
@@ -1388,7 +1388,7 @@ static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointe
 		return;
 
 	if (menu == dialogue_menu) {
-		dataxfer_savebox_initialise(dialogue_save_search, "SrchName", NULL, FALSE, FALSE);
+		dataxfer_savebox_initialise(dialogue_save_search, "SrchName", NULL, FALSE, FALSE, NULL);
 		return;
 	}
 
@@ -1932,10 +1932,11 @@ static void dialogue_scale_age(os_date_and_time date, unsigned base, enum dialog
  *
  * \param *filename		The filename to save to.
  * \param selection		TRUE to save just the selection, else FALSE.
+ * \param *data			Context data; unused and NULL.
  * \return			TRUE on success; FALSE on failure.
  */
 
-static osbool dialogue_save_settings(char *filename, osbool selection)
+static osbool dialogue_save_settings(char *filename, osbool selection, void *data)
 {
 	FILE	*out;
 
