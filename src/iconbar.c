@@ -83,8 +83,8 @@ static void	iconbar_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 static void	iconbar_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static osbool	iconbar_proginfo_web_click(wimp_pointer *pointer);
 static osbool	iconbar_icon_drop_handler(wimp_message *message);
-static osbool	(*iconbar_vet_incoming_files(wimp_w w, wimp_i i, unsigned filetype))(char *filename, void *data);
-static osbool	iconbar_load_locate_file(char *filename, void *data);
+static osbool	(*iconbar_vet_incoming_files(wimp_w w, wimp_i i, unsigned filetype))(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
+static osbool	iconbar_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
 static wimp_menu	*iconbar_menu = NULL;					/**< The iconbar menu handle.			*/
 static wimp_w		iconbar_info_window = NULL;				/**< The iconbar menu info window handle.	*/
@@ -125,7 +125,7 @@ void iconbar_initialise(void)
 
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, iconbar_icon_drop_handler);
 
-	dataxfer_set_load_target(wimp_ICON_BAR, iconbar_vet_incoming_files, NULL);
+	dataxfer_set_load_target(LOCATE_FILE_TYPE, iconbar_vet_incoming_files, NULL);
 }
 
 
@@ -264,7 +264,7 @@ static osbool iconbar_icon_drop_handler(wimp_message *message)
 
 
 
-static osbool (*iconbar_vet_incoming_files(wimp_w w, wimp_i i, unsigned filetype))(char *filename, void *data)
+static osbool (*iconbar_vet_incoming_files(wimp_w w, wimp_i i, unsigned filetype))(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data)
 {
 	debug_printf("File dragged in!");
 
@@ -275,7 +275,7 @@ static osbool (*iconbar_vet_incoming_files(wimp_w w, wimp_i i, unsigned filetype
 }
 
 
-static osbool iconbar_load_locate_file(char *filename, void *data)
+static osbool iconbar_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data)
 {
 	debug_printf("Load file %s", filename);
 

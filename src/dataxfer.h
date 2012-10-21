@@ -121,21 +121,21 @@ osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits typ
 
 
 /**
- * Specify a window as a load target, so that any drags from external sources
- * which terminate inside it are reported via the supplied callback function
+ * Specify a filetype of interest for double-clicks and drags, so that any
+ * attempts to load it are reported via the supplied callback function
  * with details of window, icon and filetype.
  *
  * If the callback decides to take the dragged object, then it should return a
  * standard load/save function to be called once the transfer protocol has
  * progressed to the relevant stage; if not, it should return NULL.
  *
- * \param window		The window to register as a target.
+ * \param filetype		The window to register as a target.
  * \param *callback		The vetting callback function.
  * \param *data			Data to be passed to load functions, or NULL.
  * \return			TRUE if successfully registered; else FALSE.
  */
 
-osbool dataxfer_set_load_target(wimp_w window, osbool (*(*callback)(wimp_w w, wimp_i i, unsigned filetype))(char *filename, void *data), void *data);
+osbool dataxfer_set_load_target(unsigned filetype, osbool (*(*callback)(wimp_w w, wimp_i i, unsigned filetype))(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data), void *data);
 
 #endif
 

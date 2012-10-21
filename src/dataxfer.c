@@ -107,11 +107,11 @@ static struct dataxfer_descriptor	*dataxfer_descriptors = NULL;			/**< List of c
  */
 
 struct dataxfer_incoming_target {
-	wimp_w				window;						/**< The required target window handle, or 0 for none.			*/
+	unsigned			filetype;					/**< The target filetype.						*/
 
 	osbool (*(*screen_callback)(wimp_w w, wimp_i i, unsigned filetype))
-			(char *filename, void *data);					/**< The callback function to be used to screen incoming files.		*/
-	osbool				(*load_callback)(char *filename, void *data);	/**< The callback function to be used if a load is required.		*/
+			(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);					/**< The callback function to be used to screen incoming files.		*/
+	osbool				(*load_callback)(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);	/**< The callback function to be used if a load is required.		*/
 	void				*callback_data;					/**< Data to be passed to the callback function.			*/
 
 	struct dataxfer_incoming_target	*next;						/**< The next target in the chain, or NULL.				*/
@@ -161,8 +161,6 @@ static void				dataxfer_immediate_save(struct dataxfer_savebox *handle);
 static void				dataxfer_terminate_user_drag(wimp_dragged *drag, void *data);
 static osbool				dataxfer_message_data_save_ack(wimp_message *message);
 static osbool				dataxfer_message_data_load_ack(wimp_message *message);
-
-static osbool				dataxfer_load_handler(char *filename, void *data);
 
 static osbool				dataxfer_message_data_save(wimp_message *message);
 static osbool				dataxfer_message_data_load(wimp_message *message);
@@ -720,8 +718,8 @@ static osbool dataxfer_message_data_load_ack(wimp_message *message)
 
 
 /**
- * Specify a window as a load target, so that any drags from external sources
- * which terminate inside it are reported via the supplied callback function
+ * Specify a filetype of interest for double-clicks and drags, so that any
+ * attempts to load it are reported via the supplied callback function
  * with details of window, icon and filetype.
  *
  * If the callback decides to take the dragged object, then it should return a
@@ -734,7 +732,7 @@ static osbool dataxfer_message_data_load_ack(wimp_message *message)
  * \return			TRUE if successfully registered; else FALSE.
  */
 
-osbool dataxfer_set_load_target(wimp_w window, osbool (*(*callback)(wimp_w w, wimp_i i, unsigned filetype))(char *filename, void *data), void *data)
+osbool dataxfer_set_load_target(unsigned filetype, osbool (*(*callback)(wimp_w w, wimp_i i, unsigned filetype))(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data), void *data)
 {
 	struct dataxfer_incoming_target		*new;
 
@@ -742,7 +740,7 @@ osbool dataxfer_set_load_target(wimp_w window, osbool (*(*callback)(wimp_w w, wi
 	if (new == NULL)
 		return FALSE;
 
-	new->window = window;
+	new->filetype = filetype;
 
 	new->screen_callback = callback;
 	new->callback_data = data;
@@ -752,25 +750,6 @@ osbool dataxfer_set_load_target(wimp_w window, osbool (*(*callback)(wimp_w w, wi
 	dataxfer_incoming_targets = new;
 
 	return TRUE;
-}
-
-
-/**
- * Process data transfer results for file load actions.
- *
- * \param *filename		The destination of the dragged file.
- * \param *data			Context data.
- * \return			TRUE if the save succeeded; FALSE if it failed.
- */
-
-static osbool dataxfer_load_handler(char *filename, void *data)
-{
-	struct dataxfer_incoming_target	*handle = data;
-
-	if (handle == NULL || handle->load_callback == NULL)
-		return FALSE;
-
-	return handle->load_callback(filename, handle->callback_data);
 }
 
 
@@ -788,7 +767,7 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 	struct dataxfer_descriptor	*descriptor;
 	os_error			*error;
 	struct dataxfer_incoming_target	*target;
-	osbool				(*callback)(char *filename, void *data);
+	osbool				(*callback)(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
 
 	/* We don't want to respond to our own save requests. */
@@ -800,7 +779,7 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 
 	target = dataxfer_incoming_targets;
 
-	while (target != NULL && target->window != datasave->w)
+	while (target != NULL && target->filetype != datasave->file_type)
 		target = target->next;
 
 	if (target == NULL || target->screen_callback == NULL)
@@ -818,7 +797,7 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 	if (descriptor == NULL)
 		return FALSE;
 
-	descriptor->callback = dataxfer_load_handler;
+	descriptor->callback = NULL;
 	descriptor->callback_data = target;
 
 	/* Update the message block and send an acknowledgement. */
@@ -858,7 +837,7 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 	struct dataxfer_descriptor	*descriptor = NULL;
 	os_error			*error;
 	struct dataxfer_incoming_target	*target;
-	osbool				(*callback)(char *filename, void *data);
+	osbool				(*callback)(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
 
 	/* We don't want to respond to our own save requests. */
@@ -877,7 +856,7 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 
 		target = dataxfer_incoming_targets;
 
-		while (target != NULL && target->window != dataload->w)
+		while (target != NULL && target->filetype != dataload->file_type)
 			target = target->next;
 
 		if (target == NULL || target->screen_callback == NULL)
@@ -899,7 +878,7 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 
 	/* If the load faile, abandon the transfer here. */
 
-	if (target->load_callback(dataload->file_name, target->callback_data) == FALSE)
+	if (target->load_callback(dataload->w, dataload->i, dataload->file_type, dataload->file_name, target->callback_data) == FALSE)
 		return FALSE;
 
 	/* If this was an inter-application transfer, tidy up. */
