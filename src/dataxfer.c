@@ -38,6 +38,7 @@
 
 #include "oslib/dragasprite.h"
 #include "oslib/osbyte.h"
+#include "oslib/osfscontrol.h"
 #include "oslib/wimp.h"
 #include "oslib/wimpspriteop.h"
 
@@ -735,7 +736,7 @@ osbool dataxfer_set_load_target(wimp_w window, osbool (*(*callback)(wimp_w w, wi
 
 	new->window = window;
 
-	new->filter_callback = callback;
+	new->screen_callback = callback;
 	new->callback_data = data;
 	new->load_callback = NULL;
 
@@ -765,30 +766,13 @@ static osbool dataxfer_load_handler(char *filename, void *data)
 }
 
 
-#if 0
-
-struct dataxfer_incoming_target {
-	wimp_w				window;						/**< The required target window handle, or 0 for none.			*/
-	wimp_i				icon;						/**< The required target icon handle, or -1 for none.			*/
-	unsigned			type;						/**< The required filetype, or 0xffffffffu for none.			*/
-
-	osbool				(*callback)(char filename, void *data);		/**< The callback function to be used if a save is required.		*/
-	void				*callback_data;					/**< Data to be passed to the callback function.			*/
-
-	struct dataxfer_incoming_target	*next;						/**< The next target in the chain, or NULL.				*/
-}
-
-struct dataxfer_incoming_target		*dataxfer_incoming_targets = NULL;		/**< List of defined incoming targets.					*/
-
-
-
-#endif
-
-
-
-
-
-
+/**
+ * Handle the receipt of a Message_DataSave due to another application trying
+ * to transfer data in to us.
+ *
+ * \param *message		The associated Wimp message block.
+ * \return			TRUE to show that the message was handled.
+ */
 
 static osbool dataxfer_message_data_save(wimp_message *message)
 {
@@ -811,10 +795,10 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 	while (target != NULL && target->window != datasave->w)
 		target = target->next;
 
-	if (target == NULL || target->filter_callback == NULL)
+	if (target == NULL || target->screen_callback == NULL)
 		return FALSE;
 
-	callback = target->filter_callback(datasave->w, datasave->i, datasave->file_type);
+	callback = target->screen_callback(datasave->w, datasave->i, datasave->file_type);
 	if (callback == NULL)
 		return FALSE;
 
@@ -833,6 +817,7 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 
 	datasave->your_ref = datasave->my_ref;
 	datasave->action = message_DATA_SAVE_ACK;
+	datasave->est_size = -1;
 	strcpy(datasave->file_name, "<Wimp$Scrap>");
 	datasave->size = WORDALIGN(45 + strlen(datasave->file_name));
 
@@ -851,7 +836,13 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 }
 
 
-
+/**
+ * Handle the receipt of a Message_DataLoad due to a filer load or an ongoing
+ * data transfer process.
+ *
+ * \param *message		The associated Wimp message block.
+ * \return			TRUE to show that the message was handled.
+ */
 
 static osbool dataxfer_message_data_load(wimp_message *message)
 {
@@ -878,13 +869,13 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 
 		target = dataxfer_incoming_targets;
 
-		while (target != NULL && target->window != datasave->w)
+		while (target != NULL && target->window != dataload->w)
 			target = target->next;
 
-		if (target == NULL || target->filter_callback == NULL)
+		if (target == NULL || target->screen_callback == NULL)
 			return FALSE;
 
-		callback = target->filter_callback(datasave->w, datasave->i, datasave->file_type);
+		callback = target->screen_callback(dataload->w, dataload->i, dataload->file_type);
 		if (callback == NULL)
 			return FALSE;
 
@@ -893,16 +884,23 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 		target = descriptor->callback_data;
 	}
 
-	// \TODO -- Load the file here.
+	if (target->load_callback == NULL)
+		return FALSE;
+
+	if (target->load_callback(dataload->file_name, target->callback_data) == FALSE)
+		return FALSE;
 
 	if (descriptor != NULL) {
+		debug_printf("Deleting scrap file.");
+		xosfscontrol_wipe(dataload->file_name, NONE, 0, 0, 0, 0);
+
 		// \TODO -- Delete the file here.
 		dataxfer_delete_descriptor(descriptor);
 	}
 
 	/* Update the message block and send an acknowledgement. */
 
-	dataload->your_ref = datasave->my_ref;
+	dataload->your_ref = dataload->my_ref;
 	dataload->action = message_DATA_LOAD_ACK;
 
 	error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) dataload, dataload->sender);
@@ -911,199 +909,8 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 		return TRUE;
 	}
 
-	descriptor->type = DATAXFER_MESSAGE_LOAD;
-	descriptor->my_ref = datasave->my_ref;
-
 	return TRUE;
 }
-
-
-
-
-#if 0
-
-
-static osbool dataxfer_message_data_load(wimp_message *message);
-
-
-
-
-
-
-
-	if (datasave->w == wimp_ICON_BAR && datasave->file_type == TEXT_FILE_TYPE) {
-		datasave->your_ref = datasave->my_ref;
-		datasave->action = message_DATA_SAVE_ACK;
-
-		switch (datasave->file_type) {
-		case TEXT_FILE_TYPE:
-			strcpy(datasave->file_name, "<Wimp$Scrap>");
-			break;
-		}
-
-		datasave->size = WORDALIGN(45 + strlen(datasave->file_name));
-
-		error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) datasave, datasave->sender);
-		if (error != NULL)
-			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-	}
-
-	return TRUE;
-}
-
-
-
-
-	descriptor = dataxfer_new_descriptor();
-	if (descriptor == NULL)
-		return FALSE;
-
-	descriptor->callback = save_callback;
-	descriptor->callback_data = data;
-
-	/* Set up and send the datasave message. If it fails, give an error
-	 * and delete the message details as we won't need them again.
-	 */
-
-	message.size = WORDALIGN(45 + strlen(name));
-	message.your_ref = 0;
-	message.action = message_DATA_SAVE;
-	message.w = pointer->w;
-	message.i = pointer->i;
-	message.pos = pointer->pos;
-	message.est_size = size;
-	message.file_type = type;
-
-	strncpy(message.file_name, name, 212);
-	message.file_name[211] = '\0';
-
-	error = xwimp_send_message_to_window(wimp_USER_MESSAGE_RECORDED, (wimp_message *) &message, pointer->w, pointer->i, &(descriptor->task));
-	if (error != NULL) {
-		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-		dataxfer_delete_descriptor(descriptor);
-		return FALSE;
-	}
-
-	/* Complete the message descriptor information. */
-
-	descriptor->type = DATAXFER_MESSAGE_SAVE;
-	descriptor->my_ref = message.my_ref;
-
-	return TRUE;
-
-
-
-	/* The client saved something, so finish off the data transfer. */
-
-	datasaveack->your_ref = datasaveack->my_ref;
-	datasaveack->action = message_DATA_LOAD;
-
-	error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) datasaveack, datasaveack->sender);
-	if (error != NULL) {
-		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-
-		dataxfer_delete_descriptor(descriptor);
-		return TRUE;
-	}
-
-	descriptor->my_ref = datasaveack->my_ref;
-
-	return TRUE;
-
-
-
-
-
-#endif
-
-
-
-
-
-
-
-
-#if 0
-
-/**
- * Handle the receipt of a Message_DataSaveAck, usually in response to another
- * application trying to save a file to our icon.  Supply the location of the
- * queue head file, which allows postscript printer drivers to be set up by
- * dragging their save icon to our iconbar.
- *
- * \param *message		The associated Wimp message block.
- * \return			TRUE to show that the message was handled.
- */
-
-static osbool message_data_save_reply(wimp_message *message)
-{
-	wimp_full_message_data_xfer	*datasave = (wimp_full_message_data_xfer *) message;
-	os_error			*error;
-
-	if (message->sender == main_task_handle) /* We don't want to respond to our own save requests. */
-		return TRUE;
-
-
-	if (datasave->w == wimp_ICON_BAR && datasave->file_type == TEXT_FILE_TYPE) {
-		datasave->your_ref = datasave->my_ref;
-		datasave->action = message_DATA_SAVE_ACK;
-
-		switch (datasave->file_type) {
-		case TEXT_FILE_TYPE:
-			strcpy(datasave->file_name, "<Wimp$Scrap>");
-			break;
-		}
-
-		datasave->size = WORDALIGN(45 + strlen(datasave->file_name));
-
-		error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) datasave, datasave->sender);
-		if (error != NULL)
-			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-	}
-
-	return TRUE;
-}
-
-
-/**
- * Handle the receipt of a Message_DataLoad, generally as a result of a file
- * being dragged from the Filer to one of our windows or icons.
- *
- * \param *message		The associated Wimp message block.
- * \return			TRUE to show the message was handled.
- */
-
-static osbool message_data_load_reply(wimp_message *message)
-{
-	wimp_full_message_data_xfer	*dataload = (wimp_full_message_data_xfer *) message;
-	os_error			*error;
-	osbool				handled = FALSE;
-
-	if (dataload->w == wimp_ICON_BAR && dataload->file_type == TEXT_FILE_TYPE) {
-		switch (dataload->file_type) {
-		case TEXT_FILE_TYPE:
-			//convert_load_file(dataload->file_name);
-			break;
-		}
-
-		/* Reply with a Message_DataLoadAck. */
-
-		dataload->your_ref = dataload->my_ref;
-		dataload->action = message_DATA_LOAD_ACK;
-
-		error = xwimp_send_message(wimp_USER_MESSAGE, (wimp_message *) dataload, dataload->sender);
-		if (error != NULL)
-			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-
-		handled = TRUE;
-	}
-
-	return handled;
-}
-
-#endif
-
-
 
 
 /**

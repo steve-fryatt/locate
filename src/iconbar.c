@@ -84,6 +84,7 @@ static void	iconbar_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 static osbool	iconbar_proginfo_web_click(wimp_pointer *pointer);
 static osbool	iconbar_icon_drop_handler(wimp_message *message);
 static osbool	(*iconbar_vet_incoming_files(wimp_w w, wimp_i i, unsigned filetype))(char *filename, void *data);
+static osbool	iconbar_load_locate_file(char *filename, void *data);
 
 static wimp_menu	*iconbar_menu = NULL;					/**< The iconbar menu handle.			*/
 static wimp_w		iconbar_info_window = NULL;				/**< The iconbar menu info window handle.	*/
@@ -267,6 +268,17 @@ static osbool (*iconbar_vet_incoming_files(wimp_w w, wimp_i i, unsigned filetype
 {
 	debug_printf("File dragged in!");
 
+	if (w == wimp_ICON_BAR && filetype == LOCATE_FILE_TYPE)
+		return iconbar_load_locate_file;
+
 	return NULL;
+}
+
+
+static osbool iconbar_load_locate_file(char *filename, void *data)
+{
+	debug_printf("Load file %s", filename);
+
+	return TRUE;
 }
 
