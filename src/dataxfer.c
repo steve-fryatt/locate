@@ -164,6 +164,9 @@ static osbool				dataxfer_message_data_load_ack(wimp_message *message);
 
 static osbool				dataxfer_message_data_save(wimp_message *message);
 static osbool				dataxfer_message_data_load(wimp_message *message);
+
+static struct dataxfer_incoming_target	*dataxfer_find_incoming_target(wimp_w w, wimp_i i, unsigned filetype);
+
 static osbool				dataxfer_message_bounced(wimp_message *message);
 
 static struct dataxfer_descriptor	*dataxfer_new_descriptor(void);
@@ -777,10 +780,7 @@ static osbool dataxfer_message_data_save(wimp_message *message)
 
 	/* See if the window is one of the registered targets. */
 
-	target = dataxfer_incoming_targets;
-
-	while (target != NULL && target->filetype != datasave->file_type)
-		target = target->next;
+	target = dataxfer_find_incoming_target(datasave->w, datasave->i, datasave->file_type);
 
 	if (target == NULL || target->screen_callback == NULL)
 		return FALSE;
@@ -854,10 +854,7 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 	if (descriptor == NULL) {
 		/* See if the window is one of the registered targets. */
 
-		target = dataxfer_incoming_targets;
-
-		while (target != NULL && target->filetype != dataload->file_type)
-			target = target->next;
+		target = dataxfer_find_incoming_target(dataload->w, dataload->i, dataload->file_type);
 
 		if (target == NULL || target->screen_callback == NULL)
 			return FALSE;
@@ -900,6 +897,29 @@ static osbool dataxfer_message_data_load(wimp_message *message)
 	}
 
 	return TRUE;
+}
+
+
+/**
+ * Find an incoming transfer target based on the filetype and its target
+ * window and icon handle.
+ *
+ * \param w			The window into which the file was dropped.
+ * \param i			The icon onto which the file was dropped.
+ * \param filetype		The filetype of the incoming file.
+ * \return			The appropriate target, or NULL if none found.
+ */
+
+static struct dataxfer_incoming_target *dataxfer_find_incoming_target(wimp_w w, wimp_i i, unsigned filetype)
+{
+	struct dataxfer_incoming_target		*target;
+
+	target = dataxfer_incoming_targets;
+
+	while (target != NULL && target->filetype != filetype)
+		target = target->next;
+
+	return target;
 }
 
 
