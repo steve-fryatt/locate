@@ -540,9 +540,20 @@ static osbool results_keypress_handler(wimp_key *key)
 static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
 	struct results_window	*handle = event_get_window_user_data(w);
+	wimp_window_state	state;
+	int			row;
 
 	if (handle == NULL)
 		return;
+
+	if (pointer != NULL) {
+		state.w = pointer->w;
+		if (xwimp_get_window_state(&state) != NULL)
+			return;
+
+		row = results_calculate_window_click_row(handle, &(pointer->pos), &state);
+		debug_printf("Click on row %d", row);
+	}
 
 	menus_shade_entry(results_window_menu, RESULTS_MENU_MODIFY_SEARCH, dialogue_window_is_open());
 	menus_shade_entry(results_window_menu, RESULTS_MENU_STOP_SEARCH, !file_search_active(handle->file));
