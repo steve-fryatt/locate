@@ -1,0 +1,11 @@
+Package: Locate
+Version: r1198-1
+Section: File
+Priority: Optional
+Maintainer: Stephen Fryatt <info@stevefryatt.org.uk>
+Standards-Version: 0.1.0
+Licence: Free
+Description: Locate
+ Locate is a file find utility.
+ 
+ Wibble.

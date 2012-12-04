@@ -28,32 +28,6 @@
 
 .PHONY: all clean application documentation release backup
 
-# The build date.
-
-BUILD_DATE := $(shell date "+%d %b %Y")
-HELP_DATE := $(shell date "+%-d %B %Y")
-
-# Construct version or revision information.
-
-ifeq ($(VERSION),)
-  RELEASE := $(shell svnversion --no-newline)
-  VERSION := r$(RELEASE)
-  RELEASE := $(subst :,-,$(RELEASE))
-  HELP_VERSION := ----
-else
-  RELEASE := $(subst .,,$(VERSION))
-  HELP_VERSION := $(VERSION)
-endif
-
-$(info Building with version $(VERSION) ($(RELEASE)) on date $(BUILD_DATE))
-
-# The archive to assemble the release files in.  If $(RELEASE) is set, then the file can be given
-# a standard version number suffix.
-
-ZIPFILE := locate$(RELEASE).zip
-SRCZIPFILE := locate$(RELEASE)src.zip
-BUZIPFILE := locate$(shell date "+%Y%m%d").zip
-
 # Build Tools
 
 CC := $(wildcard $(GCCSDK_INSTALL_CROSSBIN)/*gcc)
@@ -72,14 +46,47 @@ DDFMAN := $(SFBIN)/ddfman
 BINDHELP := $(SFBIN)/bindhelp
 TEXTMERGE := $(SFBIN)/textmerge
 MENUGEN := $(SFBIN)/menugen
+GETPKGREV := $(SFBIN)/getpackagerev
 
+# The build date.
+
+BUILD_DATE := $(shell date "+%d %b %Y")
+HELP_DATE := $(shell date "+%-d %B %Y")
+
+# Construct version or revision information.
+
+PKG_NAME := Locate
+
+ifeq ($(VERSION),)
+  PKG_NAME := $(PKG_NAME)Unstable
+  RELEASE := $(shell svnversion --no-newline)
+  VERSION := r$(RELEASE)
+  RELEASE := $(subst :,-,$(RELEASE))
+  HELP_VERSION := ----
+  PKG_VERSION := $(shell $(GETPKGREV) --index unstable --package $(PKG_NAME) --revision $(VERSION))
+else
+  RELEASE := $(subst .,,$(VERSION))
+  HELP_VERSION := $(VERSION)
+  PKG_VERSION := $(shell $(GETPKGREV) --index stable --package $(PKG_NAME) --revision $(VERSION))
+endif
+
+$(info Building with version $(VERSION) ($(RELEASE)) on date $(BUILD_DATE))
+
+# The archive to assemble the release files in.  If $(RELEASE) is set, then the file can be given
+# a standard version number suffix.
+
+ZIPFILE := locate$(RELEASE).zip
+PKGZIPFILE := $(PKG_NAME)_$(PKG_VERSION).zip
+SRCZIPFILE := locate$(RELEASE)src.zip
+BUZIPFILE := locate$(shell date "+%Y%m%d").zip
 
 # Build Flags
 
 CCFLAGS := -mlibscl -mhard-float -static -mthrowback -Wall -O2 -D'BUILD_VERSION="$(VERSION)"' -D'BUILD_DATE="$(BUILD_DATE)"' -fno-strict-aliasing -mpoke-function-name
 ZIPFLAGS := -x "*/.svn/*" -r -, -9
-SRCZIPFLAGS := -x "*/.svn/*" -r -9
-BUZIPFLAGS := -x "*/.svn/*" -r -9
+PKGZIPFLAGS := -x "*/.svn/*" -r -, -9
+SRCZIPFLAGS := -x "*/.svn/*" -r -y -9
+BUZIPFLAGS := -x "*/.svn/*" -r -y -9
 BINDHELPFLAGS := -f -r -v
 MENUGENFLAGS := -d
 
@@ -97,6 +104,7 @@ MENUDIR := menus
 MANUAL := manual
 OBJDIR := obj
 OUTDIR := build
+PKGDIR := package
 
 
 # Set up the named target files.
@@ -118,6 +126,7 @@ MANSRC := Source
 MANSPR := ManSprite
 READMEHDR := Header
 MENUSRC := menudef
+PKGCTRL := Control
 
 OBJS := choices.o dataxfer.o datetime.o dialogue.o file.o fileicon.o		\
 	flexutils.o iconbar.o ihelp.o main.o objdb.o results.o search.o		\
@@ -186,6 +195,11 @@ $(OUTDIR)/$(HTMLHELP): $(MANUAL)/$(MANSRC)
 release: clean all
 	$(RM) ../$(ZIPFILE)
 	(cd $(OUTDIR) ; $(ZIP) $(ZIPFLAGS) ../../$(ZIPFILE) $(APP) $(README) $(LICENSE))
+	$(RM) ../$(PKGZIPFILE)
+	$(RM) $(OUTDIR)/package/Apps/Misc/*
+	(cd $(OUTDIR) ; rsync -av --exclude=*.svn* $(APP) package/Apps/Misc/ )
+	$(CP) $(PKGDIR)/$(PKGCTRL) $(OUTDIR)/package/RiscPkg
+	(cd $(OUTDIR)/package ; $(ZIP) $(PKGZIPFLAGS) ../../../$(PKGZIPFILE) Apps RiscPkg Sprites SysVars)
 	$(RM) ../$(SRCZIPFILE)
 	$(ZIP) $(SRCZIPFLAGS) ../$(SRCZIPFILE) $(OUTDIR) $(SRCDIR) $(MENUDIR) $(MANUAL) Makefile
 
