@@ -47,6 +47,7 @@ BINDHELP := $(SFBIN)/bindhelp
 TEXTMERGE := $(SFBIN)/textmerge
 MENUGEN := $(SFBIN)/menugen
 GETPKGREV := $(SFBIN)/getpackagerev
+MAKECONTROL := $(SFBIN)/makecontrol
 
 # The build date.
 
@@ -198,7 +199,7 @@ release: clean all
 	$(RM) ../$(PKGZIPFILE)
 	$(RM) $(OUTDIR)/package/Apps/Misc/*
 	(cd $(OUTDIR) ; rsync -av --exclude=*.svn* $(APP) package/Apps/Misc/ )
-	$(CP) $(PKGDIR)/$(PKGCTRL) $(OUTDIR)/package/RiscPkg
+	$(MAKECONTROL) --template $(PKGDIR)/$(PKGCTRL) --control $(OUTDIR)/package/RiscPkg/Control --version $(PKG_VERSION)
 	(cd $(OUTDIR)/package ; $(ZIP) $(PKGZIPFLAGS) ../../../$(PKGZIPFILE) Apps RiscPkg Sprites SysVars)
 	$(RM) ../$(SRCZIPFILE)
 	$(ZIP) $(SRCZIPFLAGS) ../$(SRCZIPFILE) $(OUTDIR) $(SRCDIR) $(MENUDIR) $(MANUAL) Makefile
