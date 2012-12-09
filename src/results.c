@@ -732,7 +732,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 		if (top < 0)
 			top = 0;
 
-		bottom = (oy - redraw->clip.y0 - RESULTS_TOOLBAR_HEIGHT) / RESULTS_LINE_HEIGHT;
+                bottom = ((RESULTS_LINE_HEIGHT * 1.5) + oy - redraw->clip.y0 - RESULTS_TOOLBAR_HEIGHT) / RESULTS_LINE_HEIGHT;
 		if (bottom > res->redraw_lines)
 			bottom = res->redraw_lines;
 
