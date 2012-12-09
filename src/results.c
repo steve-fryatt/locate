@@ -575,6 +575,8 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 			return;
 
 		row = results_calculate_window_click_row(handle, &(pointer->pos), &state);
+		if (handle->selection_count == 0)
+			results_select_click_select(handle, row);
 	}
 
 	menus_shade_entry(results_window_menu, RESULTS_MENU_CLEAR_SELECTION, handle->selection_count == 0);
