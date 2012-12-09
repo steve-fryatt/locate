@@ -98,6 +98,15 @@
 
 #define RESULTS_ICON_STATUS 1
 
+/* Object Info window icons. */
+
+#define RESULTS_OBJECT_ICON_NAME 0
+#define RESULTS_OBJECT_ICON_TYPE 2
+#define RESULTS_OBJECT_ICON_SIZE 4
+#define RESULTS_OBJECT_ICON_ACCESS 6
+#define RESULTS_OBJECT_ICON_DATE 8
+#define RESULTS_OBJECT_ICON_ICON 9
+
 /* Results Window Menu. */
 
 #define RESULTS_MENU_DISPLAY 0
@@ -199,6 +208,8 @@ struct results_window {
 static wimp_window			*results_window_def = NULL;		/**< Definition for the main results window.				*/
 static wimp_window			*results_status_def = NULL;		/**< Definition for the results status pane.				*/
 
+static wimp_w				results_object_window = NULL;		/**< Handle of the object info window.					*/
+
 static wimp_menu			*results_window_menu = NULL;		/**< The results window menu.						*/
 
 static osspriteop_area			*results_sprite_area = NULL;		/**< The application sprite area.					*/
@@ -255,6 +266,10 @@ void results_initialise(osspriteop_area *sprites)
 
 	if (results_window_def == NULL || results_status_def == NULL)
 		error_msgs_report_fatal("BadTemplate");
+
+	results_object_window = templates_create_window("ObjectInfo");
+	templates_link_menu_dialogue("ObjectInfo", results_object_window);
+	ihelp_add_window(results_object_window, "ObjectInfo", NULL);
 
 	results_sprite_area = sprites;
 
@@ -623,6 +638,10 @@ static void results_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_wa
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 		}
+		break;
+
+	case RESULTS_MENU_OBJECT_INFO:
+		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
 }

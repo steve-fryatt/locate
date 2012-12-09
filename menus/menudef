@@ -74,7 +74,7 @@ menu(results_window_menu, "Locate") {
 	item("Select all");
 	item("Clear selection");
 	item("Object info") {
-		d_box(object_info_window) {
+		d_box(ObjectInfo) {
 			warning;
 		}
 	}
