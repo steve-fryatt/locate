@@ -89,6 +89,8 @@
 
 #define RESULTS_NULL 0xffffffff							/**< 'NULL' value for use with the unsigned flex block offsets.		*/
 
+#define RESULTS_ROW_NONE ((unsigned) 0xffffffff)				/**< Row selection value to indicate "No Row".				*/
+
 /* Results window icons. */
 
 #define RESULTS_ICON_FILE 0
@@ -172,6 +174,11 @@ struct results_window {
 
 	osbool			full_info;					/**< TRUE if full info mode is on; else FALSE.				*/
 
+	/* Selection handling */
+
+	unsigned		selection_count;				/**< The number of selected rows in the window.				*/
+	unsigned		selection_row;					/**< The selected row, iff selection_count == 1.			*/
+
 	/* Generic text string storage. */
 
 	struct textdump_block	*text;						/**< The general text string dump.					*/
@@ -212,7 +219,11 @@ static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
 static void	results_update_extent(struct results_window *handle);
 static unsigned	results_add_line(struct results_window *handle, osbool show);
-static int	results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state);
+static unsigned	results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state);
+static void results_select_click_select(struct results_window *handle, unsigned row);
+static void results_select_click_adjust(struct results_window *handle, unsigned row);
+static void	results_select_all(struct results_window *handle);
+static void	results_select_none(struct results_window *handle);
 
 //static unsigned	results_add_fileblock(struct results_window *handle);
 
@@ -342,6 +353,9 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 
 	new->full_info = TRUE;
 
+	new->selection_count = 0;
+	new->selection_row = 0;
+
 	new->format_width = results_window_def->visible.x1 - results_window_def->visible.x0;
 
 	/* Create the window and open it on screen. */
@@ -435,7 +449,7 @@ static void results_click_handler(wimp_pointer *pointer)
 {
 	struct results_window	*handle = event_get_window_user_data(pointer->w);
 	wimp_window_state	state;
-	int			row;
+	unsigned		row;
 
 	if (handle == NULL || pointer== NULL)
 		return;
@@ -446,6 +460,16 @@ static void results_click_handler(wimp_pointer *pointer)
 
 	row = results_calculate_window_click_row(handle, &(pointer->pos), &state);
 	debug_printf("Click on row %d", row);
+
+	switch(pointer->buttons) {
+	case wimp_SINGLE_SELECT:
+		results_select_click_select(handle, row);
+		break;
+
+	case wimp_SINGLE_ADJUST:
+		results_select_click_adjust(handle, row);
+		break;
+	}
 
 /*
 	if (pointer->w == dialogue_window) {
@@ -541,7 +565,7 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 {
 	struct results_window	*handle = event_get_window_user_data(w);
 	wimp_window_state	state;
-	int			row;
+	unsigned		row;
 
 	if (handle == NULL)
 		return;
@@ -620,6 +644,14 @@ static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 	wimp_get_pointer_info(&pointer);
 
 	switch(selection->items[0]) {
+	case RESULTS_MENU_SELECT_ALL:
+		results_select_all(handle);
+		break;
+
+	case RESULTS_MENU_CLEAR_SELECTION:
+		results_select_none(handle);
+		break;
+
 	case RESULTS_MENU_MODIFY_SEARCH:
 		file_create_dialogue(&pointer, NULL, handle->file);
 		break;
@@ -699,8 +731,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 		if (top < 0)
 			top = 0;
 
-		bottom = ((RESULTS_LINE_HEIGHT * 1.5) + oy - redraw->clip.y0
-				- RESULTS_TOOLBAR_HEIGHT) / RESULTS_LINE_HEIGHT;
+		bottom = (oy - redraw->clip.y0 - RESULTS_TOOLBAR_HEIGHT) / RESULTS_LINE_HEIGHT;
 		if (bottom > res->redraw_lines)
 			bottom = res->redraw_lines;
 
@@ -731,6 +762,11 @@ static void results_redraw_handler(wimp_draw *redraw)
 				else
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 
+				if (line->flags & RESULTS_FLAG_SELECTED)
+					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SELECTED;
+				else
+					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_SELECTED;
+
 				wimp_plot_icon(&(icon[RESULTS_ICON_FILE]));
 				break;
 
@@ -753,6 +789,11 @@ static void results_redraw_handler(wimp_draw *redraw)
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
 				else
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
+
+				if (line->flags & RESULTS_FLAG_SELECTED)
+					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SELECTED;
+				else
+					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_SELECTED;
 
 				wimp_plot_icon(&(icon[RESULTS_ICON_FILE]));
 				break;
@@ -926,6 +967,7 @@ void results_add_file(struct results_window *handle, unsigned key)
 	handle->redraw[line].type = RESULTS_LINE_FILENAME;
 	handle->redraw[line].file = key;
 	handle->redraw[line].sprite = offv;
+	handle->redraw[line].flags |= RESULTS_FLAG_SELECTABLE;
 	if (!small)
 		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
 }
@@ -1091,26 +1133,189 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
  * \param  *handle		The handle of the results window.
  * \param  *pointer		The Wimp pointer data.
  * \param  *state		The results window state.
- * \return			The row (from 0) or -1 if none.
+ * \return			The row (from 0) or RESULTS_ROW_NONE if none.
  */
 
-static int results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state)
+static unsigned results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state)
 {
-	int	y, row, row_y_pos;
+	int		y, row_y_pos;
+	unsigned	row;
 
 	if (handle == NULL || state == NULL)
 		return -1;
 
 	y = state->visible.y1 - pos->y - state->yscroll;
 
-	row = (y - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) / RESULTS_LINE_HEIGHT;
+	row = (unsigned) (y - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) / RESULTS_LINE_HEIGHT;
 	row_y_pos = ((y - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) % RESULTS_LINE_HEIGHT);
 
 	if (row >= handle->redraw_lines ||
 			row_y_pos < (RESULTS_LINE_HEIGHT - (RESULTS_LINE_OFFSET + RESULTS_ICON_HEIGHT)) ||
 			row_y_pos > (RESULTS_LINE_HEIGHT - RESULTS_LINE_OFFSET))
-		row = -1;
+		row = RESULTS_ROW_NONE;
 
 	return row;
+}
+
+
+/**
+ * Update the current selection based on a select click over a row of the
+ * table.
+ *
+ * \param *handle		The handle of the results window.
+ * \param row			The row under the click, or RESULTS_ROW_NONE.
+ */
+
+static void results_select_click_select(struct results_window *handle, unsigned row)
+{
+	wimp_window_state	window;
+
+	if (handle == NULL)
+		return;
+
+	/* If the click is on a selection, nothing changes. */
+
+	if ((row < handle->redraw_lines) && (handle->redraw[row].flags & RESULTS_FLAG_SELECTED))
+		return;
+
+	/* Clear everything and then try to select the clicked line. */
+
+	results_select_none(handle);
+
+	window.w = handle->window;
+	wimp_get_window_state(&window);
+
+	if ((row < handle->redraw_lines) && (handle->redraw[row].flags & RESULTS_FLAG_SELECTABLE)) {
+		handle->redraw[row].flags |= RESULTS_FLAG_SELECTED;
+		handle->selection_count++;
+		if (handle->selection_count == 1)
+			handle->selection_row = row;
+
+		wimp_force_redraw(window.w, window.xscroll, LINE_BASE(row),
+				window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(row));
+	}
+}
+
+
+/**
+ * Update the current selection based on an adjust click over a row of the
+ * table.
+ *
+ * \param *handle		The handle of the results window.
+ * \param row			The row under the click, or RESULTS_ROW_NONE.
+ */
+
+static void results_select_click_adjust(struct results_window *handle, unsigned row)
+{
+	int			i;
+	wimp_window_state	window;
+
+	if (handle == NULL || row >= handle->redraw_lines || (handle->redraw[row].flags & RESULTS_FLAG_SELECTABLE) == 0)
+		return;
+
+	window.w = handle->window;
+	wimp_get_window_state(&window);
+
+	if (handle->redraw[row].flags & RESULTS_FLAG_SELECTED) {
+		handle->redraw[row].flags &= ~RESULTS_FLAG_SELECTED;
+		handle->selection_count--;
+		if (handle->selection_count == 1) {
+			for (i = 0; i < handle->redraw_lines; i++) {
+				if (handle->redraw[i].flags & RESULTS_FLAG_SELECTED) {
+					handle->selection_row = i;
+					break;
+				}
+			}
+		}
+	} else {
+		handle->redraw[row].flags |= RESULTS_FLAG_SELECTED;
+		handle->selection_count++;
+		if (handle->selection_count == 1)
+			handle->selection_row = row;
+	}
+
+	wimp_force_redraw(window.w, window.xscroll, LINE_BASE(row),
+			window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(row));
+}
+
+
+/**
+ * Select all of the rows in a results window.
+ *
+ * \param *handle		The handle of the results window.
+ */
+
+static void results_select_all(struct results_window *handle)
+{
+	int			i;
+	wimp_window_state	window;
+
+	if (handle == NULL || handle->selection_count == handle->redraw_lines)
+		return;
+
+	window.w = handle->window;
+	wimp_get_window_state(&window);
+
+	for (i = 0; i < handle->redraw_lines; i++) {
+		if ((handle->redraw[i].flags & (RESULTS_FLAG_SELECTABLE | RESULTS_FLAG_SELECTED)) == RESULTS_FLAG_SELECTABLE) {
+			handle->redraw[i].flags |= RESULTS_FLAG_SELECTED;
+
+			handle->selection_count++;
+			if (handle->selection_count == 1)
+				handle->selection_row = i;
+
+			wimp_force_redraw(window.w, window.xscroll, LINE_BASE(i),
+					window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(i));
+		}
+	}
+}
+
+
+/**
+ * Clear the selection in a results window.
+ *
+ * \param *handle		The handle of the results window.
+ */
+
+static void results_select_none(struct results_window *handle)
+{
+	int			i;
+	wimp_window_state	window;
+
+	if (handle == NULL || handle->selection_count == 0)
+		return;
+
+	window.w = handle->window;
+	wimp_get_window_state(&window);
+
+	/* If there's just one row selected, we can avoid looping through the lot
+	 * by just clearing that one line.
+	 */
+
+	if (handle->selection_count == 1) {
+		if (handle->selection_row < handle->redraw_lines)
+			handle->redraw[handle->selection_row].flags &= ~RESULTS_FLAG_SELECTED;
+		handle->selection_count = 0;
+
+		wimp_force_redraw(window.w, window.xscroll, LINE_BASE(handle->selection_row),
+				window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(handle->selection_row));
+
+		return;
+	}
+
+	/* If there is more than one row selected, we must loop through the lot
+	 * to clear them all.
+	 */
+
+	for (i = 0; i < handle->redraw_lines; i++) {
+		if (handle->redraw[i].flags & RESULTS_FLAG_SELECTED) {
+			handle->redraw[i].flags &= ~RESULTS_FLAG_SELECTED;
+
+			wimp_force_redraw(window.w, window.xscroll, LINE_BASE(i),
+					window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(i));
+		}
+	}
+
+	handle->selection_count = 0;
 }
 
