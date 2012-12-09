@@ -1184,7 +1184,8 @@ static void results_select_click_select(struct results_window *handle, unsigned 
 	results_select_none(handle);
 
 	window.w = handle->window;
-	wimp_get_window_state(&window);
+	if (xwimp_get_window_state(&window) != NULL)
+		return;
 
 	if ((row < handle->redraw_lines) && (handle->redraw[row].flags & RESULTS_FLAG_SELECTABLE)) {
 		handle->redraw[row].flags |= RESULTS_FLAG_SELECTED;
@@ -1215,7 +1216,8 @@ static void results_select_click_adjust(struct results_window *handle, unsigned 
 		return;
 
 	window.w = handle->window;
-	wimp_get_window_state(&window);
+	if (xwimp_get_window_state(&window) != NULL)
+		return;
 
 	if (handle->redraw[row].flags & RESULTS_FLAG_SELECTED) {
 		handle->redraw[row].flags &= ~RESULTS_FLAG_SELECTED;
@@ -1255,7 +1257,8 @@ static void results_select_all(struct results_window *handle)
 		return;
 
 	window.w = handle->window;
-	wimp_get_window_state(&window);
+	if (xwimp_get_window_state(&window) != NULL)
+		return;
 
 	for (i = 0; i < handle->redraw_lines; i++) {
 		if ((handle->redraw[i].flags & (RESULTS_FLAG_SELECTABLE | RESULTS_FLAG_SELECTED)) == RESULTS_FLAG_SELECTABLE) {
@@ -1287,7 +1290,8 @@ static void results_select_none(struct results_window *handle)
 		return;
 
 	window.w = handle->window;
-	wimp_get_window_state(&window);
+	if (xwimp_get_window_state(&window) != NULL)
+		return;
 
 	/* If there's just one row selected, we can avoid looping through the lot
 	 * by just clearing that one line.
