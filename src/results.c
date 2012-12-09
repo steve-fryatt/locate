@@ -755,8 +755,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 			top = 0;
 
                 bottom = ((RESULTS_LINE_HEIGHT * 1.5) + oy - redraw->clip.y0 - RESULTS_TOOLBAR_HEIGHT) / RESULTS_LINE_HEIGHT;
-		if (bottom > res->redraw_lines)
-			bottom = res->redraw_lines;
+		if (bottom > res->display_lines)
+			bottom = res->display_lines;
 
 		for (y = top; y < bottom; y++) {
 			line = &(res->redraw[res->redraw[y].index]);
@@ -1066,7 +1066,7 @@ void results_reformat(struct results_window *handle, osbool all)
 	}
 
 	error = xwimp_force_redraw(handle->window,
-			0, LINE_Y0(handle->redraw_lines - 1),
+			0, LINE_Y0(handle->display_lines - 1),
 			handle->format_width, (all) ? LINE_Y1(0) : LINE_Y1(handle->formatted_lines));
 
 	handle->formatted_lines = handle->redraw_lines;
@@ -1172,7 +1172,7 @@ static unsigned results_calculate_window_click_row(struct results_window *handle
 	row = (unsigned) (y - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) / RESULTS_LINE_HEIGHT;
 	row_y_pos = ((y - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) % RESULTS_LINE_HEIGHT);
 
-	if (row >= handle->redraw_lines ||
+	if (row >= handle->display_lines ||
 			row_y_pos < (RESULTS_LINE_HEIGHT - (RESULTS_LINE_OFFSET + RESULTS_ICON_HEIGHT)) ||
 			row_y_pos > (RESULTS_LINE_HEIGHT - RESULTS_LINE_OFFSET))
 		row = RESULTS_ROW_NONE;
@@ -1198,7 +1198,7 @@ static void results_select_click_select(struct results_window *handle, unsigned 
 
 	/* If the click is on a selection, nothing changes. */
 
-	if ((row < handle->redraw_lines) && (handle->redraw[row].flags & RESULTS_FLAG_SELECTED))
+	if ((row < handle->display_lines) && (handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTED))
 		return;
 
 	/* Clear everything and then try to select the clicked line. */
@@ -1209,8 +1209,8 @@ static void results_select_click_select(struct results_window *handle, unsigned 
 	if (xwimp_get_window_state(&window) != NULL)
 		return;
 
-	if ((row < handle->redraw_lines) && (handle->redraw[row].flags & RESULTS_FLAG_SELECTABLE)) {
-		handle->redraw[row].flags |= RESULTS_FLAG_SELECTED;
+	if ((row < handle->display_lines) && (handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTABLE)) {
+		handle->redraw[handle->redraw[row].index].flags |= RESULTS_FLAG_SELECTED;
 		handle->selection_count++;
 		if (handle->selection_count == 1)
 			handle->selection_row = row;
@@ -1234,26 +1234,26 @@ static void results_select_click_adjust(struct results_window *handle, unsigned 
 	int			i;
 	wimp_window_state	window;
 
-	if (handle == NULL || row >= handle->redraw_lines || (handle->redraw[row].flags & RESULTS_FLAG_SELECTABLE) == 0)
+	if (handle == NULL || row >= handle->display_lines || (handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTABLE) == 0)
 		return;
 
 	window.w = handle->window;
 	if (xwimp_get_window_state(&window) != NULL)
 		return;
 
-	if (handle->redraw[row].flags & RESULTS_FLAG_SELECTED) {
-		handle->redraw[row].flags &= ~RESULTS_FLAG_SELECTED;
+	if (handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTED) {
+		handle->redraw[handle->redraw[row].index].flags &= ~RESULTS_FLAG_SELECTED;
 		handle->selection_count--;
 		if (handle->selection_count == 1) {
-			for (i = 0; i < handle->redraw_lines; i++) {
-				if (handle->redraw[i].flags & RESULTS_FLAG_SELECTED) {
+			for (i = 0; i < handle->display_lines; i++) {
+				if (handle->redraw[handle->redraw[i].index].flags & RESULTS_FLAG_SELECTED) {
 					handle->selection_row = i;
 					break;
 				}
 			}
 		}
 	} else {
-		handle->redraw[row].flags |= RESULTS_FLAG_SELECTED;
+		handle->redraw[handle->redraw[row].index].flags |= RESULTS_FLAG_SELECTED;
 		handle->selection_count++;
 		if (handle->selection_count == 1)
 			handle->selection_row = row;
@@ -1275,16 +1275,16 @@ static void results_select_all(struct results_window *handle)
 	int			i;
 	wimp_window_state	window;
 
-	if (handle == NULL || handle->selection_count == handle->redraw_lines)
+	if (handle == NULL || handle->selection_count == handle->display_lines)
 		return;
 
 	window.w = handle->window;
 	if (xwimp_get_window_state(&window) != NULL)
 		return;
 
-	for (i = 0; i < handle->redraw_lines; i++) {
-		if ((handle->redraw[i].flags & (RESULTS_FLAG_SELECTABLE | RESULTS_FLAG_SELECTED)) == RESULTS_FLAG_SELECTABLE) {
-			handle->redraw[i].flags |= RESULTS_FLAG_SELECTED;
+	for (i = 0; i < handle->display_lines; i++) {
+		if ((handle->redraw[handle->redraw[i].index].flags & (RESULTS_FLAG_SELECTABLE | RESULTS_FLAG_SELECTED)) == RESULTS_FLAG_SELECTABLE) {
+			handle->redraw[handle->redraw[i].index].flags |= RESULTS_FLAG_SELECTED;
 
 			handle->selection_count++;
 			if (handle->selection_count == 1)
@@ -1320,8 +1320,8 @@ static void results_select_none(struct results_window *handle)
 	 */
 
 	if (handle->selection_count == 1) {
-		if (handle->selection_row < handle->redraw_lines)
-			handle->redraw[handle->selection_row].flags &= ~RESULTS_FLAG_SELECTED;
+		if (handle->selection_row < handle->display_lines)
+			handle->redraw[handle->redraw[handle->selection_row].index].flags &= ~RESULTS_FLAG_SELECTED;
 		handle->selection_count = 0;
 
 		wimp_force_redraw(window.w, window.xscroll, LINE_BASE(handle->selection_row),
@@ -1334,9 +1334,9 @@ static void results_select_none(struct results_window *handle)
 	 * to clear them all.
 	 */
 
-	for (i = 0; i < handle->redraw_lines; i++) {
-		if (handle->redraw[i].flags & RESULTS_FLAG_SELECTED) {
-			handle->redraw[i].flags &= ~RESULTS_FLAG_SELECTED;
+	for (i = 0; i < handle->display_lines; i++) {
+		if (handle->redraw[handle->redraw[i].index].flags & RESULTS_FLAG_SELECTED) {
+			handle->redraw[handle->redraw[i].index].flags &= ~RESULTS_FLAG_SELECTED;
 
 			wimp_force_redraw(window.w, window.xscroll, LINE_BASE(i),
 					window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(i));
