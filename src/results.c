@@ -459,7 +459,6 @@ static void results_click_handler(wimp_pointer *pointer)
 		return;
 
 	row = results_calculate_window_click_row(handle, &(pointer->pos), &state);
-	debug_printf("Click on row %d", row);
 
 	switch(pointer->buttons) {
 	case wimp_SINGLE_SELECT:
@@ -576,7 +575,6 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 			return;
 
 		row = results_calculate_window_click_row(handle, &(pointer->pos), &state);
-		debug_printf("Click on row %d", row);
 	}
 
 	menus_shade_entry(results_window_menu, RESULTS_MENU_CLEAR_SELECTION, handle->selection_count == 0);
