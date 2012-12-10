@@ -366,7 +366,7 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 
 	new->display_lines = 0;
 
-	new->full_info = TRUE;
+	new->full_info = FALSE;
 
 	new->selection_count = 0;
 	new->selection_row = 0;
@@ -974,6 +974,8 @@ void results_add_file(struct results_window *handle, unsigned key)
 	if (handle == NULL)
 		return;
 
+	/* Add the core filename line */
+
 	line = results_add_line(handle, TRUE);
 	if (line == RESULTS_NULL)
 		return;
@@ -993,6 +995,14 @@ void results_add_file(struct results_window *handle, unsigned key)
 	handle->redraw[line].flags |= RESULTS_FLAG_SELECTABLE;
 	if (!small)
 		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
+
+	/* Add the file info line. */
+
+	line = results_add_line(handle, handle->full_info);
+	if (line == RESULTS_NULL)
+		return;
+
+	handle->redraw[line].type = RESULTS_LINE_FILEINFO;
 }
 
 
