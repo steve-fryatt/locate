@@ -1003,6 +1003,7 @@ void results_add_file(struct results_window *handle, unsigned key)
 		return;
 
 	handle->redraw[line].type = RESULTS_LINE_FILEINFO;
+	handle->redraw[line].file = key;
 }
 
 
