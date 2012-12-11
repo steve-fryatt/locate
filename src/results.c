@@ -211,12 +211,13 @@ static wimp_window			*results_status_def = NULL;		/**< Definition for the result
 static wimp_w				results_object_window = NULL;		/**< Handle of the object info window.					*/
 
 static wimp_menu			*results_window_menu = NULL;		/**< The results window menu.						*/
+static wimp_menu			*results_window_menu_display = NULL;	/**< The results window display submenu.				*/
 
 static osspriteop_area			*results_sprite_area = NULL;		/**< The application sprite area.					*/
 
-static struct dataxfer_savebox		*results_save_results = NULL;		/**< The Save Results savebox data handle.		*/
-static struct dataxfer_savebox		*results_save_paths = NULL;		/**< The Save Paths savebox data handle.		*/
-static struct dataxfer_savebox		*results_save_options = NULL;		/**< The Save Options savebox data handle.		*/
+static struct dataxfer_savebox		*results_save_results = NULL;		/**< The Save Results savebox data handle.				*/
+static struct dataxfer_savebox		*results_save_paths = NULL;		/**< The Save Paths savebox data handle.				*/
+static struct dataxfer_savebox		*results_save_options = NULL;		/**< The Save Options savebox data handle.				*/
 
 
 /* Local function prototypes. */
@@ -228,6 +229,7 @@ static void	results_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_wa
 static void	results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
+static void	results_set_display_mode(struct results_window *handle, osbool full_info);
 static void	results_update_extent(struct results_window *handle);
 static unsigned	results_add_line(struct results_window *handle, osbool show);
 static unsigned	results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state);
@@ -258,6 +260,7 @@ static void	results_select_none(struct results_window *handle);
 void results_initialise(osspriteop_area *sprites)
 {
 	results_window_menu = templates_get_menu(TEMPLATES_MENU_RESULTS);
+	results_window_menu_display = templates_get_menu(TEMPLATES_MENU_RESULTS_DISPLAY);
 
 	results_window_def = templates_load_window("Results");
 	results_window_def->icon_count = 0;
@@ -601,6 +604,9 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 	menus_shade_entry(results_window_menu, RESULTS_MENU_MODIFY_SEARCH, dialogue_window_is_open());
 	menus_shade_entry(results_window_menu, RESULTS_MENU_STOP_SEARCH, !file_search_active(handle->file));
 
+	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_PATH_ONLY, !handle->full_info);
+	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_FULL_INFO, handle->full_info);
+
 	dataxfer_savebox_initialise(results_save_results, "FileName", NULL, TRUE, FALSE, NULL);
 	dataxfer_savebox_initialise(results_save_paths, "ExptName", "SelectName", TRUE, FALSE, NULL);
 	dataxfer_savebox_initialise(results_save_options, "SrchName", NULL, FALSE, FALSE, NULL);
@@ -667,6 +673,18 @@ static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 	wimp_get_pointer_info(&pointer);
 
 	switch(selection->items[0]) {
+	case RESULTS_MENU_DISPLAY:
+		switch(selection->items[1]) {
+		case RESULTS_MENU_DISPLAY_PATH_ONLY:
+			results_set_display_mode(handle, FALSE);
+			break;
+
+		case RESULTS_MENU_DISPLAY_FULL_INFO:
+			results_set_display_mode(handle, TRUE);
+			break;
+		}
+		break;
+
 	case RESULTS_MENU_SELECT_ALL:
 		results_select_all(handle);
 		break;
@@ -1083,6 +1101,48 @@ void results_reformat(struct results_window *handle, osbool all)
 	handle->formatted_lines = handle->redraw_lines;
 
 	results_update_extent(handle);
+}
+
+
+/**
+ * Update a results window index to show or hide the various categories of
+ * line.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param full_info		TRUE to include full info lines; else FALSE.
+ */
+
+static void results_set_display_mode(struct results_window *handle, osbool full_info)
+{
+	unsigned line;
+
+	if (handle == NULL || handle->full_info == full_info)
+		return;
+
+	handle->display_lines = 0;
+
+	for (line = 0; line < handle->redraw_lines; line++) {
+		switch (handle->redraw[line].type) {
+		case RESULTS_LINE_TEXT:
+		case RESULTS_LINE_FILENAME:
+		case RESULTS_LINE_CONTENTS:
+			handle->redraw[handle->display_lines++].index = line;
+			break;
+
+		case RESULTS_LINE_FILEINFO:
+			if (full_info)
+				handle->redraw[handle->display_lines++].index = line;
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	handle->full_info = full_info;
+
+	results_update_extent(handle);
+	windows_redraw(handle->window);
 }
 
 
