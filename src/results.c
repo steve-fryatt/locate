@@ -1128,14 +1128,30 @@ void results_reformat(struct results_window *handle, osbool all)
 
 static void results_set_display_mode(struct results_window *handle, osbool full_info)
 {
-	unsigned line;
+	unsigned line, selection;
 
 	if (handle == NULL || handle->full_info == full_info)
 		return;
 
+	/* Zero the displayed line count. */
+
 	handle->display_lines = 0;
 
+	/* If there's a single selection, get the real line that is currently
+	 * selected.
+	 */
+
+	if (handle->selection_count == 1)
+		selection = handle->redraw[handle->selection_row].index;
+	else
+		selection = RESULTS_ROW_NONE;
+
+	/* Re-index the window contents. */
+
 	for (line = 0; line < handle->redraw_lines; line++) {
+		if (line == selection)
+			handle->selection_row = handle->display_lines;
+
 		switch (handle->redraw[line].type) {
 		case RESULTS_LINE_TEXT:
 		case RESULTS_LINE_FILENAME:
