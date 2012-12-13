@@ -161,10 +161,10 @@ struct results_line {
 	unsigned		text;						/**< Text offset for text-based lines (RESULTS_NULL if not used).	*/
 	unsigned		sprite;						/**< Text offset for the display icon's sprite name.			*/
 	unsigned		file;						/**< Object key for file objects.					*/
-	unsigned		size;						/**< Text offset for object size string.				*/
-	unsigned		type;						/**< Text offset fr the type string.					*/
-	unsigned		attributes;					/**< Text offset for the attributes string.				*/
-	unsigned		date;						/**< Text offset for object date string.				*/
+//	unsigned		size;						/**< Text offset for object size string.				*/
+//	unsigned		type;						/**< Text offset fr the type string.					*/
+//	unsigned		attributes;					/**< Text offset for the attributes string.				*/
+//	unsigned		date;						/**< Text offset for object date string.				*/
 
 	unsigned		truncate;					/**< Non-zero indicates first character of text to be displayed.	*/
 	wimp_colour		colour;						/**< The foreground colour of the text.					*/
@@ -1239,10 +1239,10 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 	handle->redraw[offset].text = RESULTS_NULL;
 	handle->redraw[offset].file = OBJDB_NULL_KEY;
 	handle->redraw[offset].sprite = RESULTS_NULL;
-	handle->redraw[offset].size = RESULTS_NULL;
-	handle->redraw[offset].type = RESULTS_NULL;
-	handle->redraw[offset].attributes = RESULTS_NULL;
-	handle->redraw[offset].date = RESULTS_NULL;
+//	handle->redraw[offset].size = RESULTS_NULL;
+//	handle->redraw[offset].type = RESULTS_NULL;
+//	handle->redraw[offset].attributes = RESULTS_NULL;
+//	handle->redraw[offset].date = RESULTS_NULL;
 	handle->redraw[offset].truncate = 0;
 	handle->redraw[offset].colour = wimp_COLOUR_BLACK;
 
