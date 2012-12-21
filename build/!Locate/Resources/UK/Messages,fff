@@ -35,9 +35,11 @@ TypeFlag:T
 AttrFlag:O
 ContFlag:C
 
+Unknown:Unknown
 Untyped:Untyped
 Dir:Directory
 App:Application
+Err:Error
 
 FileName:Results
 ExptName:FileNames

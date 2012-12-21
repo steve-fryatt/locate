@@ -24,13 +24,15 @@
 /**
  * \file: fileicon.h
  *
- * Track and manage icons for filetypes.
+ * Track and manage names and icons for filetypes.
  */
 
 #ifndef LOCATE_FILEICON
 #define LOCATE_FILEICON
 
 #include "oslib/types.h"
+
+#include "textdump.h"
 
 
 enum fileicon_icons {
@@ -40,6 +42,17 @@ enum fileicon_icons {
 	FILEICON_UNTYPED,							/**< The Untyped filetype icon.				*/
 	FILEICON_ERROR,								/**< The Error icon.					*/
 	FILEICON_MAX_ICONS							/**< Placeholder to show the maximum index.		*/
+};
+
+/**
+ * filetype information block.
+ */
+
+struct fileicon_info {
+	unsigned	type;
+	unsigned	name;
+	unsigned	large;
+	unsigned	small;
 };
 
 
@@ -74,13 +87,23 @@ char *fileicon_get_base(void);
  *
  * \param type			The filetype of the file.
  * \param *name			The name of the file.
- * \param *small		Pointer to location to return the small flag:
- *				TRUE if a small sprite is available, else FALSE.
+ * \info *icon			Pointer to a block to take the filetype details.
+ * \return			TRUE on success; else FALSE.
  * \return			Offset to the sprite name, or TEXTDUMP_NULL.
  */
 
-unsigned fileicon_get_type_icon(unsigned type, char *name, osbool *small);
-unsigned fileicon_get_special_icon(enum fileicon_icons icon, osbool *small);
+osbool fileicon_get_type_icon(unsigned type, char *name, struct fileicon_info *info);
+
+
+/**
+ * Return the offset of one of the special icon sprite names.
+ *
+ * \param icon			The icon to return a sprite for.
+ * \info *icon			Pointer to a block to take the filetype details.
+ * \return			TRUE on success; else FALSE.
+ */
+
+osbool fileicon_get_special_icon(enum fileicon_icons icon, struct fileicon_info *info);
 
 #endif
 

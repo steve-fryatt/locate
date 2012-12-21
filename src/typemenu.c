@@ -84,10 +84,11 @@ static int	typemenu_qsort_compare(const void *a, const void *b);
 
 wimp_menu *typemenu_build(void)
 {
-	int		length, context = 0, line, width = 0;
-	char		buffer[TYPEMENU_NAME_LENGTH], *sprite_base, *var_name;
-	os_var_type	type;
-	os_error	*error;
+	int			length, context = 0, line, width = 0;
+	char			buffer[TYPEMENU_NAME_LENGTH], *sprite_base, *validation, *var_name;
+	struct fileicon_info	icon;
+	os_var_type		type;
+	os_error		*error;
 
 	/* Collect a full set of types from the system. */
 
@@ -109,9 +110,15 @@ wimp_menu *typemenu_build(void)
 	typemenu_types[typemenu_entries].name[TYPEMENU_NAME_LENGTH - 1] = '\0';
 
 	typemenu_types[typemenu_entries].validation[0] = 'S';
-	strncpy(typemenu_types[typemenu_entries].validation + 1,
-			sprite_base + fileicon_get_special_icon(FILEICON_UNTYPED,
-			&(typemenu_types[typemenu_entries].small)), TYPEMENU_VALIDATION_LENGTH - 1);
+	fileicon_get_special_icon(FILEICON_UNTYPED, &icon);
+	if (icon.small != TEXTDUMP_NULL) {
+		validation = sprite_base + icon.small;
+		typemenu_types[typemenu_entries].small = TRUE;
+	} else if (icon.large != TEXTDUMP_NULL) {
+		validation = sprite_base + icon.large;
+		typemenu_types[typemenu_entries].small = FALSE;
+	}
+	strncpy(typemenu_types[typemenu_entries].validation + 1, validation, TYPEMENU_VALIDATION_LENGTH - 1);
 	typemenu_types[typemenu_entries].validation[TYPEMENU_VALIDATION_LENGTH - 1] = '\0';
 
 	typemenu_types[typemenu_entries].type = 0x1000u;
@@ -148,9 +155,15 @@ wimp_menu *typemenu_build(void)
 			/* Get the iconsprite name. */
 
 			typemenu_types[typemenu_entries].validation[0] = 'S';
-			strncpy(typemenu_types[typemenu_entries].validation + 1,
-					sprite_base + fileicon_get_type_icon(typemenu_types[typemenu_entries].type, "",
-					&(typemenu_types[typemenu_entries].small)), TYPEMENU_VALIDATION_LENGTH - 1);
+			fileicon_get_type_icon(typemenu_types[typemenu_entries].type, "", &icon);
+			if (icon.small != TEXTDUMP_NULL) {
+				validation = sprite_base + icon.small;
+				typemenu_types[typemenu_entries].small = TRUE;
+			} else if (icon.large != TEXTDUMP_NULL) {
+				validation = sprite_base + icon.large;
+				typemenu_types[typemenu_entries].small = FALSE;
+			}
+			strncpy(typemenu_types[typemenu_entries].validation + 1, validation, TYPEMENU_VALIDATION_LENGTH - 1);
 			typemenu_types[typemenu_entries].validation[TYPEMENU_VALIDATION_LENGTH - 1] = '\0';
 
 			typemenu_entries++;

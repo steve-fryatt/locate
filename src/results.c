@@ -959,8 +959,8 @@ void results_set_title(struct results_window *handle, char *title)
 
 void results_add_error(struct results_window *handle, char *message, char *path)
 {
-	unsigned	line, offv, offt;
-	osbool		small;
+	unsigned		line, offv, offt;
+	struct fileicon_info	icon;
 
 	if (handle == NULL)
 		return;
@@ -970,7 +970,16 @@ void results_add_error(struct results_window *handle, char *message, char *path)
 		return;
 
 	offt = textdump_store(handle->text, message);
-	offv = fileicon_get_special_icon(FILEICON_ERROR, &small);
+	fileicon_get_special_icon(FILEICON_ERROR, &icon);
+
+	if (icon.small != TEXTDUMP_NULL) {
+		offv = icon.small;
+	} else if (icon.large != TEXTDUMP_NULL) {
+		offv = icon.large;
+		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
+	} else {
+		offv = TEXTDUMP_NULL;
+	}
 
 	if (offt == TEXTDUMP_NULL || offv == TEXTDUMP_NULL)
 		return;
@@ -979,8 +988,6 @@ void results_add_error(struct results_window *handle, char *message, char *path)
 	handle->redraw[line].text = offt;
 	handle->redraw[line].sprite = offv;
 	handle->redraw[line].colour = wimp_COLOUR_RED;
-	if (!small)
-		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
 }
 
 
@@ -993,9 +1000,9 @@ void results_add_error(struct results_window *handle, char *message, char *path)
 
 void results_add_file(struct results_window *handle, unsigned key)
 {
-	unsigned	line, offv;
-	osbool		small;
-	unsigned	type;
+	unsigned		line, offv;
+	unsigned		type;
+	struct fileicon_info	icon;
 
 	if (handle == NULL)
 		return;
@@ -1010,7 +1017,16 @@ void results_add_file(struct results_window *handle, unsigned key)
 	type = objdb_get_filetype(handle->objects, key);
 
 	//offt = textdump_store(handle->text, name);
-	offv = fileicon_get_type_icon(type, "", &small);
+	fileicon_get_type_icon(type, "", &icon);
+
+	if (icon.small != TEXTDUMP_NULL) {
+		offv = icon.small;
+	} else if (icon.large != TEXTDUMP_NULL) {
+		offv = icon.large;
+		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
+	} else {
+		offv = TEXTDUMP_NULL;
+	}
 
 	if (offv == TEXTDUMP_NULL)
 		return;
@@ -1019,8 +1035,6 @@ void results_add_file(struct results_window *handle, unsigned key)
 	handle->redraw[line].file = key;
 	handle->redraw[line].sprite = offv;
 	handle->redraw[line].flags |= RESULTS_FLAG_SELECTABLE;
-	if (!small)
-		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
 
 	/* Add the file info line. */
 
