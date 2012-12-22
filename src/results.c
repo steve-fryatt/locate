@@ -39,8 +39,12 @@
 
 /* OSLib Header files. */
 
+#include "oslib/fileswitch.h"
+#include "oslib/os.h"
 #include "oslib/osbyte.h"
+#include "oslib/osfile.h"
 #include "oslib/osspriteop.h"
+#include "oslib/territory.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib Header files. */
@@ -249,6 +253,7 @@ static void results_select_click_adjust(struct results_window *handle, unsigned 
 static void	results_select_all(struct results_window *handle);
 static void	results_select_none(struct results_window *handle);
 static void	results_object_info_prepare(struct results_window *handle);
+static char	*results_create_attributes_string(fileswitch_attr attributes, char *buffer, size_t length);
 
 
 //static unsigned	results_add_fileblock(struct results_window *handle);
@@ -1498,10 +1503,15 @@ static void results_select_none(struct results_window *handle)
 }
 
 
+/**
+ * Prepare the contents of the object info dialogue.
+ *
+ * \param *handle		The handle of the results window to prepare for.
+ */
 
 static void results_object_info_prepare(struct results_window *handle)
 {
-	char			*base;
+	char			*base, *end;
 	unsigned		row, type;
 	bits			data[256];
 	osgbpb_info		*file = (osgbpb_info *) data;
@@ -1516,32 +1526,77 @@ static void results_object_info_prepare(struct results_window *handle)
 	if (row >= handle->redraw_lines || handle->redraw[row].type != RESULTS_LINE_FILENAME)
 		return;
 
-	base = fileicon_get_base();
-
-	type = objdb_get_filetype(handle->objects, handle->redraw[row].file);
+	/* Get the data. */
 
 	objdb_get_info(handle->objects, handle->redraw[row].file, file);
-
-	debug_printf("Getting info for type %3x", type);
-
+	type = objdb_get_filetype(handle->objects, handle->redraw[row].file);
 	fileicon_get_type_icon(type, "", &info);
 
-	debug_printf("Name: %u, Sprite: %u", info.name, info.large);
+	base = fileicon_get_base();
+
+	/* Complete the fields. */
 
 	icons_printf(results_object_window, RESULTS_OBJECT_ICON_NAME, "%s", file->name);
-	icons_printf(results_object_window, RESULTS_OBJECT_ICON_SIZE, "%d bytes", file->size);
+
+	if (xos_convert_file_size(file->size,
+			icons_get_indirected_text_addr(results_object_window, RESULTS_OBJECT_ICON_SIZE),
+			icons_get_indirected_text_length(results_object_window, RESULTS_OBJECT_ICON_SIZE),
+			&end) != NULL)
+		icons_printf(results_object_window, RESULTS_OBJECT_ICON_SIZE, "");
+
+	results_create_attributes_string(file->attr,
+			icons_get_indirected_text_addr(results_object_window, RESULTS_OBJECT_ICON_ACCESS),
+			icons_get_indirected_text_length(results_object_window, RESULTS_OBJECT_ICON_ACCESS));
 
 	if (info.name != TEXTDUMP_NULL)
 		icons_printf(results_object_window, RESULTS_OBJECT_ICON_TYPE, "%s", base + info.name);
 
 	if (info.large != TEXTDUMP_NULL)
 		icons_printf(results_object_window, RESULTS_OBJECT_ICON_ICON, "%s", base + info.large);
+
+	if (type != osfile_TYPE_UNTYPED) {
+		bits	date[2];
+
+		date[0] = file->exec_addr;
+		date[1] = file->load_addr & 0xffu;
+		if (xterritory_convert_standard_date_and_time(territory_CURRENT, (const os_date_and_time *) &date,
+				icons_get_indirected_text_addr(results_object_window, RESULTS_OBJECT_ICON_DATE),
+				icons_get_indirected_text_length(results_object_window, RESULTS_OBJECT_ICON_DATE),
+				&end) == NULL)
+			*end = '\0';
+		else
+			icons_printf(results_object_window, RESULTS_OBJECT_ICON_DATE, "");
+	} else {
+		icons_printf(results_object_window, RESULTS_OBJECT_ICON_DATE, "%08X %08X", file->load_addr, file->exec_addr);
+	}
 }
 
 
+/**
+ * Turn fileswitch object attributes into a human-readable string.
+ *
+ * \param attributes		The file attributes to be decoded.
+ * \param *buffer		A buffer into which to write the decoded string.
+ * \param length		The size of the supplied buffer, in bytes.
+ * \return			Pointer to the start of the supplied buffer.
+ */
+
+static char *results_create_attributes_string(fileswitch_attr attributes, char *buffer, size_t length)
+{
+	snprintf(buffer, length, "%s%s%s%s/%s%s%s%s",
+			(attributes & fileswitch_ATTR_OWNER_WRITE) ? "W" : "",
+			(attributes & fileswitch_ATTR_OWNER_READ) ? "R" : "",
+			(attributes & fileswitch_ATTR_OWNER_LOCKED) ? "L" : "",
+			(attributes & fileswitch_ATTR_OWNER_SPECIAL) ? "S" : "",
+			(attributes & fileswitch_ATTR_WORLD_WRITE) ? "w" : "",
+			(attributes & fileswitch_ATTR_WORLD_READ) ? "r" : "",
+			(attributes & fileswitch_ATTR_WORLD_LOCKED) ? "l" : "",
+			(attributes & fileswitch_ATTR_WORLD_SPECIAL) ? "s" : "");
+
+	return buffer;
+}
 
 
-//#define RESULTS_OBJECT_ICON_ACCESS 6
 //#define RESULTS_OBJECT_ICON_DATE 8
 
 
