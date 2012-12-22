@@ -245,6 +245,8 @@ static void results_select_click_select(struct results_window *handle, unsigned 
 static void results_select_click_adjust(struct results_window *handle, unsigned row);
 static void	results_select_all(struct results_window *handle);
 static void	results_select_none(struct results_window *handle);
+static void	results_object_info_prepare(struct results_window *handle);
+
 
 //static unsigned	results_add_fileblock(struct results_window *handle);
 
@@ -655,6 +657,7 @@ static void results_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_wa
 		break;
 
 	case RESULTS_MENU_OBJECT_INFO:
+		results_object_info_prepare(handle);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
@@ -1464,4 +1467,52 @@ static void results_select_none(struct results_window *handle)
 
 	handle->selection_count = 0;
 }
+
+
+
+static void results_object_info_prepare(struct results_window *handle)
+{
+	char			*base;
+	unsigned		row, type;
+	bits			data[256];
+	osgbpb_info		*file = (osgbpb_info *) data;
+	struct fileicon_info	info;
+
+
+	if (handle == NULL || handle->selection_count != 1 || handle->selection_row >= handle->display_lines)
+		return;
+
+	row = handle->redraw[handle->selection_row].index;
+
+	if (row >= handle->redraw_lines || handle->redraw[row].type != RESULTS_LINE_FILENAME)
+		return;
+
+	base = fileicon_get_base();
+
+	type = objdb_get_filetype(handle->objects, handle->redraw[row].file);
+
+	objdb_get_info(handle->objects, handle->redraw[row].file, file);
+
+	debug_printf("Getting info for type %3x", type);
+
+	fileicon_get_type_icon(type, "", &info);
+
+	debug_printf("Name: %u, Sprite: %u", info.name, info.large);
+
+	icons_printf(results_object_window, RESULTS_OBJECT_ICON_NAME, "%s", file->name);
+	icons_printf(results_object_window, RESULTS_OBJECT_ICON_SIZE, "%d bytes", file->size);
+
+	if (info.name != TEXTDUMP_NULL)
+		icons_printf(results_object_window, RESULTS_OBJECT_ICON_TYPE, "%s", base + info.name);
+
+	if (info.large != TEXTDUMP_NULL)
+		icons_printf(results_object_window, RESULTS_OBJECT_ICON_ICON, "%s", base + info.large);
+}
+
+
+
+
+//#define RESULTS_OBJECT_ICON_ACCESS 6
+//#define RESULTS_OBJECT_ICON_DATE 8
+
 

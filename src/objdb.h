@@ -117,12 +117,25 @@ osbool objdb_get_name(struct objdb_block *handle, unsigned key, char *buffer, si
 unsigned objdb_get_filetype(struct objdb_block *handle, unsigned key);
 
 
+/**
+ * Return information on an object in the database, or details of the memory
+ * buffer required to return those details.
+ *
+ * \param *handle		The database to look in.
+ * \param key			The key of the object to be returned, or OBJDB_NULL_KEY.
+ * \param *info			A block to take the information, or NULL to get required size.
+ * \return			The required block size.
+ */
+
+size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info);
 
 
 
 
 
 
+
+#if 0
 
 /**
  * Load the contents of a button file into the buttons database.
@@ -142,7 +155,7 @@ osbool objdb_load_file(char *leaf_name);
  */
 
 osbool objdb_save_file(char *leaf_name);
-
+#endif
 
 /**
  * Create a new, empty entry in the database and return its key.

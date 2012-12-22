@@ -203,9 +203,9 @@ osbool fileicon_get_type_icon(unsigned type, char *name, struct fileicon_info *i
 		debug_printf("Testing variable %s", typevar);
 		if (xos_read_var_val(typevar, buffer, sizeof(buffer), 0, os_VARTYPE_STRING, &length, NULL, NULL) == NULL) {
 			buffer[(length < sizeof(buffer)) ? length : (sizeof(buffer) - 1)] = '\0';
-			snprintf(typename, sizeof(typename), "%-8s (%03d)", buffer, type);
+			snprintf(typename, sizeof(typename), "%-8s (%03x)", buffer, type);
 		} else {
-			snprintf(typename, sizeof(typename), "&%03x      (%03d)", type, type);
+			snprintf(typename, sizeof(typename), "&%03x      (%03x)", type, type);
 		}
 
 		fileicon_types[type].name = textdump_store(fileicon_text, typename);

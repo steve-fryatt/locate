@@ -335,6 +335,44 @@ unsigned objdb_get_filetype(struct objdb_block *handle, unsigned key)
 }
 
 
+/**
+ * Return information on an object in the database, or details of the memory
+ * buffer required to return those details.
+ *
+ * \param *handle		The database to look in.
+ * \param key			The key of the object to be returned, or OBJDB_NULL_KEY.
+ * \param *info			A block to take the information, or NULL to get required size.
+ * \return			The required block size.
+ */
+
+size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info)
+{
+	char	*base;
+	int	index;
+
+	if (handle == NULL)
+		return 0;
+
+	index = (key != OBJDB_NULL_KEY) ? objdb_find(handle, key) : -1;
+	base = textdump_get_base(handle->text);
+
+	if (info == NULL) {
+		if (index != -1)
+			return 21 + strlen(base + handle->list[index].name);
+		else
+			return 256; // \TODO -- Return largest name block size!
+	}
+
+	info->load_addr = handle->list[index].load_addr;
+	info->exec_addr = handle->list[index].exec_addr;
+	info->size = handle->list[index].size;
+	info->attr = handle->list[index].attributes;
+	info->obj_type = handle->list[index].type;
+	strcpy(info->name, base + handle->list[index].name);
+
+	return 0;
+}
+
 
 #if 0
 
