@@ -72,7 +72,7 @@ struct fileicon_icon {
 };
 
 
-static struct textdump_block		*fileicon_text;				/**< The text dump for filetype icons.					*/
+static struct textdump_block		*fileicon_text;				/**< The text dump for filetype names and icons.			*/
 
 static struct fileicon_icon		fileicon_types[4096];			/**< Array of details for the 4096 filetype icons.			*/
 static struct fileicon_icon		fileicon_specials[FILEICON_MAX_ICONS];	/**< Array of details for the special icons.				*/
@@ -169,7 +169,8 @@ char *fileicon_get_base(void)
 
 osbool fileicon_get_type_icon(unsigned type, char *name, struct fileicon_info *info)
 {
-	char		smallname[20], largename[20];
+	char	smallname[20], largename[20], typename[20], typevar[20], buffer[20];
+	int	length;
 
 	if (info == NULL)
 		return FALSE;
@@ -194,6 +195,25 @@ osbool fileicon_get_type_icon(unsigned type, char *name, struct fileicon_info *i
 
 		return TRUE;
 	}
+
+	/* Process the filetype name. */
+
+	if (fileicon_types[type].name == TEXTDUMP_NULL) {
+		snprintf(typevar, sizeof(typevar), "File$Type_%03X", type);
+		debug_printf("Testing variable %s", typevar);
+		if (xos_read_var_val(typevar, buffer, sizeof(buffer), 0, os_VARTYPE_STRING, &length, NULL, NULL) == NULL) {
+			buffer[(length < sizeof(buffer)) ? length : (sizeof(buffer) - 1)] = '\0';
+			snprintf(typename, sizeof(typename), "%-8s (%03d)", buffer, type);
+		} else {
+			snprintf(typename, sizeof(typename), "&%03x      (%03d)", type, type);
+		}
+
+		fileicon_types[type].name = textdump_store(fileicon_text, typename);
+
+		debug_printf("Allocated filetype name %s for %d", typename, type);
+	}
+
+	info->name = fileicon_types[type].name;
 
 	/* For filetypes, check the cache and then start testing sprites. */
 
