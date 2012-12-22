@@ -263,9 +263,6 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 }
 
 
-
-
-
 /**
  * Return the pathname of an object in the database.
  *
