@@ -66,6 +66,7 @@
 
 
 #define OBJDB_ALLOC_CHUNK 100
+#define OBJDB_NULL_INDEX 0xffffffffu
 
 /**
  * Data structure for an object database instance.
@@ -103,9 +104,9 @@ struct object
 };
 
 
-static int	objdb_find(struct objdb_block *handle, unsigned key);
-static int	objdb_new(struct objdb_block *handle);
-static void	objdb_delete(struct objdb_block *handle, int index);
+static unsigned	objdb_find(struct objdb_block *handle, unsigned key);
+static unsigned	objdb_new(struct objdb_block *handle);
+static void	objdb_delete(struct objdb_block *handle, unsigned index);
 
 
 /**
@@ -207,9 +208,9 @@ void objdb_destroy(struct objdb_block *handle)
 
 unsigned objdb_add_root(struct objdb_block *handle, char *path)
 {
-	int	index = objdb_new(handle);
+	unsigned	index = objdb_new(handle);
 
-	if (handle == NULL || path == NULL || index == -1)
+	if (handle == NULL || path == NULL || index == OBJDB_NULL_INDEX)
 		return OBJDB_NULL_KEY;
 
 	handle->list[index].parent = OBJDB_NULL_KEY;
@@ -233,9 +234,9 @@ unsigned objdb_add_root(struct objdb_block *handle, char *path)
 
 unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info *file)
 {
-	int	index = objdb_new(handle);
+	unsigned	index = objdb_new(handle);
 
-	if (handle == NULL || file == NULL || index == -1)
+	if (handle == NULL || file == NULL || index == OBJDB_NULL_INDEX)
 		return OBJDB_NULL_KEY;
 
 	handle->list[index].parent = parent;
@@ -268,7 +269,7 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 
 osbool objdb_get_name(struct objdb_block *handle, unsigned key, char *buffer, size_t len)
 {
-	int		index, indexes[256], i;
+	unsigned	index, indexes[256], i;
 	char		*base, *from, *to;
 
 	if (handle == NULL || buffer == NULL)
@@ -277,13 +278,13 @@ osbool objdb_get_name(struct objdb_block *handle, unsigned key, char *buffer, si
 	i = 0;
 
 	do {
-		index = (key != OBJDB_NULL_KEY) ? objdb_find(handle, key) : -1;
+		index = (key != OBJDB_NULL_KEY) ? objdb_find(handle, key) : OBJDB_NULL_INDEX;
 
-		if (index != -1) {
+		if (index != OBJDB_NULL_INDEX) {
 			indexes[i++] = index;
 			key = handle->list[index].parent;
 		}
-	} while (index != -1 && i < (sizeof(indexes) / sizeof(int)));
+	} while (index != OBJDB_NULL_INDEX && i < (sizeof(indexes) / sizeof(int)));
 
 	base = textdump_get_base(handle->text);
 
@@ -316,10 +317,10 @@ osbool objdb_get_name(struct objdb_block *handle, unsigned key, char *buffer, si
 
 unsigned objdb_get_filetype(struct objdb_block *handle, unsigned key)
 {
-	int	index = objdb_find(handle, key);
-	char	*name;
+	unsigned	index = objdb_find(handle, key);
+	char		*name;
 
-	if (handle == NULL || index == -1)
+	if (handle == NULL || index == OBJDB_NULL_INDEX)
 		return 0xffffffffu;
 
 	name = textdump_get_base(handle->text) + handle->list[index].name;
@@ -347,17 +348,17 @@ unsigned objdb_get_filetype(struct objdb_block *handle, unsigned key)
 
 size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info)
 {
-	char	*base;
-	int	index;
+	char		*base;
+	unsigned	index;
 
 	if (handle == NULL)
 		return 0;
 
-	index = (key != OBJDB_NULL_KEY) ? objdb_find(handle, key) : -1;
+	index = (key != OBJDB_NULL_KEY) ? objdb_find(handle, key) : OBJDB_NULL_INDEX;
 	base = textdump_get_base(handle->text);
 
 	if (info == NULL) {
-		if (index != -1)
+		if (index != OBJDB_NULL_INDEX)
 			return 21 + strlen(base + handle->list[index].name);
 		else
 			return 256; // \TODO -- Return largest name block size!
@@ -492,9 +493,9 @@ osbool objdb_save_file(char *leaf_name)
 unsigned objdb_create_key(struct objdb_block *handle)
 {
 	unsigned	key = OBJDB_NULL_KEY;
-	int		index = objdb_new(handle);
+	unsigned	index = objdb_new(handle);
 
-	if (handle != NULL && index != -1)
+	if (handle != NULL && index != OBJDB_NULL_INDEX)
 		key = handle->list[index].key;
 
 	return key;
@@ -510,14 +511,14 @@ unsigned objdb_create_key(struct objdb_block *handle)
 
 void objdb_delete_key(struct objdb_block *handle, unsigned key)
 {
-	int		index;
+	unsigned	index;
 
 	if (handle == NULL || key == OBJDB_NULL_KEY)
 		return;
 
 	index = objdb_find(handle, key);
 
-	if (index != -1)
+	if (index != OBJDB_NULL_INDEX)
 		objdb_delete(handle, index);
 }
 
@@ -535,7 +536,7 @@ void objdb_delete_key(struct objdb_block *handle, unsigned key)
 
 void objdb_delete_last_key(struct objdb_block *handle, unsigned key)
 {
-	int		index;
+	unsigned	index;
 
 	if (handle == NULL || key == OBJDB_NULL_KEY || handle->objects == 0)
 		return;
@@ -569,7 +570,7 @@ void objdb_delete_last_key(struct objdb_block *handle, unsigned key)
 
 unsigned objdb_get_next_key(struct objdb_block *handle, unsigned key)
 {
-	int index;
+	unsigned	index;
 
 	if (handle == NULL)
 		return OBJDB_NULL_KEY;
@@ -579,7 +580,7 @@ unsigned objdb_get_next_key(struct objdb_block *handle, unsigned key)
 
 	index = objdb_find(handle, key);
 
-	return (index != -1 && index < (handle->objects - 1)) ? handle->list[index + 1].key : OBJDB_NULL_KEY;
+	return (index != OBJDB_NULL_INDEX && index < (handle->objects - 1)) ? handle->list[index + 1].key : OBJDB_NULL_KEY;
 }
 
 #if 0
@@ -682,15 +683,15 @@ osbool objdb_set_button_info(unsigned key, int x_pos, int y_pos, char *name, cha
  *
  * \param *handle		The database in which to locate the object.
  * \param key			The key to locate.
- * \return			The current index, or -1 if not found.
+ * \return			The current index, or OBJDB_NULL_INDEX if not found.
  */
 
-static int objdb_find(struct objdb_block *handle, unsigned key)
+static unsigned objdb_find(struct objdb_block *handle, unsigned key)
 {
-	int index;
+	unsigned	index;
 
 	if (handle == NULL)
-		return -1;
+		return OBJDB_NULL_INDEX;
 
 	/* We know that keys are allocated in ascending order, possibly
 	 * with gaps in the sequence.  Therefore we can hit the list
@@ -700,11 +701,11 @@ static int objdb_find(struct objdb_block *handle, unsigned key)
 
 	index = (key >= handle->objects) ? handle->objects - 1 : key;
 
-	while (index >= 0 && handle->list[index].key > key)
+	while (index > 0 && handle->list[index].key > key)
 		index--;
 
-	if (index != -1 && handle->list[index].key != key)
-		index = -1;
+	if (handle->list[index].key != key)
+		index = OBJDB_NULL_INDEX;
 
 	return index;
 }
@@ -715,20 +716,20 @@ static int objdb_find(struct objdb_block *handle, unsigned key)
  * default values for the data.
  *
  * \param *handle		The database to claim the new block from.
- * \return			The new block number, or -1 on failure.
+ * \return			The new block index, or OBJDB_NULL_INDEX on failure.
  */
 
-static int objdb_new(struct objdb_block *handle)
+static unsigned objdb_new(struct objdb_block *handle)
 {
 	if (handle == NULL)
-		return -1;
+		return OBJDB_NULL_INDEX;
 
 	if (handle->objects >= handle->allocation && flex_extend((flex_ptr) &(handle->list),
 			(handle->allocation + OBJDB_ALLOC_CHUNK) * sizeof(struct object)) == 1)
 		handle->allocation += OBJDB_ALLOC_CHUNK;
 
 	if (handle->objects >= handle->allocation)
-		return -1;
+		return OBJDB_NULL_INDEX;
 
 	handle->list[handle->objects].key = handle->key++;
 	handle->list[handle->objects].load_addr = 0;
@@ -749,9 +750,9 @@ static int objdb_new(struct objdb_block *handle)
  * \param index			The index of the block to be deleted.
  */
 
-static void objdb_delete(struct objdb_block *handle, int index)
+static void objdb_delete(struct objdb_block *handle, unsigned index)
 {
-	if (handle == NULL || index < 0 || index >= handle->objects)
+	if (handle == NULL || index >= handle->objects)
 		return;
 
 	flex_midextend((flex_ptr) &(handle->list), (index + 1) * sizeof(struct object),
