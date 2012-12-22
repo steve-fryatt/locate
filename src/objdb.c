@@ -82,6 +82,8 @@ struct objdb_block
 	unsigned		objects;					/**< The number of objects stored in the database.		*/
 	unsigned		allocation;					/**< The number of objects for which space is allocated.	*/
 
+	unsigned		longest_name;					/**< The length of the longest filename string in the database.	*/
+
 	unsigned		key;						/**< Track new unique primary keys.				*/
 };
 
@@ -135,6 +137,7 @@ struct objdb_block *objdb_create(struct file_block *file)
 	new->objects = 0;
 	new->allocation = 0;
 	new->key = 0;
+	new->longest_name = 0;
 
 	/* Claim the database flex block and a text dump for the names. */
 
@@ -208,13 +211,16 @@ void objdb_destroy(struct objdb_block *handle)
 
 unsigned objdb_add_root(struct objdb_block *handle, char *path)
 {
-	unsigned	index = objdb_new(handle);
+	unsigned	length, index = objdb_new(handle);
 
 	if (handle == NULL || path == NULL || index == OBJDB_NULL_INDEX)
 		return OBJDB_NULL_KEY;
 
 	handle->list[index].parent = OBJDB_NULL_KEY;
 	handle->list[index].name = textdump_store(handle->text, path);
+
+	if ((length = strlen(path)) > handle->longest_name)
+		handle->longest_name = length;
 
 	debug_printf("\\YAdding root details for %s with key %u", path, handle->list[index].key);
 
@@ -234,7 +240,7 @@ unsigned objdb_add_root(struct objdb_block *handle, char *path)
 
 unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info *file)
 {
-	unsigned	index = objdb_new(handle);
+	unsigned	length, index = objdb_new(handle);
 
 	if (handle == NULL || file == NULL || index == OBJDB_NULL_INDEX)
 		return OBJDB_NULL_KEY;
@@ -247,6 +253,9 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 	handle->list[index].attributes = file->attr;
 	handle->list[index].type = file->obj_type;
 	handle->list[index].name = textdump_store(handle->text, file->name);
+
+	if ((length = strlen(file->name)) > handle->longest_name)
+		handle->longest_name = length;
 
 	debug_printf("\\YAdding file details for %s to %u with key %u", file->name, parent, handle->list[index].key);
 
@@ -361,7 +370,7 @@ size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *inf
 		if (index != OBJDB_NULL_INDEX)
 			return 21 + strlen(base + handle->list[index].name);
 		else
-			return 256; // \TODO -- Return largest name block size!
+			return 21 + handle->longest_name;
 	}
 
 	info->load_addr = handle->list[index].load_addr;
