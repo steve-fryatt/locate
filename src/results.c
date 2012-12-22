@@ -248,10 +248,11 @@ static void	results_set_display_mode(struct results_window *handle, osbool full_
 static void	results_update_extent(struct results_window *handle);
 static unsigned	results_add_line(struct results_window *handle, osbool show);
 static unsigned	results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state);
-static void results_select_click_select(struct results_window *handle, unsigned row);
-static void results_select_click_adjust(struct results_window *handle, unsigned row);
+static void	results_select_click_select(struct results_window *handle, unsigned row);
+static void	results_select_click_adjust(struct results_window *handle, unsigned row);
 static void	results_select_all(struct results_window *handle);
 static void	results_select_none(struct results_window *handle);
+static void	results_open_parent(struct results_window *handle, unsigned row);
 static void	results_object_info_prepare(struct results_window *handle);
 static char	*results_create_attributes_string(fileswitch_attr attributes, char *buffer, size_t length);
 
@@ -507,6 +508,11 @@ static void results_click_handler(wimp_pointer *pointer)
 	case wimp_SINGLE_ADJUST:
 		results_select_click_adjust(handle, row);
 		break;
+
+	case wimp_DOUBLE_ADJUST:
+		results_select_click_adjust(handle, row);
+		results_open_parent(handle, row);
+		break;
 	}
 
 /*
@@ -717,6 +723,11 @@ static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 
 	case RESULTS_MENU_CLEAR_SELECTION:
 		results_select_none(handle);
+		break;
+
+	case RESULTS_MENU_OPEN_PARENT:
+		if (handle->selection_count == 1)
+			results_open_parent(handle, handle->selection_row);
 		break;
 
 	case RESULTS_MENU_MODIFY_SEARCH:
@@ -1500,6 +1511,40 @@ static void results_select_none(struct results_window *handle)
 	}
 
 	handle->selection_count = 0;
+}
+
+
+/**
+ * Open the directory containing an object in the results window.
+ *
+ * \param *handle		The handle of the results window to use.
+ * \param row			The row of the window to use.
+ */
+
+static void results_open_parent(struct results_window *handle, unsigned row)
+{
+	char		filename[256];
+	unsigned	key;
+
+	if (handle == NULL || row >= handle->display_lines)
+		return;
+
+	row = handle->redraw[row].index;
+
+	if (row >= handle->redraw_lines || handle->redraw[row].type != RESULTS_LINE_FILENAME)
+		return;
+
+	key = objdb_get_parent(handle->objects, handle->redraw[row].file);
+
+	if (key == OBJDB_NULL_KEY)
+		return;
+
+	strcpy(filename, "Filer_OpenDir ");
+
+	if (!objdb_get_name(handle->objects, key, filename + strlen(filename), sizeof(filename) - strlen(filename)))
+		return;
+
+	xos_cli(filename);
 }
 
 
