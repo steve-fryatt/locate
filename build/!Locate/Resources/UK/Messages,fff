@@ -37,6 +37,7 @@ ContFlag:C
 
 Unknown:Unknown
 Untyped:Untyped
+File:File
 Dir:Directory
 App:Application
 Err:Error

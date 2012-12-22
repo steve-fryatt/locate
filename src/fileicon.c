@@ -115,7 +115,7 @@ void fileicon_initialise(void)
 	fileicon_specials[FILEICON_UNKNOWN].name = textdump_store(fileicon_text, msgs_lookup("Unknown", name, sizeof(name)));
 	fileicon_specials[FILEICON_DIRECTORY].name = textdump_store(fileicon_text, msgs_lookup("Dir", name, sizeof(name)));
 	fileicon_specials[FILEICON_APPLICATION].name = textdump_store(fileicon_text, msgs_lookup("App", name, sizeof(name)));
-	fileicon_specials[FILEICON_UNTYPED].name = textdump_store(fileicon_text, msgs_lookup("Untyped", name, sizeof(name)));
+	fileicon_specials[FILEICON_UNTYPED].name = textdump_store(fileicon_text, msgs_lookup("File", name, sizeof(name)));
 
 	fileicon_find_sprites(fileicon_specials + FILEICON_UNKNOWN, "small_xxx", "file_xxx");
 	fileicon_find_sprites(fileicon_specials + FILEICON_DIRECTORY, "small_dir", "directory");
