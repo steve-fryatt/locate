@@ -88,9 +88,15 @@ unsigned objdb_add_root(struct objdb_block *handle, char *path);
 unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info *file);
 
 
+/**
+ * Return the parent of an object in the database.
+ *
+ * \param *handle		The database to look in.
+ * \param key			The key of the object to be returned.
+ * \return			The parent object key, or OBJDB_NULL_KEY if none.
+ */
 
-
-
+unsigned objdb_get_parent(struct objdb_block *handle, unsigned key);
 
 
 /**

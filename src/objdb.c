@@ -264,6 +264,30 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 
 
 /**
+ * Return the parent of an object in the database.
+ *
+ * \param *handle		The database to look in.
+ * \param key			The key of the object to be returned.
+ * \return			The parent object key, or OBJDB_NULL_KEY if none.
+ */
+
+unsigned objdb_get_parent(struct objdb_block *handle, unsigned key)
+{
+	unsigned	index;
+
+	if (handle == NULL || key == OBJDB_NULL_KEY)
+		return OBJDB_NULL_KEY;
+
+	index = objdb_find(handle, key);
+
+	if (index == OBJDB_NULL_INDEX)
+		return OBJDB_NULL_KEY;
+
+	return handle->list[index].parent;
+}
+
+
+/**
  * Return the pathname of an object in the database.
  *
  * \param *handle		The database to look in.
