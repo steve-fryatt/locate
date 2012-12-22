@@ -697,7 +697,6 @@ static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 {
 	struct results_window	*handle = event_get_window_user_data(w);
 	wimp_pointer		pointer;
-	os_error		*error;
 
 	if (handle == NULL)
 		return;
