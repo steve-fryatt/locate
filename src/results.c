@@ -196,6 +196,8 @@ struct results_window {
 	unsigned		selection_count;				/**< The number of selected rows in the window.				*/
 	unsigned		selection_row;					/**< The selected row, iff selection_count == 1.			*/
 
+	osbool			selection_from_menu;				/**< TRUE if the selection came about because of a menu opening.	*/
+
 	/* Generic text string storage. */
 
 	struct textdump_block	*text;						/**< The general text string dump.					*/
@@ -235,6 +237,7 @@ static osbool	results_keypress_handler(wimp_key *key);
 static void	results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void	results_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void	results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
+static void	results_menu_close(wimp_w w, wimp_menu *menu);
 static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
 static void	results_set_display_mode(struct results_window *handle, osbool full_info);
@@ -383,6 +386,7 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 
 	new->selection_count = 0;
 	new->selection_row = 0;
+	new->selection_from_menu = FALSE;
 
 	new->format_width = results_window_def->visible.x1 - results_window_def->visible.x0;
 
@@ -419,11 +423,13 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	event_add_window_menu_prepare(new->window, results_menu_prepare);
 	event_add_window_menu_warning(new->window, results_menu_warning);
 	event_add_window_menu_selection(new->window, results_menu_selection);
+	event_add_window_menu_close(new->window, results_menu_close);
 
 	event_add_window_menu(new->status, results_window_menu);
 	event_add_window_menu_prepare(new->status, results_menu_prepare);
 	event_add_window_menu_warning(new->status, results_menu_warning);
 	event_add_window_menu_selection(new->status, results_menu_selection);
+	event_add_window_menu_close(new->status, results_menu_close);
 
 	windows_open(new->window);
 	windows_open_nested_as_footer(new->status, new->window, status_height);
@@ -603,8 +609,12 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 			return;
 
 		row = results_calculate_window_click_row(handle, &(pointer->pos), &state);
-		if (handle->selection_count == 0)
+		if (handle->selection_count == 0) {
 			results_select_click_select(handle, row);
+			handle->selection_from_menu = TRUE;
+		} else {
+			handle->selection_from_menu = FALSE;
+		}
 	}
 
 	menus_shade_entry(results_window_menu, RESULTS_MENU_CLEAR_SELECTION, handle->selection_count == 0);
@@ -712,6 +722,25 @@ static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 		file_stop_search(handle->file);
 		break;
 	}
+}
+
+
+/**
+ * Handle the closure of a menu.
+ *
+ * \param  w			The handle of the menu's parent window.
+ * \param  *menu		Pointer to the menu being closee.
+ */
+
+static void results_menu_close(wimp_w w, wimp_menu *menu)
+{
+	struct results_window	*handle = event_get_window_user_data(w);
+
+	if (handle == NULL || handle->selection_from_menu == FALSE)
+		return;
+
+	results_select_none(handle);
+	handle->selection_from_menu = FALSE;
 }
 
 
