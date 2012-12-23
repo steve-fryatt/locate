@@ -405,11 +405,8 @@ size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *inf
 }
 
 
-#if 0
-
-
 /**
- * Load the contents of a button file into the buttons database.
+ * Load the contents of an object file into the database.
  *
  * \param *leaf_name		The file leafname to load.
  * \return			TRUE on success; else FALSE.
@@ -417,6 +414,7 @@ size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *inf
 
 osbool objdb_load_file(char *leaf_name)
 {
+#if 0
 	int	result, current = -1;
 	char	token[1024], contents[1024], section[1024], filename[1024];
 	FILE	*file;
@@ -463,13 +461,13 @@ osbool objdb_load_file(char *leaf_name)
 	}
 
 	fclose(file);
-
+#endif
 	return TRUE;
 }
 
 
 /**
- * Save the contents of the buttons database into a buttons file.
+ * Save the contents of the object database into an object file.
  *
  * \param *leaf_name		The file leafname to save to.
  * \return			TRUE on success; else FALSE.
@@ -477,6 +475,7 @@ osbool objdb_load_file(char *leaf_name)
 
 osbool objdb_save_file(char *leaf_name)
 {
+#if 0
 	char	filename[1024];
 	int	current;
 	FILE	*file;
@@ -508,10 +507,10 @@ osbool objdb_save_file(char *leaf_name)
 	}
 
 	fclose(file);
-
+#endif
 	return TRUE;
 }
-#endif
+
 
 /**
  * Create a new, empty entry in the database and return its key.

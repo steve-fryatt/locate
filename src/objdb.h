@@ -136,13 +136,6 @@ unsigned objdb_get_filetype(struct objdb_block *handle, unsigned key);
 size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info);
 
 
-
-
-
-
-
-#if 0
-
 /**
  * Load the contents of a button file into the buttons database.
  *
@@ -161,7 +154,7 @@ osbool objdb_load_file(char *leaf_name);
  */
 
 osbool objdb_save_file(char *leaf_name);
-#endif
+
 
 /**
  * Create a new, empty entry in the database and return its key.
