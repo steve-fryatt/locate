@@ -65,6 +65,7 @@
 #include "results.h"
 
 #include "dataxfer.h"
+#include "datetime.h"
 #include "dialogue.h"
 #include "file.h"
 #include "fileicon.h"
@@ -1633,11 +1634,11 @@ static void results_object_info_prepare(struct results_window *handle)
 		icons_printf(results_object_window, RESULTS_OBJECT_ICON_ICON, "%s", base + info.large);
 
 	if (type != osfile_TYPE_UNTYPED) {
-		bits	date[2];
+		os_date_and_time date;
 
-		date[0] = file->exec_addr;
-		date[1] = file->load_addr & 0xffu;
-		if (xterritory_convert_standard_date_and_time(territory_CURRENT, (const os_date_and_time *) &date,
+		datetime_set_date(date, file->load_addr, file->exec_addr);
+
+		if (xterritory_convert_standard_date_and_time(territory_CURRENT, (const os_date_and_time *) date,
 				icons_get_indirected_text_addr(results_object_window, RESULTS_OBJECT_ICON_DATE),
 				icons_get_indirected_text_length(results_object_window, RESULTS_OBJECT_ICON_DATE),
 				&end) == NULL)
