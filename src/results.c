@@ -252,6 +252,7 @@ static void	results_select_click_select(struct results_window *handle, unsigned 
 static void	results_select_click_adjust(struct results_window *handle, unsigned row);
 static void	results_select_all(struct results_window *handle);
 static void	results_select_none(struct results_window *handle);
+static void	results_run_object(struct results_window *handle, unsigned row);
 static void	results_open_parent(struct results_window *handle, unsigned row);
 static void	results_object_info_prepare(struct results_window *handle);
 static char	*results_create_attributes_string(fileswitch_attr attributes, char *buffer, size_t length);
@@ -507,6 +508,11 @@ static void results_click_handler(wimp_pointer *pointer)
 
 	case wimp_SINGLE_ADJUST:
 		results_select_click_adjust(handle, row);
+		break;
+
+	case wimp_DOUBLE_SELECT:
+		results_select_none(handle);
+		results_run_object(handle, row);
 		break;
 
 	case wimp_DOUBLE_ADJUST:
@@ -1510,6 +1516,34 @@ static void results_select_none(struct results_window *handle)
 	}
 
 	handle->selection_count = 0;
+}
+
+
+/**
+ * Filer_Run an object in the results window.
+ *
+ * \param *handle		The handle of the results window to use.
+ * \param row			The row of the window to use.
+ */
+
+static void results_run_object(struct results_window *handle, unsigned row)
+{
+	char		filename[256];
+
+	if (handle == NULL || row >= handle->display_lines)
+		return;
+
+	row = handle->redraw[row].index;
+
+	if (row >= handle->redraw_lines || handle->redraw[row].type != RESULTS_LINE_FILENAME || handle->redraw[row].file == OBJDB_NULL_KEY)
+		return;
+
+	strcpy(filename, "Filer_Run ");
+
+	if (!objdb_get_name(handle->objects, handle->redraw[row].file, filename + strlen(filename), sizeof(filename) - strlen(filename)))
+		return;
+
+	xos_cli(filename);
 }
 
 
