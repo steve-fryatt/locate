@@ -797,8 +797,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 	struct results_line	*line;
 	struct fileicon_info	typeinfo;
 	unsigned		filetype;
-	bits			data[256];
-	osgbpb_info		*file = (osgbpb_info *) data;
+	osgbpb_info		*file;
 	wimp_icon		*icon;
 	char			*text, *fileicon;
 	char			validation[255];
@@ -809,6 +808,10 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 	if (res == NULL)
 		return;
+
+	file = malloc(objdb_get_info(res->objects, OBJDB_NULL_KEY, NULL));
+
+	/* If file == NULL the redraw must go on, but some bits won't work. */
 
 	icon = results_window_def->icons;
 
@@ -901,6 +904,9 @@ static void results_redraw_handler(wimp_draw *redraw)
 					icon[RESULTS_ICON_TYPE].data.indirected_text.text = "";
 				}
 
+				if (file == NULL)
+					break;
+
 				icon[RESULTS_ICON_SIZE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_SIZE].extent.y1 = LINE_Y1(y);
 				icon[RESULTS_ICON_ATTRIBUTES].extent.y0 = LINE_Y0(y);
@@ -962,6 +968,9 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 		more = wimp_get_rectangle(redraw);
 	}
+
+	if (file != NULL)
+		free(file);
 }
 
 
@@ -1619,8 +1628,7 @@ static void results_object_info_prepare(struct results_window *handle)
 {
 	char			*base, *end;
 	unsigned		row, type;
-	bits			data[256];
-	osgbpb_info		*file = (osgbpb_info *) data;
+	osgbpb_info		*file;
 	struct fileicon_info	info;
 
 
@@ -1633,6 +1641,10 @@ static void results_object_info_prepare(struct results_window *handle)
 		return;
 
 	/* Get the data. */
+
+	file = malloc(objdb_get_info(handle->objects, handle->redraw[row].file, NULL));
+	if (file == NULL)
+		return;
 
 	objdb_get_info(handle->objects, handle->redraw[row].file, file);
 	type = objdb_get_filetype(handle->objects, handle->redraw[row].file);
@@ -1663,6 +1675,8 @@ static void results_object_info_prepare(struct results_window *handle)
 	results_create_address_string(file->load_addr, file->exec_addr,
 				icons_get_indirected_text_addr(results_object_window, RESULTS_OBJECT_ICON_DATE),
 				icons_get_indirected_text_length(results_object_window, RESULTS_OBJECT_ICON_DATE));
+
+	free(file);
 }
 
 
