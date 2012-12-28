@@ -804,9 +804,6 @@ static void results_redraw_handler(wimp_draw *redraw)
 	char			validation[255];
 	char			truncation[1024]; // \TODO -- Allocate properly.
 	char			*size = truncation, *attributes = truncation + 32, *date = truncation + 64;
-	os_t			start_time;
-
-	start_time = os_read_monotonic_time();
 
 	res = (struct results_window *) event_get_window_user_data(redraw->w);
 
@@ -965,8 +962,6 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 		more = wimp_get_rectangle(redraw);
 	}
-
-	debug_printf("Redraw time: %d cs", os_read_monotonic_time() - start_time);
 }
 
 
