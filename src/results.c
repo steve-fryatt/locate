@@ -1113,9 +1113,7 @@ void results_add_error(struct results_window *handle, char *message, char *path)
 
 void results_add_file(struct results_window *handle, unsigned key)
 {
-	unsigned		line, offv;
-	unsigned		type;
-	struct fileicon_info	icon;
+	unsigned		line;
 
 	if (handle == NULL)
 		return;
@@ -1126,27 +1124,8 @@ void results_add_file(struct results_window *handle, unsigned key)
 	if (line == RESULTS_NULL)
 		return;
 
-	//objdb_get_name(handle->objects, key, name, sizeof(name));
-	type = objdb_get_filetype(handle->objects, key);
-
-	//offt = textdump_store(handle->text, name);
-	fileicon_get_type_icon(type, "", &icon);
-
-	if (icon.small != TEXTDUMP_NULL) {
-		offv = icon.small;
-	} else if (icon.large != TEXTDUMP_NULL) {
-		offv = icon.large;
-		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
-	} else {
-		offv = TEXTDUMP_NULL;
-	}
-
-	if (offv == TEXTDUMP_NULL)
-		return;
-
 	handle->redraw[line].type = RESULTS_LINE_FILENAME;
 	handle->redraw[line].file = key;
-	handle->redraw[line].sprite = offv;
 	handle->redraw[line].flags |= RESULTS_FLAG_SELECTABLE;
 
 	/* Add the file info line. */
