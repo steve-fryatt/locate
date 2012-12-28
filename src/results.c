@@ -257,6 +257,7 @@ static void	results_run_object(struct results_window *handle, unsigned row);
 static void	results_open_parent(struct results_window *handle, unsigned row);
 static void	results_object_info_prepare(struct results_window *handle);
 static char	*results_create_attributes_string(fileswitch_attr attributes, char *buffer, size_t length);
+static char	*results_create_address_string(unsigned load_addr, unsigned exec_addr, char *buffer, size_t length);
 
 
 //static unsigned	results_add_fileblock(struct results_window *handle);
@@ -800,10 +801,13 @@ static void results_redraw_handler(wimp_draw *redraw)
 	struct results_line	*line;
 	struct fileicon_info	typeinfo;
 	unsigned		filetype;
+	bits			data[256];
+	osgbpb_info		*file = (osgbpb_info *) data;
 	wimp_icon		*icon;
 	char			*text, *fileicon;
 	char			validation[255];
 	char			truncation[1024]; // \TODO -- Allocate properly.
+	char			*size = truncation, *attributes = truncation + 32, *date = truncation + 64;
 	os_t			start_time;
 
 	start_time = os_read_monotonic_time();
@@ -888,6 +892,46 @@ static void results_redraw_handler(wimp_draw *redraw)
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_SELECTED;
 
 				wimp_plot_icon(&(icon[RESULTS_ICON_FILE]));
+				break;
+
+
+			case RESULTS_LINE_FILEINFO:
+				icon[RESULTS_ICON_TYPE].extent.y0 = LINE_Y0(y);
+				icon[RESULTS_ICON_TYPE].extent.y1 = LINE_Y1(y);
+
+				filetype = objdb_get_filetype(res->objects, line->file);
+				fileicon_get_type_icon(filetype, "", &typeinfo);
+
+				if (typeinfo.name != TEXTDUMP_NULL) {
+					icon[RESULTS_ICON_TYPE].data.indirected_text.text = fileicon + typeinfo.name;
+				} else {
+					icon[RESULTS_ICON_TYPE].data.indirected_text.text = "";
+				}
+
+				icon[RESULTS_ICON_SIZE].extent.y0 = LINE_Y0(y);
+				icon[RESULTS_ICON_SIZE].extent.y1 = LINE_Y1(y);
+				icon[RESULTS_ICON_ATTRIBUTES].extent.y0 = LINE_Y0(y);
+				icon[RESULTS_ICON_ATTRIBUTES].extent.y1 = LINE_Y1(y);
+				icon[RESULTS_ICON_DATE].extent.y0 = LINE_Y0(y);
+				icon[RESULTS_ICON_DATE].extent.y1 = LINE_Y1(y);
+
+				objdb_get_info(res->objects, line->file, file);
+
+				if (xos_convert_file_size(file->size, size, 32, NULL) != NULL)
+					*size = '\0';
+
+				results_create_attributes_string(file->attr, attributes, 32);
+
+				results_create_address_string(file->load_addr, file->exec_addr, date, 100);
+
+				icon[RESULTS_ICON_SIZE].data.indirected_text.text = size;
+				icon[RESULTS_ICON_ATTRIBUTES].data.indirected_text.text = attributes;
+				icon[RESULTS_ICON_DATE].data.indirected_text.text = date;
+
+				wimp_plot_icon(&(icon[RESULTS_ICON_SIZE]));
+				wimp_plot_icon(&(icon[RESULTS_ICON_TYPE]));
+				wimp_plot_icon(&(icon[RESULTS_ICON_ATTRIBUTES]));
+				wimp_plot_icon(&(icon[RESULTS_ICON_DATE]));
 				break;
 
 
@@ -1652,21 +1696,9 @@ static void results_object_info_prepare(struct results_window *handle)
 	if (info.large != TEXTDUMP_NULL)
 		icons_printf(results_object_window, RESULTS_OBJECT_ICON_ICON, "%s", base + info.large);
 
-	if (type != osfile_TYPE_UNTYPED) {
-		os_date_and_time date;
-
-		datetime_set_date(date, file->load_addr, file->exec_addr);
-
-		if (xterritory_convert_standard_date_and_time(territory_CURRENT, (const os_date_and_time *) date,
+	results_create_address_string(file->load_addr, file->exec_addr,
 				icons_get_indirected_text_addr(results_object_window, RESULTS_OBJECT_ICON_DATE),
-				icons_get_indirected_text_length(results_object_window, RESULTS_OBJECT_ICON_DATE),
-				&end) == NULL)
-			*end = '\0';
-		else
-			icons_printf(results_object_window, RESULTS_OBJECT_ICON_DATE, "");
-	} else {
-		icons_printf(results_object_window, RESULTS_OBJECT_ICON_DATE, "%08X %08X", file->load_addr, file->exec_addr);
-	}
+				icons_get_indirected_text_length(results_object_window, RESULTS_OBJECT_ICON_DATE));
 }
 
 
@@ -1695,6 +1727,33 @@ static char *results_create_attributes_string(fileswitch_attr attributes, char *
 }
 
 
-//#define RESULTS_OBJECT_ICON_DATE 8
+/**
+ * Turn load and exec address object attributes into a human-readable string
+ * showing either date or addresses.
+ *
+ * \param attributes		The file attributes to be decoded.
+ * \param *buffer		A buffer into which to write the decoded string.
+ * \param length		The size of the supplied buffer, in bytes.
+ * \return			Pointer to the start of the supplied buffer.
+ */
 
+static char *results_create_address_string(unsigned load_addr, unsigned exec_addr, char *buffer, size_t length)
+{
+	os_date_and_time	date;
+	char			*end;
+
+	if ((load_addr & 0xfff00000u) == 0xfff00000u) {
+		datetime_set_date(date, load_addr, exec_addr);
+
+		if (xterritory_convert_standard_date_and_time(territory_CURRENT, (const os_date_and_time *) date,
+				buffer, length, &end) == NULL)
+			*end = '\0';
+		else
+			*buffer = '\0';
+	} else {
+		snprintf(buffer, length, "%08X %08X", load_addr, exec_addr);
+	}
+
+	return buffer;
+}
 
