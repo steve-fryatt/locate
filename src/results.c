@@ -1136,12 +1136,6 @@ void results_add_file(struct results_window *handle, unsigned key)
 
 	handle->redraw[line].type = RESULTS_LINE_FILEINFO;
 	handle->redraw[line].file = key;
-
-	/* \TODO
-	 *
-	 * Add size, date and attributes to the local text dump;
-	 * Add filetype to the types dump.
-	 */
 }
 
 
