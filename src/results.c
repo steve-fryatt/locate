@@ -798,10 +798,15 @@ static void results_redraw_handler(wimp_draw *redraw)
 	osbool			more;
 	struct results_window	*res;
 	struct results_line	*line;
+	struct fileicon_info	typeinfo;
+	unsigned		filetype;
 	wimp_icon		*icon;
 	char			*text, *fileicon;
 	char			validation[255];
 	char			truncation[1024]; // \TODO -- Allocate properly.
+	os_t			start_time;
+
+	start_time = os_read_monotonic_time();
 
 	res = (struct results_window *) event_get_window_user_data(redraw->w);
 
@@ -846,7 +851,19 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
-				strcpy(validation + 1, fileicon + line->sprite);
+				filetype = objdb_get_filetype(res->objects, line->file);
+				fileicon_get_type_icon(filetype, "", &typeinfo);
+
+				if (typeinfo.small != TEXTDUMP_NULL) {
+					strcpy(validation + 1, fileicon + typeinfo.small);
+					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
+				} else if (typeinfo.large != TEXTDUMP_NULL) {
+					strcpy(validation + 1, fileicon + typeinfo.large);
+					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
+				} else {
+					strcpy(validation + 1, "small_xxx");
+					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
+				}
 
 				objdb_get_name(res->objects, line->file, truncation + 3, sizeof(truncation) - 3);
 				if (line->truncate > 0) {
@@ -908,6 +925,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 		more = wimp_get_rectangle(redraw);
 	}
+
+	debug_printf("Redraw time: %d cs", os_read_monotonic_time() - start_time);
 }
 
 
