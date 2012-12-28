@@ -166,10 +166,6 @@ struct results_line {
 	unsigned		text;						/**< Text offset for text-based lines (RESULTS_NULL if not used).	*/
 	unsigned		sprite;						/**< Text offset for the display icon's sprite name.			*/
 	unsigned		file;						/**< Object key for file objects.					*/
-//	unsigned		size;						/**< Text offset for object size string.				*/
-//	unsigned		type;						/**< Text offset fr the type string.					*/
-//	unsigned		attributes;					/**< Text offset for the attributes string.				*/
-//	unsigned		date;						/**< Text offset for object date string.				*/
 
 	unsigned		truncate;					/**< Non-zero indicates first character of text to be displayed.	*/
 	wimp_colour		colour;						/**< The foreground colour of the text.					*/
