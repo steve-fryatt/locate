@@ -518,63 +518,6 @@ static void results_click_handler(wimp_pointer *pointer)
 		results_open_parent(handle, row);
 		break;
 	}
-
-/*
-	if (pointer->w == dialogue_window) {
-		switch ((int) pointer->i) {
-		case DIALOGUE_ICON_SEARCH:
-			if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
-				dialogue_read_window(dialogue_data);
-				dialogue_start_search(dialogue_data);
-
-				if (pointer->buttons == wimp_CLICK_SELECT) {
-					settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
-					dialogue_close_window();
-				}
-			}
-			break;
-
-		case DIALOGUE_ICON_CANCEL:
-			if (pointer->buttons == wimp_CLICK_SELECT) {
-				if (dialogue_data != NULL)
-					file_destroy(dialogue_data->file);
-				settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
-				dialogue_close_window();
-			} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-				dialogue_set_window(dialogue_data);
-				dialogue_redraw_window();
-			}
-			break;
-
-		case DIALOGUE_ICON_SIZE:
-		case DIALOGUE_ICON_DATE:
-		case DIALOGUE_ICON_TYPE:
-		case DIALOGUE_ICON_ATTRIBUTES:
-		case DIALOGUE_ICON_CONTENTS:
-			dialogue_change_pane(icons_get_radio_group_selected(dialogue_window, DIALOGUE_PANES,
-				DIALOGUE_ICON_SIZE, DIALOGUE_ICON_DATE, DIALOGUE_ICON_TYPE,
-				DIALOGUE_ICON_ATTRIBUTES, DIALOGUE_ICON_CONTENTS));
-			break;
-
-		case DIALOGUE_ICON_SHOW_OPTS:
-			dialogue_toggle_size(icons_get_selected(dialogue_window, DIALOGUE_ICON_SHOW_OPTS));
-			break;
-
-		case DIALOGUE_ICON_DRAG:
-			if (pointer->buttons == wimp_DRAG_SELECT)
-				dataxfer_save_window_drag(dialogue_window, DIALOGUE_ICON_DRAG, dialogue_drag_end_handler, NULL);
-			break;
-		}
-	} else if (pointer->w == dialogue_panes[DIALOGUE_PANE_DATE]) {
-		dialogue_shade_date_pane();
-		if (pointer->i == DIALOGUE_DATE_ICON_DATE_FROM_SET || pointer->i == DIALOGUE_DATE_ICON_DATE_TO_SET)
-			settime_open(pointer->w, (pointer->i == DIALOGUE_DATE_ICON_DATE_FROM_SET) ? DIALOGUE_DATE_ICON_DATE_FROM : DIALOGUE_DATE_ICON_DATE_TO, pointer);
-	} else if (pointer->w == dialogue_panes[DIALOGUE_PANE_TYPE])
-		dialogue_shade_type_pane();
-	else if (pointer->w == dialogue_panes[DIALOGUE_PANE_ATTRIBUTES])
-		dialogue_shade_attributes_pane();
-
-		*/
 }
 
 
