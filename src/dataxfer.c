@@ -431,8 +431,6 @@ static void dataxfer_drag_end_handler(wimp_pointer *pointer, void *data)
 
 
 	dataxfer_start_save(pointer, (handle->selected) ? handle->selection_filename : handle->full_filename, 0, 0xffffffffu, dataxfer_save_handler, handle);
-
-	wimp_create_menu(NULL, 0, 0);
 }
 
 
@@ -447,11 +445,16 @@ static void dataxfer_drag_end_handler(wimp_pointer *pointer, void *data)
 static osbool dataxfer_save_handler(char *filename, void *data)
 {
 	struct dataxfer_savebox		*handle = data;
+	osbool				result;
 
 	if (handle == NULL || handle->callback == NULL)
 		return FALSE;
 
-	return handle->callback(filename, handle->selected, handle->callback_data);
+	result = handle->callback(filename, handle->selected, handle->callback_data);
+
+	wimp_create_menu(NULL, 0, 0);
+
+	return result;
 }
 
 
@@ -486,6 +489,8 @@ static void dataxfer_immediate_save(struct dataxfer_savebox *handle)
 
 	if (handle->callback !=NULL)
 		handle->callback(filename, handle->selected, handle->callback_data);
+
+	wimp_create_menu(NULL, 0, 0);
 }
 
 
