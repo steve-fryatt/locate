@@ -254,7 +254,7 @@ static void	results_open_parent(struct results_window *handle, unsigned row);
 static void	results_object_info_prepare(struct results_window *handle);
 static char	*results_create_attributes_string(fileswitch_attr attributes, char *buffer, size_t length);
 static char	*results_create_address_string(unsigned load_addr, unsigned exec_addr, char *buffer, size_t length);
-
+static osbool	results_save_filenames(char *filename, osbool selection, void *data);
 
 //static unsigned	results_add_fileblock(struct results_window *handle);
 
@@ -295,7 +295,7 @@ void results_initialise(osspriteop_area *sprites)
 	results_sprite_area = sprites;
 
 	results_save_results = dataxfer_new_savebox(FALSE, "file_1a1", NULL);
-	results_save_paths = dataxfer_new_savebox(TRUE, "file_fff", NULL);
+	results_save_paths = dataxfer_new_savebox(TRUE, "file_fff", results_save_filenames);
 	results_save_options = dataxfer_new_savebox(FALSE, "file_1a1", NULL);
 }
 
@@ -585,9 +585,9 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_PATH_ONLY, !handle->full_info);
 	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_FULL_INFO, handle->full_info);
 
-	dataxfer_savebox_initialise(results_save_results, "FileName", NULL, TRUE, FALSE, NULL);
-	dataxfer_savebox_initialise(results_save_paths, "ExptName", "SelectName", TRUE, FALSE, NULL);
-	dataxfer_savebox_initialise(results_save_options, "SrchName", NULL, FALSE, FALSE, NULL);
+	dataxfer_savebox_initialise(results_save_results, "FileName", NULL, TRUE, FALSE, handle);
+	dataxfer_savebox_initialise(results_save_paths, "ExptName", "SelectName", handle->selection_count > 0, handle->selection_count > 0, handle);
+	dataxfer_savebox_initialise(results_save_options, "SrchName", NULL, FALSE, FALSE, handle);
 }
 
 
@@ -1673,5 +1673,45 @@ static char *results_create_address_string(unsigned load_addr, unsigned exec_add
 	}
 
 	return buffer;
+}
+
+
+/**
+ * Handle a callback from the dataxfer system and save a set of filenames to
+ * disc.
+ *
+ * \param *filename		The filename to save to.
+ * \param selection		TRUE if Selection is ticked; else FALSE.
+ * \param *data			The handle of the results window to save from.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+static osbool results_save_filenames(char *filename, osbool selection, void *data)
+{
+	struct results_window	*handle = (struct results_window *) data;
+	int			i;
+	char			buffer[1024]; // \TODO -- Allocate properly!
+	FILE			*out;
+
+	if (handle == NULL)
+		return FALSE;
+
+	out = fopen(filename, "w");
+
+	if (out == NULL)
+		return FALSE;
+
+	for (i = 0; i < handle->redraw_lines; i++) {
+		if (handle->redraw[i].type == RESULTS_LINE_FILENAME && (!selection || (handle->redraw[i].flags & RESULTS_FLAG_SELECTED))) {
+			objdb_get_name(handle->objects, handle->redraw[i].file, buffer, sizeof(buffer));
+			fprintf(out, "%s\n", buffer);
+		}
+	}
+
+	fclose(out);
+
+	osfile_set_type(filename, osfile_TYPE_TEXT);
+
+	return TRUE;
 }
 
