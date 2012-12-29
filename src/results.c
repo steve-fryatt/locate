@@ -793,7 +793,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 {
 	int			ox, oy, top, bottom, y;
 	osbool			more;
-	struct results_window	*res;
+	struct results_window	*handle;
 	struct results_line	*line;
 	struct fileicon_info	typeinfo;
 	unsigned		filetype;
@@ -804,12 +804,12 @@ static void results_redraw_handler(wimp_draw *redraw)
 	char			truncation[1024]; // \TODO -- Allocate properly.
 	char			*size = truncation, *attributes = truncation + 32, *date = truncation + 64;
 
-	res = (struct results_window *) event_get_window_user_data(redraw->w);
+	handle = (struct results_window *) event_get_window_user_data(redraw->w);
 
-	if (res == NULL)
+	if (handle == NULL)
 		return;
 
-	file = malloc(objdb_get_info(res->objects, OBJDB_NULL_KEY, NULL, NULL));
+	file = malloc(objdb_get_info(handle->objects, OBJDB_NULL_KEY, NULL, NULL));
 
 	/* If file == NULL the redraw must go on, but some bits won't work. */
 
@@ -826,7 +826,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 	/* Redraw the window. */
 
-	text = textdump_get_base(res->text);
+	text = textdump_get_base(handle->text);
 	fileicon = fileicon_get_base();
 
 	more = wimp_redraw_window(redraw);
@@ -840,18 +840,18 @@ static void results_redraw_handler(wimp_draw *redraw)
 			top = 0;
 
                 bottom = ((RESULTS_LINE_HEIGHT * 1.5) + oy - redraw->clip.y0 - RESULTS_TOOLBAR_HEIGHT) / RESULTS_LINE_HEIGHT;
-		if (bottom > res->display_lines)
-			bottom = res->display_lines;
+		if (bottom > handle->display_lines)
+			bottom = handle->display_lines;
 
 		for (y = top; y < bottom; y++) {
-			line = &(res->redraw[res->redraw[y].index]);
+			line = &(handle->redraw[handle->redraw[y].index]);
 
 			switch (line->type) {
 			case RESULTS_LINE_FILENAME:
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
-				filetype = objdb_get_filetype(res->objects, line->file);
+				filetype = objdb_get_filetype(handle->objects, line->file);
 				fileicon_get_type_icon(filetype, "", &typeinfo);
 
 				if (typeinfo.small != TEXTDUMP_NULL) {
@@ -865,7 +865,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 				}
 
-				objdb_get_name(res->objects, line->file, truncation + 3, sizeof(truncation) - 3);
+				objdb_get_name(handle->objects, line->file, truncation + 3, sizeof(truncation) - 3);
 				if (line->truncate > 0) {
 					truncation[line->truncate] = '.';
 					truncation[line->truncate + 1] = '.';
@@ -895,7 +895,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_TYPE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_TYPE].extent.y1 = LINE_Y1(y);
 
-				objdb_get_info(res->objects, line->file, file, &filetype);
+				objdb_get_info(handle->objects, line->file, file, &filetype);
 				fileicon_get_type_icon(filetype, "", &typeinfo);
 
 				if (typeinfo.name != TEXTDUMP_NULL) {
