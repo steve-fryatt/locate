@@ -64,6 +64,7 @@
 
 #include "results.h"
 
+#include "clipboard.h"
 #include "dataxfer.h"
 #include "datetime.h"
 #include "dialogue.h"
@@ -674,6 +675,10 @@ static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 	case RESULTS_MENU_OPEN_PARENT:
 		if (handle->selection_count == 1)
 			results_open_parent(handle, handle->selection_row);
+		break;
+
+	case RESULTS_MENU_COPY_NAMES:
+		clipboard_claim(NULL, NULL, NULL, NULL);
 		break;
 
 	case RESULTS_MENU_MODIFY_SEARCH:

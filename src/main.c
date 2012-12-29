@@ -71,6 +71,7 @@
 #include "main.h"
 
 #include "choices.h"
+#include "clipboard.h"
 #include "dataxfer.h"
 #include "dialogue.h"
 #include "file.h"
@@ -242,6 +243,7 @@ static void main_initialise(void)
 
 	ihelp_initialise();
 	dataxfer_initialise();
+	clipboard_initialise();
 	choices_initialise();
 	fileicon_initialise();
 	settime_initialise();
