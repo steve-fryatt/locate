@@ -373,10 +373,11 @@ unsigned objdb_get_filetype(struct objdb_block *handle, unsigned key)
  * \param *handle		The database to look in.
  * \param key			The key of the object to be returned, or OBJDB_NULL_KEY.
  * \param *info			A block to take the information, or NULL to get required size.
+ * \param *type			A variable to take the filetype, or NULL to get the required info size.
  * \return			The required block size.
  */
 
-size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info)
+size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info, unsigned *type)
 {
 	char		*base;
 	unsigned	index;
@@ -387,19 +388,24 @@ size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *inf
 	index = (key != OBJDB_NULL_KEY) ? objdb_find(handle, key) : OBJDB_NULL_INDEX;
 	base = textdump_get_base(handle->text);
 
-	if (info == NULL) {
+	if (info == NULL && type == NULL) {
 		if (index != OBJDB_NULL_INDEX)
 			return 21 + strlen(base + handle->list[index].name);
 		else
 			return 21 + handle->longest_name;
 	}
 
-	info->load_addr = handle->list[index].load_addr;
-	info->exec_addr = handle->list[index].exec_addr;
-	info->size = handle->list[index].size;
-	info->attr = handle->list[index].attributes;
-	info->obj_type = handle->list[index].type;
-	strcpy(info->name, base + handle->list[index].name);
+	if (info != NULL) {
+		info->load_addr = handle->list[index].load_addr;
+		info->exec_addr = handle->list[index].exec_addr;
+		info->size = handle->list[index].size;
+		info->attr = handle->list[index].attributes;
+		info->obj_type = handle->list[index].type;
+		strcpy(info->name, base + handle->list[index].name);
+	}
+
+	if (type != NULL)
+		*type = objdb_get_filetype(handle, key);
 
 	return 0;
 }

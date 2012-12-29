@@ -809,7 +809,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 	if (res == NULL)
 		return;
 
-	file = malloc(objdb_get_info(res->objects, OBJDB_NULL_KEY, NULL));
+	file = malloc(objdb_get_info(res->objects, OBJDB_NULL_KEY, NULL, NULL));
 
 	/* If file == NULL the redraw must go on, but some bits won't work. */
 
@@ -895,7 +895,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_TYPE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_TYPE].extent.y1 = LINE_Y1(y);
 
-				filetype = objdb_get_filetype(res->objects, line->file);
+				objdb_get_info(res->objects, line->file, file, &filetype);
 				fileicon_get_type_icon(filetype, "", &typeinfo);
 
 				if (typeinfo.name != TEXTDUMP_NULL) {
@@ -913,8 +913,6 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_ATTRIBUTES].extent.y1 = LINE_Y1(y);
 				icon[RESULTS_ICON_DATE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_DATE].extent.y1 = LINE_Y1(y);
-
-				objdb_get_info(res->objects, line->file, file);
 
 				if (xos_convert_file_size(file->size, size, 32, NULL) != NULL)
 					*size = '\0';
@@ -1642,12 +1640,11 @@ static void results_object_info_prepare(struct results_window *handle)
 
 	/* Get the data. */
 
-	file = malloc(objdb_get_info(handle->objects, handle->redraw[row].file, NULL));
+	file = malloc(objdb_get_info(handle->objects, handle->redraw[row].file, NULL, NULL));
 	if (file == NULL)
 		return;
 
-	objdb_get_info(handle->objects, handle->redraw[row].file, file);
-	type = objdb_get_filetype(handle->objects, handle->redraw[row].file);
+	objdb_get_info(handle->objects, handle->redraw[row].file, file, &type);
 	fileicon_get_type_icon(type, "", &info);
 
 	base = fileicon_get_base();
