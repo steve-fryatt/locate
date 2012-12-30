@@ -68,6 +68,7 @@
 #include "datetime.h"
 #include "flexutils.h"
 #include "ihelp.h"
+#include "saveas.h"
 #include "search.h"
 #include "settime.h"
 #include "templates.h"
@@ -340,7 +341,7 @@ static wimp_menu		*dialogue_type_mode_menu = NULL;		/**< The Type Mode popup men
 static wimp_menu		*dialogue_type_list_menu = NULL;		/**< The Filetype List popup menu.			*/
 static wimp_menu		*dialogue_contents_mode_menu = NULL;		/**< The Contents Mode popup menu.			*/
 
-static struct dataxfer_savebox	*dialogue_save_search = NULL;			/**< The Save Search savebox data handle.		*/
+static struct saveas_dialogue	*dialogue_save_search = NULL;			/**< The Save Search savebox data handle.		*/
 
 
 static void	dialogue_close_window(void);
@@ -395,7 +396,7 @@ void dialogue_initialise(void)
 	dialogue_type_mode_menu = templates_get_menu(TEMPLATES_MENU_TYPE_MODE);
 	dialogue_contents_mode_menu = templates_get_menu(TEMPLATES_MENU_CONTENTS_MODE);
 
-	dialogue_save_search = dataxfer_new_savebox(FALSE, "file_1a1", dialogue_save_settings);
+	dialogue_save_search = saveas_create_dialogue(FALSE, "file_1a1", dialogue_save_settings);
 
 	/* Initialise the main window. */
 
@@ -1388,7 +1389,7 @@ static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointe
 		return;
 
 	if (menu == dialogue_menu) {
-		dataxfer_savebox_initialise(dialogue_save_search, "SrchName", NULL, FALSE, FALSE, NULL);
+		saveas_initialise_dialogue(dialogue_save_search, "SrchName", NULL, FALSE, FALSE, NULL);
 		return;
 	}
 
@@ -1416,7 +1417,7 @@ static void dialogue_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_messag
 
 	switch (warning->selection.items[0]) {
 	case DIALOGUE_MENU_SAVE_SEARCH:
-		dataxfer_savebox_prepare(dialogue_save_search);
+		saveas_prepare_dialogue(dialogue_save_search);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}

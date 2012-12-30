@@ -80,6 +80,7 @@
 #include "ihelp.h"
 #include "objdb.h"
 #include "results.h"
+#include "saveas.h"
 #include "search.h"
 #include "settime.h"
 #include "templates.h"
@@ -243,6 +244,7 @@ static void main_initialise(void)
 
 	ihelp_initialise();
 	dataxfer_initialise();
+	saveas_initialise();
 	clipboard_initialise();
 	choices_initialise();
 	fileicon_initialise();

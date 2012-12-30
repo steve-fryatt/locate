@@ -65,13 +65,13 @@
 #include "results.h"
 
 #include "clipboard.h"
-#include "dataxfer.h"
 #include "datetime.h"
 #include "dialogue.h"
 #include "file.h"
 #include "fileicon.h"
 #include "ihelp.h"
 #include "objdb.h"
+#include "saveas.h"
 #include "templates.h"
 #include "textdump.h"
 
@@ -227,9 +227,9 @@ static wimp_menu			*results_window_menu_display = NULL;	/**< The results window 
 
 static osspriteop_area			*results_sprite_area = NULL;		/**< The application sprite area.					*/
 
-static struct dataxfer_savebox		*results_save_results = NULL;		/**< The Save Results savebox data handle.				*/
-static struct dataxfer_savebox		*results_save_paths = NULL;		/**< The Save Paths savebox data handle.				*/
-static struct dataxfer_savebox		*results_save_options = NULL;		/**< The Save Options savebox data handle.				*/
+static struct saveas_dialogue		*results_save_results = NULL;		/**< The Save Results savebox data handle.				*/
+static struct saveas_dialogue		*results_save_paths = NULL;		/**< The Save Paths savebox data handle.				*/
+static struct saveas_dialogue		*results_save_options = NULL;		/**< The Save Options savebox data handle.				*/
 
 
 /* Local function prototypes. */
@@ -295,9 +295,9 @@ void results_initialise(osspriteop_area *sprites)
 
 	results_sprite_area = sprites;
 
-	results_save_results = dataxfer_new_savebox(FALSE, "file_1a1", NULL);
-	results_save_paths = dataxfer_new_savebox(TRUE, "file_fff", results_save_filenames);
-	results_save_options = dataxfer_new_savebox(FALSE, "file_1a1", NULL);
+	results_save_results = saveas_create_dialogue(FALSE, "file_1a1", NULL);
+	results_save_paths = saveas_create_dialogue(TRUE, "file_fff", results_save_filenames);
+	results_save_options = saveas_create_dialogue(FALSE, "file_1a1", NULL);
 }
 
 
@@ -586,9 +586,9 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_PATH_ONLY, !handle->full_info);
 	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_FULL_INFO, handle->full_info);
 
-	dataxfer_savebox_initialise(results_save_results, "FileName", NULL, TRUE, FALSE, handle);
-	dataxfer_savebox_initialise(results_save_paths, "ExptName", "SelectName", handle->selection_count > 0, handle->selection_count > 0, handle);
-	dataxfer_savebox_initialise(results_save_options, "SrchName", NULL, FALSE, FALSE, handle);
+	saveas_initialise_dialogue(results_save_results, "FileName", NULL, TRUE, FALSE, handle);
+	saveas_initialise_dialogue(results_save_paths, "ExptName", "SelectName", handle->selection_count > 0, handle->selection_count > 0, handle);
+	saveas_initialise_dialogue(results_save_options, "SrchName", NULL, FALSE, FALSE, handle);
 }
 
 
@@ -611,15 +611,15 @@ static void results_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_wa
 	case RESULTS_MENU_SAVE:
 		switch (warning->selection.items[1]) {
 		case RESULTS_MENU_SAVE_RESULTS:
-			dataxfer_savebox_prepare(results_save_results);
+			saveas_prepare_dialogue(results_save_results);
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 		case RESULTS_MENU_SAVE_PATH_NAMES:
-			dataxfer_savebox_prepare(results_save_paths);
+			saveas_prepare_dialogue(results_save_paths);
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 		case RESULTS_MENU_SAVE_SEARCH_OPTIONS:
-			dataxfer_savebox_prepare(results_save_options);
+			saveas_prepare_dialogue(results_save_options);
 			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 			break;
 		}
