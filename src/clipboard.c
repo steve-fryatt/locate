@@ -42,7 +42,6 @@
 
 /* SF-Lib header files. */
 
-#include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 
@@ -120,8 +119,6 @@ osbool clipboard_claim(void *(*find)(void *), size_t (*size)(void *), void (*rel
 		return FALSE;
 	}
 
-	debug_printf("Claimed clipboard");
-
 	return TRUE;
 }
 
@@ -141,8 +138,6 @@ static osbool clipboard_message_claim_entity(wimp_message *message)
 
 	if (claim->sender == main_task_handle || !clipboard_held || !(claim->flags & wimp_CLAIM_CLIPBOARD))
 		return FALSE;
-
-	debug_printf("Clipboard lost");
 
 	clipboard_held = FALSE;
 
@@ -175,8 +170,6 @@ static osbool clipboard_message_data_request(wimp_message *message)
 	if (!clipboard_held || !(request->flags & wimp_DATA_REQUEST_CLIPBOARD))
 		return FALSE;
 
-	debug_printf("Request for clipboard");
-
 	pointer.pos.x = request->pos.x;
 	pointer.pos.y = request->pos.y;
 	pointer.buttons = NONE;
@@ -206,9 +199,6 @@ static osbool clipboard_save_file(char *filename, void *data)
 {
 	os_error	*error;
 	const byte 	*start, *end;
-
-	debug_printf("Start of clipboard = 0x%x", (clipboard_callback_find != NULL) ? clipboard_callback_find(clipboard_user_data) : NULL);
-	debug_printf("Size of clipboard = %d", (clipboard_callback_size != NULL) ? clipboard_callback_size(clipboard_user_data) : 0);
 
 	start = (clipboard_callback_find != NULL) ? clipboard_callback_find(clipboard_user_data) : NULL;
 	end = start + ((clipboard_callback_size != NULL) ? clipboard_callback_size(clipboard_user_data) : 0);
