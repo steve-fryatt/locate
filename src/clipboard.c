@@ -204,18 +204,22 @@ static osbool clipboard_message_data_request(wimp_message *message)
 
 static osbool clipboard_save_file(char *filename, void *data)
 {
-	FILE			*out;
+	os_error	*error;
+	const byte 	*start, *end;
 
-	out = fopen(filename, "w");
+	debug_printf("Start of clipboard = 0x%x", (clipboard_callback_find != NULL) ? clipboard_callback_find(clipboard_user_data) : NULL);
+	debug_printf("Size of clipboard = %d", (clipboard_callback_size != NULL) ? clipboard_callback_size(clipboard_user_data) : 0);
 
-	if (out == NULL)
+	start = (clipboard_callback_find != NULL) ? clipboard_callback_find(clipboard_user_data) : NULL;
+	end = start + ((clipboard_callback_size != NULL) ? clipboard_callback_size(clipboard_user_data) : 0);
+
+	if (start == NULL)
 		return FALSE;
 
-	fprintf(out, "Testing, testing, 1, 2, 3...\n");
+	error = xosfile_save_stamped(filename, osfile_TYPE_TEXT, start, end);
 
-	fclose(out);
-
-	osfile_set_type(filename, osfile_TYPE_TEXT);
+	if (error != NULL)
+		return FALSE;
 
 	return TRUE;
 }

@@ -60,6 +60,7 @@ struct textdump_block {
 	unsigned		size;						/**< The current claimed size of the text dump.				*/
 	unsigned		allocation;					/**< The allocation block size of the text dump.			*/
 	unsigned		hashes;						/**< The size of the hash table, or 0 if none.				*/
+	char			terminator;					/**< The terminating character for strings added to the text dump.	*/
 };
 
 struct textdump_header {
@@ -75,13 +76,20 @@ static int	textdump_make_hash(struct textdump_block *handle, char *text);
  *
  * \param allocation		The allocation block size, or 0 for the default.
  * \param hash			The size of the duplicate hash table, or 0 for none.
+ * \param terminator		The character to terminate dumped strings with. This
+ *				must be \0 if hashing is to be used.
  * \return			The block handle, or NULL on failure.
  */
 
-struct textdump_block *textdump_create(unsigned allocation, unsigned hash)
+struct textdump_block *textdump_create(unsigned allocation, unsigned hash, char terminator)
 {
 	struct textdump_block	*new;
 	int			i;
+
+	/* Terminators must be \0 if hashing is to be used! */
+
+	if (hash > 0 && terminator != '\0')
+		return NULL;
 
 	new = heap_alloc(sizeof(struct textdump_block));
 	if (new == NULL)
@@ -95,6 +103,8 @@ struct textdump_block *textdump_create(unsigned allocation, unsigned hash)
 
 	new->hashes = hash;
 	new->hash = NULL;
+
+	new->terminator = terminator;
 
 	/* If a hash table has been requested, claim and initialise the storage. */
 
@@ -145,6 +155,33 @@ void textdump_destroy(struct textdump_block *handle)
 
 
 /**
+ * Clear the contents of a text dump, so that it will behave as if just created.
+ *
+ * \param *handle		The block to be destroyed.
+ */
+
+void textdump_clear(struct textdump_block *handle)
+{
+	int	i;
+
+	if (handle == NULL)
+		return;
+
+	handle->free = 0;
+
+	if (handle->hash != NULL)
+		for (i = 0; i < handle->hashes; i++)
+			handle->hash[i] = TEXTDUMP_NULL;
+
+	if (handle->text == NULL)
+		return;
+
+	if (flex_extend((flex_ptr) &(handle->text), handle->allocation * sizeof(byte)) == 1)
+		handle->size = handle->allocation;
+}
+
+
+/**
  * Return the offset base for a text block. The returned value is only guaranteed
  * to be correct unitl the Flex heap is altered.
  *
@@ -158,6 +195,23 @@ char *textdump_get_base(struct textdump_block *handle)
 		return NULL;
 
 	return (char *) handle->text;
+}
+
+
+/**
+ * Return the size of the contents of text block. The returned value covers used
+ * space, and does not include any remaining allocated but unused memory.
+ *
+ * \param handle		The block handle.
+ * \return			The used memory size, or 0 on error.
+ */
+
+size_t textdump_get_size(struct textdump_block *handle)
+{
+	if (handle == NULL)
+		return 0;
+
+	return (size_t) handle->free;
 }
 
 
@@ -215,6 +269,9 @@ unsigned textdump_store(struct textdump_block *handle, char *text)
 	}
 
 	strcpy((char *) (handle->text + offset), text);
+
+	if (handle->terminator != '\0')
+		*(((char *) handle->text) + offset + length - 1) = handle->terminator;
 
 	handle->free += length;
 

@@ -92,6 +92,7 @@
 #define RESULTS_ALLOC_REDRAW 50							/**< Number of window redraw blocks to allocate at a time.		*/
 #define RESULTS_ALLOC_FILES 50							/**< Number of file blocks to allocate at a time.			*/
 #define RESULTS_ALLOC_TEXT 1024							/**< Number of bytes of text storage to allocate at a time.		*/
+#define RESULTS_ALLOC_CLIPBOARD 1024						/**< Number of bytes of clipboard storage to allocate at a time.	*/
 
 #define RESULTS_NULL 0xffffffff							/**< 'NULL' value for use with the unsigned flex block offsets.		*/
 
@@ -231,6 +232,8 @@ static struct saveas_dialogue		*results_save_results = NULL;		/**< The Save Resu
 static struct saveas_dialogue		*results_save_paths = NULL;		/**< The Save Paths savebox data handle.				*/
 static struct saveas_dialogue		*results_save_options = NULL;		/**< The Save Options savebox data handle.				*/
 
+static struct textdump_block		*results_clipboard = NULL;		/**< Text Dump for the clipboard contents.				*/
+
 
 /* Local function prototypes. */
 
@@ -256,6 +259,11 @@ static void	results_object_info_prepare(struct results_window *handle);
 static char	*results_create_attributes_string(fileswitch_attr attributes, char *buffer, size_t length);
 static char	*results_create_address_string(unsigned load_addr, unsigned exec_addr, char *buffer, size_t length);
 static osbool	results_save_filenames(char *filename, osbool selection, void *data);
+static void	results_clipboard_copy_filenames(struct results_window *handle);
+static void	*results_clipboard_find(void *data);
+static size_t	results_clipboard_size(void *data);
+static void	results_clipboard_release(void *data);
+
 
 //static unsigned	results_add_fileblock(struct results_window *handle);
 
@@ -298,6 +306,8 @@ void results_initialise(osspriteop_area *sprites)
 	results_save_results = saveas_create_dialogue(FALSE, "file_1a1", NULL);
 	results_save_paths = saveas_create_dialogue(TRUE, "file_fff", results_save_filenames);
 	results_save_options = saveas_create_dialogue(FALSE, "file_1a1", NULL);
+
+	results_clipboard = textdump_create(RESULTS_ALLOC_CLIPBOARD, 0, '\n');
 }
 
 
@@ -351,7 +361,7 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	}
 
 	if (mem_ok) {
-		if ((new->text = textdump_create(RESULTS_ALLOC_TEXT, 0)) == NULL)
+		if ((new->text = textdump_create(RESULTS_ALLOC_TEXT, 0, '\0')) == NULL)
 			mem_ok = FALSE;
 	}
 
@@ -678,7 +688,7 @@ static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 		break;
 
 	case RESULTS_MENU_COPY_NAMES:
-		clipboard_claim(NULL, NULL, NULL, NULL);
+		results_clipboard_copy_filenames(handle);
 		break;
 
 	case RESULTS_MENU_MODIFY_SEARCH:
@@ -1722,5 +1732,70 @@ static osbool results_save_filenames(char *filename, osbool selection, void *dat
 	osfile_set_type(filename, osfile_TYPE_TEXT);
 
 	return TRUE;
+}
+
+
+/**
+ * Copy the names of the current selection on to the clipboard.
+ *
+ * \param *handle		The handle of the results window to copy from.
+ */
+
+static void results_clipboard_copy_filenames(struct results_window *handle)
+{
+	int		i;
+	char		buffer[1024]; // \TODO -- Allocate properly!
+
+	if (handle == NULL || handle->selection_count == 0)
+		return;
+
+	textdump_clear(results_clipboard);
+
+	for (i = 0; i < handle->redraw_lines; i++) {
+		if (handle->redraw[i].type == RESULTS_LINE_FILENAME && (handle->redraw[i].flags & RESULTS_FLAG_SELECTED)) {
+			objdb_get_name(handle->objects, handle->redraw[i].file, buffer, sizeof(buffer));
+			textdump_store(results_clipboard, buffer);
+		}
+	}
+
+	clipboard_claim(results_clipboard_find, results_clipboard_size, results_clipboard_release, (void *) handle);
+}
+
+
+/**
+ * Callback to let the clipboard handler know the location of the clipboard.
+ *
+ * \param *data			The handle of the results window owning the clipboard.
+ * \return			The address of the clipboard contents.
+ */
+
+static void *results_clipboard_find(void *data)
+{
+	return textdump_get_base(results_clipboard);
+}
+
+
+/**
+ * Callback to let the clipboard handler know the size of the clipboard.
+ *
+ * \param *data			The handle of the results window owning the clipboard.
+ * \return			The size of the clipboard contents.
+ */
+
+static size_t results_clipboard_size(void *data)
+{
+	return textdump_get_size(results_clipboard);
+}
+
+
+/**
+ * Callback to allow the clipboard contents to be released.
+ *
+ * \param *data			The handle of the results window owning the clipboard.
+ */
+
+static void results_clipboard_release(void *data)
+{
+	textdump_clear(results_clipboard);
 }
 

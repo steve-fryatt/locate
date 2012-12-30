@@ -50,11 +50,17 @@
  * returned instead.  In this mode, all strings are stored word-aligned and an
  * overhead of up to 7 bytes is incurred for each new string stored (on top of
  * the string plus its '\0' terminator).
+ *
+ * Alternatively, if the terminator is set to other than \0, strings added to
+ * the dump will have the non-standard terminator used instead of \0. If hashing
+ * is used, terminators must be left as the standard \0 (otherwise the text
+ * dump will fail to initialise and return a handle of NULL).
  */
 
 #ifndef LOCATE_TEXTDUMP
 #define LOCATE_TEXTDUMP
 
+#include <stdlib.h>
 #include "oslib/types.h"
 #include "flex.h"
 
@@ -69,10 +75,12 @@ struct textdump_block;
  *
  * \param allocation		The allocation block size, or 0 for the default.
  * \param hash			The size of the duplicate hash table, or 0 for none.
+ * \param terminator		The character to terminate dumped strings with. This
+ *				must be \0 if hashing is to be used.
  * \return			The block handle, or NULL on failure.
  */
 
-struct textdump_block *textdump_create(unsigned allocation, unsigned hash);
+struct textdump_block *textdump_create(unsigned allocation, unsigned hash, char terminator);
 
 
 /**
@@ -85,6 +93,15 @@ void textdump_destroy(struct textdump_block *handle);
 
 
 /**
+ * Clear the contents of a text dump, so that it will behave as if just created.
+ *
+ * \param *handle		The block to be destroyed.
+ */
+
+void textdump_clear(struct textdump_block *handle);
+
+
+/**
  * Return the offset base for a text block. The returned value is only guaranteed
  * to be correct unitl the Flex heap is altered.
  *
@@ -93,6 +110,17 @@ void textdump_destroy(struct textdump_block *handle);
  */
 
 char *textdump_get_base(struct textdump_block *text);
+
+
+/**
+ * Return the size of the contents of text block. The returned value covers used
+ * space, and does not include any remaining allocated but unused memory.
+ *
+ * \param handle		The block handle.
+ * \return			The used memory size, or 0 on error.
+ */
+
+size_t textdump_get_size(struct textdump_block *handle);
 
 
 /**

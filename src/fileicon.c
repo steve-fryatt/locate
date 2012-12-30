@@ -91,7 +91,7 @@ void fileicon_initialise(void)
 	int	i;
 	char	name[20];
 
-	fileicon_text = textdump_create(0, 0);
+	fileicon_text = textdump_create(0, 0, '\0');
 
 	if (fileicon_text == NULL)
 		return;

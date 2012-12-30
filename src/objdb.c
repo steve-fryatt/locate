@@ -147,7 +147,7 @@ struct objdb_block *objdb_create(struct file_block *file)
 	else
 		new->list = NULL;
 
-	new->text = textdump_create(0, 20);
+	new->text = textdump_create(0, 20, '\0');
 
 	/* If either of the sub allocations failed, free the claimed memory and exit. */
 
