@@ -117,6 +117,9 @@ wimp_menu *typemenu_build(void)
 	} else if (icon.large != TEXTDUMP_NULL) {
 		validation = sprite_base + icon.large;
 		typemenu_types[typemenu_entries].small = FALSE;
+	} else {
+		validation = "small_xxx";
+		typemenu_types[typemenu_entries].small = FALSE;
 	}
 	strncpy(typemenu_types[typemenu_entries].validation + 1, validation, TYPEMENU_VALIDATION_LENGTH - 1);
 	typemenu_types[typemenu_entries].validation[TYPEMENU_VALIDATION_LENGTH - 1] = '\0';
@@ -161,6 +164,9 @@ wimp_menu *typemenu_build(void)
 				typemenu_types[typemenu_entries].small = TRUE;
 			} else if (icon.large != TEXTDUMP_NULL) {
 				validation = sprite_base + icon.large;
+				typemenu_types[typemenu_entries].small = FALSE;
+			} else {
+				validation = "small_xxx";
 				typemenu_types[typemenu_entries].small = FALSE;
 			}
 			strncpy(typemenu_types[typemenu_entries].validation + 1, validation, TYPEMENU_VALIDATION_LENGTH - 1);
