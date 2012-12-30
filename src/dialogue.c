@@ -1488,7 +1488,7 @@ static void dialogue_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 static void dialogue_drag_end_handler(wimp_pointer *pointer, void *data)
 {
-	dataxfer_start_save(pointer, "NULL", 0, 0xffffffffu, dialogue_xfer_save_handler, NULL);
+	dataxfer_start_save(pointer, "NULL", 0, 0xffffffffu, 0, dialogue_xfer_save_handler, NULL);
 }
 
 

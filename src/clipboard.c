@@ -188,7 +188,7 @@ static osbool clipboard_message_data_request(wimp_message *message)
 	else
 		data_size = 0;
 
-	dataxfer_start_save(&pointer, "Clipboard", data_size, osfile_TYPE_TEXT, clipboard_save_file, NULL);
+	dataxfer_start_save(&pointer, "Clipboard", data_size, osfile_TYPE_TEXT, request->my_ref, clipboard_save_file, NULL);
 
 	return TRUE;
 }

@@ -430,7 +430,7 @@ static void dataxfer_drag_end_handler(wimp_pointer *pointer, void *data)
 	}
 
 
-	dataxfer_start_save(pointer, (handle->selected) ? handle->selection_filename : handle->full_filename, 0, 0xffffffffu, dataxfer_save_handler, handle);
+	dataxfer_start_save(pointer, (handle->selected) ? handle->selection_filename : handle->full_filename, 0, 0xffffffffu, 0, dataxfer_save_handler, handle);
 }
 
 
@@ -598,13 +598,14 @@ static void dataxfer_terminate_user_drag(wimp_dragged *drag, void *data)
  * \param *name			The proposed file leafname.
  * \param size			The estimated file size.
  * \param type			The proposed file type.
+ * \param your_ref		The "your ref" to use for the opening message, or 0.
  * \param *save_callback	The function to be called with the full pathname
  *				to save the file.
  * \param *data			Data to be passed to the callback function.
  * \return			TRUE on success; FALSE on failure.
  */
 
-osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, osbool (*save_callback)(char *filename, void *data), void *data)
+osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, int your_ref, osbool (*save_callback)(char *filename, void *data), void *data)
 {
 	struct dataxfer_descriptor	*descriptor;
 	wimp_full_message_data_xfer	message;
@@ -628,7 +629,7 @@ osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits typ
 	 */
 
 	message.size = WORDALIGN(45 + strlen(name));
-	message.your_ref = 0;
+	message.your_ref = your_ref;
 	message.action = message_DATA_SAVE;
 	message.w = pointer->w;
 	message.i = pointer->i;

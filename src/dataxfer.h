@@ -111,13 +111,14 @@ void dataxfer_save_window_drag(wimp_w w, wimp_i i, void (* drag_end_callback)(wi
  * \param *name			The proposed file leafname.
  * \param size			The estimated file size.
  * \param type			The proposed file type.
+ * \param your_ref		The "your ref" to use for the opening message, or 0.
  * \param *save_callback	The function to be called with the full pathname
  *				to save the file.
  * \param *data			Data to be passed to the callback function.
  * \return			TRUE on success; FALSE on failure.
  */
 
-osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, osbool (*save_callback)(char *filename, void *data), void *data);
+osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits type, int your_ref, osbool (*save_callback)(char *filename, void *data), void *data);
 
 
 /**
