@@ -1611,8 +1611,12 @@ static void results_object_info_prepare(struct results_window *handle)
 			icons_get_indirected_text_addr(results_object_window, RESULTS_OBJECT_ICON_ACCESS),
 			icons_get_indirected_text_length(results_object_window, RESULTS_OBJECT_ICON_ACCESS));
 
-	if (info.name != TEXTDUMP_NULL)
-		icons_printf(results_object_window, RESULTS_OBJECT_ICON_TYPE, "%s", base + info.name);
+	if (info.name != TEXTDUMP_NULL) {
+		if (type <= 0xfff)
+			icons_printf(results_object_window, RESULTS_OBJECT_ICON_TYPE, "%-8s (%03X)", base + info.name, type);
+		else
+			icons_printf(results_object_window, RESULTS_OBJECT_ICON_TYPE, "%s", base + info.name);
+	}
 
 	if (info.large != TEXTDUMP_NULL)
 		icons_printf(results_object_window, RESULTS_OBJECT_ICON_ICON, "%s", base + info.large);
