@@ -100,6 +100,18 @@ void discfile_end_section(struct discfile_block *handle);
 
 void discfile_write_blob(struct discfile_block *handle, char *id, byte *data, unsigned size);
 
+
+/**
+ * Write a string chunk to disc, into an already open section of a file.
+ *
+ * \param *handle		The discfile handle to be written to.
+ * \param *id			The ID (1-4 characters) for the chunk.
+ * \param *text			Pointer to the text to be written.
+ */
+
+void discfile_write_string(struct discfile_block *handle, char *id, char *text);
+
+
 /**
  * Open an existing file for reading and return its handle.
  *

@@ -103,6 +103,7 @@ struct discfile_chunk {
 
 static void	discfile_read_header(struct discfile_block *handle);
 static void	discfile_write_header(struct discfile_block *handle);
+static void	discfile_write_chunk(struct discfile_block *handle, enum discfile_chunk_type type, char *id, byte *data, unsigned size);
 static unsigned	discfile_make_id(char *code);
 
 /**
@@ -270,6 +271,38 @@ void discfile_end_section(struct discfile_block *handle)
 
 void discfile_write_blob(struct discfile_block *handle, char *id, byte *data, unsigned size)
 {
+	discfile_write_chunk(handle, DISCFILE_BLOB_CHUNK, id, data, size);
+}
+
+
+/**
+ * Write a string chunk to disc, into an already open section of a file.
+ *
+ * \param *handle		The discfile handle to be written to.
+ * \param *id			The ID (1-4 characters) for the chunk.
+ * \param *text			Pointer to the text to be written.
+ */
+
+void discfile_write_string(struct discfile_block *handle, char *id, char *text)
+{
+	if (text == NULL)
+		return;
+
+	discfile_write_chunk(handle, DISCFILE_TEXT_CHUNK, id, (byte *) text, strlen(text) + 1);
+}
+
+
+/**
+ * Write a generic data chunk to disc, into an already open section of a file.
+ *
+ * \param *handle		The discfile handle to be written to.
+ * \param *id			The ID (1-4 characters) for the chunk.
+ * \param *data			Pointer to the first byte of data to be written.
+ * \param size			The number of bytes to be written.
+ */
+
+static void discfile_write_chunk(struct discfile_block *handle, enum discfile_chunk_type type, char *id, byte *data, unsigned size)
+{
 	struct discfile_chunk		chunk;
 	int				ptr, unwritten;
 	unsigned			zero = 0;
@@ -280,7 +313,7 @@ void discfile_write_blob(struct discfile_block *handle, char *id, byte *data, un
 		return;
 
 	chunk.magic_word = DISCFILE_CHUNK_MAGIC_WORD;
-	chunk.type = DISCFILE_BLOB_CHUNK;
+	chunk.type = type;
 	chunk.id = discfile_make_id(id);
 	chunk.size = sizeof(struct discfile_chunk) + sizeof(unsigned) + WORDALIGN(size);
 
@@ -290,26 +323,35 @@ void discfile_write_blob(struct discfile_block *handle, char *id, byte *data, un
 	if (error != NULL)
 		return;
 
-	/* Write the chunk header and contents. */
+	/* Write the chunk header. */
 
 	error = xosgbpb_write_atw(handle->handle, (byte *) &chunk, sizeof(struct discfile_chunk), ptr, &unwritten);
 	if (error != NULL || unwritten != 0)
 		return;
 
-	error = xosgbpb_writew(handle->handle, (byte *) &size, sizeof(unsigned), &unwritten);
-	if (error != NULL || unwritten != 0)
-		return;
+	/* If the chunk is a blob, the header is followed by a word containing the
+	 * blob size.
+	 */
+
+	if (type == DISCFILE_BLOB_CHUNK) {
+		error = xosgbpb_writew(handle->handle, (byte *) &size, sizeof(unsigned), &unwritten);
+		if (error != NULL || unwritten != 0)
+			return;
+	}
+
+	/* Write the contents. */
 
 	error = xosgbpb_writew(handle->handle, (byte *) data, size, &unwritten);
 	if (error != NULL || unwritten != 0)
 		return;
 
-	if (size == WORDALIGN(size))
-		return;
+	/* If the data wasn't a multiple of four bytes, pad it out with zeros. */
 
-	error = xosgbpb_writew(handle->handle, (byte *) &zero, WORDALIGN(size) - size, &unwritten);
-	if (error != NULL || unwritten != 0)
-		return;
+	if (size != WORDALIGN(size)) {
+		error = xosgbpb_writew(handle->handle, (byte *) &zero, WORDALIGN(size) - size, &unwritten);
+		if (error != NULL || unwritten != 0)
+			return;
+	}
 }
 
 
