@@ -200,7 +200,7 @@ void discfile_start_section(struct discfile_block *handle, enum discfile_section
 
 	/* Get the curent file position. */
 
-	error = xosargs_read_ptrw(handle->handle, &ptr);
+	error = xosargs_read_extw(handle->handle, &ptr);
 	if (error != NULL)
 		return;
 
@@ -233,7 +233,7 @@ void discfile_end_section(struct discfile_block *handle)
 
 	/* Get the curent file position. */
 
-	error = xosargs_read_ptrw(handle->handle, &ptr);
+	error = xosargs_read_extw(handle->handle, &ptr);
 	if (error != NULL)
 		return;
 
