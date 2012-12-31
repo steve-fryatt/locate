@@ -67,6 +67,7 @@
 #include "clipboard.h"
 #include "datetime.h"
 #include "dialogue.h"
+#include "discfile.h"
 #include "file.h"
 #include "fileicon.h"
 #include "ihelp.h"
@@ -258,6 +259,7 @@ static void	results_open_parent(struct results_window *handle, unsigned row);
 static void	results_object_info_prepare(struct results_window *handle);
 static char	*results_create_attributes_string(fileswitch_attr attributes, char *buffer, size_t length);
 static char	*results_create_address_string(unsigned load_addr, unsigned exec_addr, char *buffer, size_t length);
+static osbool	results_save_result_data(char *filename, osbool selection, void *data);
 static osbool	results_save_filenames(char *filename, osbool selection, void *data);
 static void	results_clipboard_copy_filenames(struct results_window *handle);
 static void	*results_clipboard_find(void *data);
@@ -303,7 +305,7 @@ void results_initialise(osspriteop_area *sprites)
 
 	results_sprite_area = sprites;
 
-	results_save_results = saveas_create_dialogue(FALSE, "file_1a1", NULL);
+	results_save_results = saveas_create_dialogue(FALSE, "file_1a1", results_save_result_data);
 	results_save_paths = saveas_create_dialogue(TRUE, "file_fff", results_save_filenames);
 	results_save_options = saveas_create_dialogue(FALSE, "file_1a1", NULL);
 
@@ -1692,6 +1694,38 @@ static char *results_create_address_string(unsigned load_addr, unsigned exec_add
 	}
 
 	return buffer;
+}
+
+
+/**
+ * Handle a callback from the dataxfer system and save the results to disc
+ *
+ * \param *filename		The filename to save to.
+ * \param selection		TRUE if Selection is ticked; else FALSE.
+ * \param *data			The handle of the results window to save from.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+static osbool results_save_result_data(char *filename, osbool selection, void *data)
+{
+	struct results_window	*handle = (struct results_window *) data;
+	struct discfile_block	*out;
+
+	int			i;
+	char			buffer[1024]; // \TODO -- Allocate properly!
+
+	if (handle == NULL)
+		return FALSE;
+
+	out = discfile_open_write(filename);
+	if (out == NULL)
+		return FALSE;
+
+	discfile_close(out);
+
+	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
+
+	return TRUE;
 }
 
 

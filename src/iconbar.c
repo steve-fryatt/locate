@@ -57,6 +57,7 @@
 #include "choices.h"
 #include "dataxfer.h"
 #include "dialogue.h"
+#include "discfile.h"
 #include "file.h"
 #include "ihelp.h"
 #include "main.h"
@@ -124,7 +125,7 @@ void iconbar_initialise(void)
 
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, iconbar_icon_drop_handler);
 
-	dataxfer_set_load_target(LOCATE_FILE_TYPE, wimp_ICON_BAR, -1, iconbar_load_locate_file, NULL);
+	dataxfer_set_load_target(DISCFILE_LOCATE_FILETYPE, wimp_ICON_BAR, -1, iconbar_load_locate_file, NULL);
 }
 
 
@@ -240,7 +241,7 @@ static osbool iconbar_icon_drop_handler(wimp_message *message)
 	 * via the dataxfer module.
 	 */
 
-	if (datasave == NULL || datasave->w != wimp_ICON_BAR || datasave->file_type == LOCATE_FILE_TYPE)
+	if (datasave == NULL || datasave->w != wimp_ICON_BAR || datasave->file_type == DISCFILE_LOCATE_FILETYPE)
 		return FALSE;
 
 	/* It's our iconbar icon, so start by finding the pointer and then copy

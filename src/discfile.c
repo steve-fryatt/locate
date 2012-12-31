@@ -55,32 +55,25 @@
 
 /* Application header files. */
 
-#include "file.h"
-
-#include "dialogue.h"
-#include "ihelp.h"
-#include "objdb.h"
-#include "results.h"
-#include "search.h"
-#include "templates.h"
+#include "discfile.h"
 
 
-
-#define DISCFILE_MAGIC_WORD 0x53524348
+#define DISCFILE_MAGIC_WORD (0x48435253u)
 
 struct discfile_block {
 	os_fw				handle;					/**< The file handle of the file.			*/
 	enum discfile_format		format;					/**< The format of the file.				*/
 };
 
-struct disfile_header {
+struct discfile_header {
 	unsigned			magic_word;				/**< The magic word.					*/
 	enum discfile_format		format;					/**< The file format identifier.			*/
 	unsigned			flags;					/**< The file flags (reserved and always zero).		*/
 };
 
 
-static void	discfile_process_header(struct discfile_block *handle);
+static void	discfile_read_header(struct discfile_block *handle);
+static void	discfile_write_header(struct discfile_block *handle);
 
 /**
  * Open a new file for writing and return its handle.
@@ -89,7 +82,7 @@ static void	discfile_process_header(struct discfile_block *handle);
  * \return			Pointer to an discfile handle, or NULL.
  */
 
-struct discfile_block *discfile_open_write(void)
+struct discfile_block *discfile_open_write(char *filename)
 {
 	struct discfile_block	*new;
 	os_error		*error;
@@ -100,14 +93,14 @@ struct discfile_block *discfile_open_write(void)
 	if (new == NULL)
 		return NULL;
 
-	error = osfindopenoutw(osfind_NO_PATH |osfind_ERROR_IF_DIR, filename, NULL, &(new->handle));
+	error = xosfind_openoutw(osfind_NO_PATH |osfind_ERROR_IF_DIR, filename, NULL, &(new->handle));
 	if (error != NULL || new->handle == 0) {
 		heap_free(new);
 		return NULL;
 	}
 
 	new->format = DISCFILE_UNKNOWN_FORMAT;
-	discfile_process_header(new);
+	discfile_write_header(new);
 
 	return new;
 }
@@ -120,7 +113,7 @@ struct discfile_block *discfile_open_write(void)
  * \return			Pointer to an discfile handle, or NULL.
  */
 
-struct discfile_block *discfile_open_read(void)
+struct discfile_block *discfile_open_read(char *filename)
 {
 	struct discfile_block	*new;
 	os_error		*error;
@@ -131,20 +124,25 @@ struct discfile_block *discfile_open_read(void)
 	if (new == NULL)
 		return NULL;
 
-	error = osfindopeninw(osfind_NO_PATH |osfind_ERROR_IF_DIR, filename, NULL, &(new->handle));
+	error = xosfind_openinw(osfind_NO_PATH |osfind_ERROR_IF_DIR, filename, NULL, &(new->handle));
 	if (error != NULL || new->handle == 0) {
 		heap_free(new);
 		return NULL;
 	}
 
 	new->format = DISCFILE_UNKNOWN_FORMAT;
-	discfile_process_header(new);
+	discfile_read_header(new);
 
 	return new;
 }
 
 
-static void discfile_process_header(struct discfile_block *handle)
+/**
+ * Read the header from a disc-based file, and update the data in the block
+ * to reflect the file contents.
+ */
+
+static void discfile_read_header(struct discfile_block *handle)
 {
 	struct discfile_header		header;
 	int				unread;
@@ -155,7 +153,7 @@ static void discfile_process_header(struct discfile_block *handle)
 
 	/* Read the file header.  If this fails, give up with an unknown format. */
 
-	error = xosgbpb_read_atw(handle->handle, &header, sizeof(struct discfile_header), 0, &unread);
+	error = xosgbpb_read_atw(handle->handle, (byte *) &header, sizeof(struct discfile_header), 0, &unread);
 	if (error != NULL || unread != 0)
 		return;
 
@@ -179,6 +177,39 @@ static void discfile_process_header(struct discfile_block *handle)
 
 
 /**
+ * Write a header to a disc file, and update the data in the block to reflect
+ * the new format if successful.
+ */
+
+static void discfile_write_header(struct discfile_block *handle)
+{
+	struct discfile_header		header;
+	int				unwritten;
+	os_error			*error;
+
+	if (handle == NULL || handle->handle == 0)
+		return;
+
+	/* Set up the header for the file.
+	 *
+	 * This is where the current file format is set.
+	 */
+
+	header.magic_word = DISCFILE_MAGIC_WORD;
+	header.format = DISCFILE_LOCATE2;
+	header.flags = 0;
+
+	/* Write the file header. */
+
+	error = xosgbpb_write_atw(handle->handle, (byte *) &header, sizeof(struct discfile_header), 0, &unwritten);
+	if (error != NULL || unwritten != 0)
+		return;
+
+	handle->format = header.format;
+}
+
+
+/**
  * Close a discfile and free any memory associated with it.
  *
  * \param *handle		The discfile handle to be closed.
@@ -190,7 +221,7 @@ void discfile_close(struct discfile_block *handle)
 		return;
 
 	if (handle->handle != 0)
-		xosfile_closew(handle->handle);
+		xosfind_closew(handle->handle);
 
 	heap_free(handle);
 }

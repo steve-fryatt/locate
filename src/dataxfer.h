@@ -34,9 +34,6 @@
  * Static constants
  */
 
-
-#define LOCATE_FILE_TYPE 0x1a1
-
 /**
  * Initialise the data transfer system.
  */

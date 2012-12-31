@@ -66,6 +66,7 @@
 
 #include "dataxfer.h"
 #include "datetime.h"
+#include "discfile.h"
 #include "flexutils.h"
 #include "ihelp.h"
 #include "saveas.h"
@@ -1952,7 +1953,7 @@ static osbool dialogue_save_settings(char *filename, osbool selection, void *dat
 	fprintf(out, "# >Locate Settings File\n#\n# Written by Locate\n\n");
 
 	fclose(out);
-	osfile_set_type(filename, (bits) LOCATE_FILE_TYPE);
+	osfile_set_type(filename, (bits) DISCFILE_LOCATE_FILETYPE);
 
 	return TRUE;
 }

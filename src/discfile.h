@@ -30,11 +30,13 @@
 #ifndef LOCATE_DISCFILE
 #define LOCATE_DISCFILE
 
+#define DISCFILE_LOCATE_FILETYPE (0x1a1)
+
 /**
  * The known file formats.
  */
 
-enum discfile_formats {
+enum discfile_format {
 	DISCFILE_UNKNOWN_FORMAT = 0,						/**< The format has not been recognised.		*/
 	DISCFILE_LOCATE1 = 1,							/**< The file is from Locate 1.				*/
 	DISCFILE_LOCATE2 = 2							/**< The file is from Locate 2.				*/
@@ -50,7 +52,7 @@ struct discfile_block;
  * \return			Pointer to an discfile handle, or NULL.
  */
 
-struct discfile_block *discfile_open_write(void);
+struct discfile_block *discfile_open_write(char *filename);
 
 
 /**
@@ -60,7 +62,7 @@ struct discfile_block *discfile_open_write(void);
  * \return			Pointer to an discfile handle, or NULL.
  */
 
-struct discfile_block *discfile_open_read(void);
+struct discfile_block *discfile_open_read(char *filename);
 
 
 /**
