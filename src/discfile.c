@@ -39,41 +39,71 @@
 
 /* OSLib Header files. */
 
+#include "oslib/osargs.h"
 #include "oslib/osfind.h"
 #include "oslib/osgbpb.h"
 
 /* SF-Lib Header files. */
 
-#include "sflib/config.h"
-#include "sflib/errors.h"
-#include "sflib/event.h"
-#include "sflib/heap.h"
-#include "sflib/icons.h"
-#include "sflib/windows.h"
 #include "sflib/debug.h"
-#include "sflib/string.h"
+#include "sflib/errors.h"
+#include "sflib/general.h"
+#include "sflib/heap.h"
 
 /* Application header files. */
 
 #include "discfile.h"
 
 
-#define DISCFILE_MAGIC_WORD (0x48435253u)
+#define DISCFILE_FILE_MAGIC_WORD (0x48435253u)
+#define DISCFILE_SECTION_MAGIC_WORD (0x54434553u)
+#define DISCFILE_CHUNK_MAGIC_WORD (0x4b4e4843u)
+
+/**
+ * Generic file structure handling.
+ */
+
+enum discfile_mode {
+	DISCFILE_CLOSED = 0,							/**< The file isn't open, or is in an unknown state.		*/
+	DISCFILE_READ,								/**< The file is open for reading.				*/
+	DISCFILE_WRITE								/**< The file is open for writing.				*/
+};
 
 struct discfile_block {
-	os_fw				handle;					/**< The file handle of the file.			*/
-	enum discfile_format		format;					/**< The format of the file.				*/
+	os_fw				handle;					/**< The file handle of the file.				*/
+	enum discfile_mode		mode;					/**< The read-write mode of the file.				*/
+	enum discfile_format		format;					/**< The format of the file.					*/
+	int				section;				/**< File ptr to the current section, or 0 for none.		*/
 };
 
 struct discfile_header {
-	unsigned			magic_word;				/**< The magic word.					*/
-	enum discfile_format		format;					/**< The file format identifier.			*/
-	unsigned			flags;					/**< The file flags (reserved and always zero).		*/
+	unsigned			magic_word;				/**< The file magic word.					*/
+	enum discfile_format		format;					/**< The file format identifier.				*/
+	unsigned			flags;					/**< The file flags (reserved and always zero).			*/
+};
+
+/**
+ * Locate 2 Format structure handling.
+ */
+
+struct discfile_section {
+	unsigned			magic_word;				/**< The section magic word.					*/
+	enum discfile_section_type	type;					/**< The section type identifier.				*/
+	unsigned			size;					/**< The section size (bytes).					*/
+	unsigned			flags;					/**< The overall section flags (reserved and always zero).	*/
+};
+
+struct discfile_chunk {
+	unsigned			magic_word;				/**< The chunk magic word.					*/
+	enum discfile_chunk_type	type;					/**< The chunk type identifier.					*/
+	unsigned			id;					/**< The chunk ID word.						*/
+	unsigned			size;					/**< The overall chunk size (bytes).				*/
 };
 
 
 static void	discfile_read_header(struct discfile_block *handle);
 static void	discfile_write_header(struct discfile_block *handle);
+static unsigned	discfile_make_id(char *code);
 
 /**
  * Open a new file for writing and return its handle.
@@ -99,10 +129,179 @@ struct discfile_block *discfile_open_write(char *filename)
 		return NULL;
 	}
 
+	new->section = 0;
+	new->mode = DISCFILE_WRITE;
 	new->format = DISCFILE_UNKNOWN_FORMAT;
+
 	discfile_write_header(new);
 
 	return new;
+}
+
+
+/**
+ * Write a header to a disc file, and update the data in the block to reflect
+ * the new format if successful.
+ *
+ * \param *handle		The discfile handle to be written to.
+ */
+
+static void discfile_write_header(struct discfile_block *handle)
+{
+	struct discfile_header		header;
+	int				unwritten;
+	os_error			*error;
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_WRITE)
+		return;
+
+	/* Set up the header for the file.
+	 *
+	 * This is where the current file format is set.
+	 */
+
+	header.magic_word = DISCFILE_FILE_MAGIC_WORD;
+	header.format = DISCFILE_LOCATE2;
+	header.flags = 0;
+
+	/* Write the file header. */
+
+	error = xosgbpb_write_atw(handle->handle, (byte *) &header, sizeof(struct discfile_header), 0, &unwritten);
+	if (error != NULL || unwritten != 0)
+		return;
+
+	handle->format = header.format;
+}
+
+
+/**
+ * Open a new section in a disc file, ready for chunks of data to be written to
+ * it.
+ *
+ * \param *handle		The discfile handle to be written to.
+ * \param type			The section type for the new section.
+ */
+
+void discfile_start_section(struct discfile_block *handle, enum discfile_section_type type)
+{
+	struct discfile_section		section;
+	int				ptr, unwritten;
+	os_error			*error;
+
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_WRITE || handle->section != 0)
+		return;
+
+	section.magic_word = DISCFILE_SECTION_MAGIC_WORD;
+	section.type = type;
+	section.size = 0;
+	section.flags = 0;
+
+	/* Get the curent file position. */
+
+	error = xosargs_read_ptrw(handle->handle, &ptr);
+	if (error != NULL)
+		return;
+
+	/* Write the section header. */
+
+	error = xosgbpb_write_atw(handle->handle, (byte *) &section, sizeof(struct discfile_section), ptr, &unwritten);
+	if (error != NULL || unwritten != 0)
+		return;
+
+	handle->section = ptr;
+}
+
+
+/**
+ * Close an already open section of a discfile, updating the section header
+ * appropriately.
+ *
+ * \param *handle		The discfile handle to be written to.
+ */
+
+void discfile_end_section(struct discfile_block *handle)
+{
+	struct discfile_section		section;
+	int				ptr, unread, unwritten;
+	os_error			*error;
+
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_WRITE || handle->section == 0)
+		return;
+
+	/* Get the curent file position. */
+
+	error = xosargs_read_ptrw(handle->handle, &ptr);
+	if (error != NULL)
+		return;
+
+	/* Re-read the section header. */
+
+	error = xosgbpb_read_atw(handle->handle, (byte *) &section, sizeof(struct discfile_section), handle->section, &unread);
+	if (error != NULL || unread != 0)
+		return;
+
+	/* The first word of the section should be a magic word to identify it. */
+
+	if (section.magic_word != DISCFILE_SECTION_MAGIC_WORD)
+		return;
+
+	section.size = ptr - handle->section;
+
+	/* Write the modified section header. */
+
+	error = xosgbpb_write_atw(handle->handle, (byte *) &section, sizeof(struct discfile_section), handle->section, &unwritten);
+	if (error != NULL || unwritten != 0)
+		return;
+
+	handle->section = 0;
+}
+
+
+/**
+ * Write a binary chunk to disc, into an already open section of a file.
+ *
+ * \param *handle		The discfile handle to be written to.
+ * \param *id			The ID (1-4 characters) for the chunk.
+ * \param *data			Pointer to the first byte of data to be written.
+ * \param size			The number of bytes to be written.
+ */
+
+void discfile_write_blob(struct discfile_block *handle, char *id, byte *data, unsigned size)
+{
+	struct discfile_chunk		chunk;
+	int				ptr, unwritten;
+	os_error			*error;
+
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_WRITE || handle->section == 0)
+		return;
+
+	chunk.magic_word = DISCFILE_CHUNK_MAGIC_WORD;
+	chunk.type = DISCFILE_BLOB_CHUNK;
+	chunk.id = discfile_make_id(id);
+	chunk.size = sizeof(struct discfile_chunk) + sizeof(unsigned) + WORDALIGN(size);
+
+	/* Get the curent file end position. */
+
+	error = xosargs_read_extw(handle->handle, &ptr);
+	if (error != NULL)
+		return;
+
+	/* Write the chunk header and contents. */
+
+	error = xosgbpb_write_atw(handle->handle, (byte *) &chunk, sizeof(struct discfile_chunk), ptr, &unwritten);
+	if (error != NULL || unwritten != 0)
+		return;
+
+	error = xosgbpb_writew(handle->handle, (byte *) &size, sizeof(unsigned), &unwritten);
+	if (error != NULL || unwritten != 0)
+		return;
+
+	error = xosgbpb_writew(handle->handle, (byte *) data, size, &unwritten);
+	if (error != NULL || unwritten != 0)
+		return;
 }
 
 
@@ -130,7 +329,10 @@ struct discfile_block *discfile_open_read(char *filename)
 		return NULL;
 	}
 
+	new->section = 0;
+	new->mode = DISCFILE_READ;
 	new->format = DISCFILE_UNKNOWN_FORMAT;
+
 	discfile_read_header(new);
 
 	return new;
@@ -148,7 +350,7 @@ static void discfile_read_header(struct discfile_block *handle)
 	int				unread;
 	os_error			*error;
 
-	if (handle == NULL || handle->handle == 0)
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ)
 		return;
 
 	/* Read the file header.  If this fails, give up with an unknown format. */
@@ -159,7 +361,7 @@ static void discfile_read_header(struct discfile_block *handle)
 
 	/* The first word of the header should be a magic word to identify it. */
 
-	if (header.magic_word != DISCFILE_MAGIC_WORD)
+	if (header.magic_word != DISCFILE_FILE_MAGIC_WORD)
 		return;
 
 	/* There are only two valid formats. */
@@ -170,39 +372,6 @@ static void discfile_read_header(struct discfile_block *handle)
 	/* The flags are reserved, and should always be zero. */
 
 	if (header.flags != 0)
-		return;
-
-	handle->format = header.format;
-}
-
-
-/**
- * Write a header to a disc file, and update the data in the block to reflect
- * the new format if successful.
- */
-
-static void discfile_write_header(struct discfile_block *handle)
-{
-	struct discfile_header		header;
-	int				unwritten;
-	os_error			*error;
-
-	if (handle == NULL || handle->handle == 0)
-		return;
-
-	/* Set up the header for the file.
-	 *
-	 * This is where the current file format is set.
-	 */
-
-	header.magic_word = DISCFILE_MAGIC_WORD;
-	header.format = DISCFILE_LOCATE2;
-	header.flags = 0;
-
-	/* Write the file header. */
-
-	error = xosgbpb_write_atw(handle->handle, (byte *) &header, sizeof(struct discfile_header), 0, &unwritten);
-	if (error != NULL || unwritten != 0)
 		return;
 
 	handle->format = header.format;
@@ -224,5 +393,27 @@ void discfile_close(struct discfile_block *handle)
 		xosfind_closew(handle->handle);
 
 	heap_free(handle);
+}
+
+
+/**
+ * Return a four-byte word containing an ID code, made up from the first four
+ * characters in a string.
+ *
+ * \param *code			The string to use for the code.
+ * \return			The numeric ID code.
+ */
+
+static unsigned discfile_make_id(char *code)
+{
+	unsigned	id = 0;
+	int		i;
+
+	for (i = 0; i < 4 && code[i] != '\0'; i++)
+		id += (code[i] << (8 * i));
+
+	debug_printf("Created 0x%xu from %s", id, code);
+
+	return id;
 }
 

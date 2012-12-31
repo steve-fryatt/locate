@@ -1721,6 +1721,11 @@ static osbool results_save_result_data(char *filename, osbool selection, void *d
 	if (out == NULL)
 		return FALSE;
 
+	discfile_start_section(out, DISCFILE_OBJECTDB_SECTION);
+	discfile_write_blob(out, "HEAD", (byte *) handle, sizeof(struct results_window));
+	discfile_write_blob(out, "LINE", (byte *) handle->redraw, handle->redraw_lines * sizeof(struct results_line));
+	discfile_end_section(out);
+
 	discfile_close(out);
 
 	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
