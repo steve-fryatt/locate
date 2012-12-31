@@ -39,7 +39,7 @@
  * A savebox data handle.
  */
 
-struct saveas_dialogue;
+struct saveas_block;
 
 /**
  * Initialise the data transfer system.
@@ -56,7 +56,7 @@ void saveas_initialise(void);
  * \param: *save_callback	The callback function for saving data.
  */
 
-struct saveas_dialogue *saveas_create_dialogue(osbool selection, char *sprite, osbool (*save_callback)(char *filename, osbool selection, void *data));
+struct saveas_block *saveas_create_dialogue(osbool selection, char *sprite, osbool (*save_callback)(char *filename, osbool selection, void *data));
 
 
 /**
@@ -72,7 +72,7 @@ struct saveas_dialogue *saveas_create_dialogue(osbool selection, char *sprite, o
  * \param *data			Data to pass to any save callbacks, or NULL.
  */
 
-void saveas_initialise_dialogue(struct saveas_dialogue *handle, char *fullname, char *selectname, osbool selection, osbool selected, void *data);
+void saveas_initialise_dialogue(struct saveas_block *handle, char *fullname, char *selectname, osbool selection, osbool selected, void *data);
 
 
 /**
@@ -83,7 +83,7 @@ void saveas_initialise_dialogue(struct saveas_dialogue *handle, char *fullname, 
  * \param *handle		The handle of the save dialogue to prepare.
  */
 
-void saveas_prepare_dialogue(struct saveas_dialogue *handle);
+void saveas_prepare_dialogue(struct saveas_block *handle);
 
 #endif
 

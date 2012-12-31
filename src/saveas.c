@@ -82,7 +82,7 @@
  * Data associated with the Save As window.
  */
 
-struct saveas_dialogue {
+struct saveas_block {
 	char				full_filename[SAVEAS_MAX_FILENAME];		/**< The full filename to be used in the savebox.			*/
 	char				selection_filename[SAVEAS_MAX_FILENAME];	/**< The selection filename to be used in the savebox.			*/
 	char				sprite[SAVEAS_MAX_SPRNAME];			/**< The sprite to be used in the savebox.				*/
@@ -110,7 +110,7 @@ static osbool				saveas_keypress_handler(wimp_key *key);
 
 static void				saveas_drag_end_handler(wimp_pointer *pointer, void *data);
 static osbool				saveas_save_handler(char *filename, void *data);
-static void				saveas_immediate_save(struct saveas_dialogue *handle);
+static void				saveas_immediate_save(struct saveas_block *handle);
 
 
 /**
@@ -156,11 +156,11 @@ void saveas_open_dialogue(wimp_pointer *pointer)
  * \return			The handle to use for the new save dialogue.
  */
 
-struct saveas_dialogue *saveas_create_dialogue(osbool selection, char *sprite, osbool (*save_callback)(char *filename, osbool selection, void *data))
+struct saveas_block *saveas_create_dialogue(osbool selection, char *sprite, osbool (*save_callback)(char *filename, osbool selection, void *data))
 {
-	struct saveas_dialogue		*new;
+	struct saveas_block		*new;
 
-	new = malloc(sizeof(struct saveas_dialogue));
+	new = malloc(sizeof(struct saveas_block));
 	if (new == NULL)
 		return NULL;
 
@@ -191,7 +191,7 @@ struct saveas_dialogue *saveas_create_dialogue(osbool selection, char *sprite, o
  * \param *data			Data to pass to any save callbacks, or NULL.
  */
 
-void saveas_initialise_dialogue(struct saveas_dialogue *handle, char *fullname, char *selectname, osbool selection, osbool selected, void *data)
+void saveas_initialise_dialogue(struct saveas_block *handle, char *fullname, char *selectname, osbool selection, osbool selected, void *data)
 {
 	if (handle == NULL)
 		return;
@@ -223,9 +223,9 @@ void saveas_initialise_dialogue(struct saveas_dialogue *handle, char *fullname, 
  * \param *handle		The handle of the save dialogue to prepare.
  */
 
-void saveas_prepare_dialogue(struct saveas_dialogue *handle)
+void saveas_prepare_dialogue(struct saveas_block *handle)
 {
-	struct saveas_dialogue		*old_handle;
+	struct saveas_block		*old_handle;
 
 	if (handle == NULL)
 		return;
@@ -263,7 +263,7 @@ void saveas_prepare_dialogue(struct saveas_dialogue *handle)
 
 static void saveas_click_handler(wimp_pointer *pointer)
 {
-	struct saveas_dialogue		*handle;
+	struct saveas_block		*handle;
 
 	if (pointer == NULL || (pointer->w != saveas_window && pointer->w != saveas_sel_window))
 		return;
@@ -308,7 +308,7 @@ static void saveas_click_handler(wimp_pointer *pointer)
 
 static osbool saveas_keypress_handler(wimp_key *key)
 {
-	struct saveas_dialogue		*handle;
+	struct saveas_block		*handle;
 
 	handle = event_get_window_user_data(key->w);
 	if (handle == NULL)
@@ -341,7 +341,7 @@ static osbool saveas_keypress_handler(wimp_key *key)
 
 static void saveas_drag_end_handler(wimp_pointer *pointer, void *data)
 {
-	struct saveas_dialogue		*handle = data;
+	struct saveas_block		*handle = data;
 
 	if (handle == NULL)
 		return;
@@ -369,7 +369,7 @@ static void saveas_drag_end_handler(wimp_pointer *pointer, void *data)
 
 static osbool saveas_save_handler(char *filename, void *data)
 {
-	struct saveas_dialogue		*handle = data;
+	struct saveas_block		*handle = data;
 	osbool				result;
 
 	if (handle == NULL || handle->callback == NULL)
@@ -390,7 +390,7 @@ static osbool saveas_save_handler(char *filename, void *data)
  * \param *handle		The handle of the save dialogue.
  */
 
-static void saveas_immediate_save(struct saveas_dialogue *handle)
+static void saveas_immediate_save(struct saveas_block *handle)
 {
 	char	*filename;
 

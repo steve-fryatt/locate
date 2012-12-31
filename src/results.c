@@ -228,9 +228,9 @@ static wimp_menu			*results_window_menu_display = NULL;	/**< The results window 
 
 static osspriteop_area			*results_sprite_area = NULL;		/**< The application sprite area.					*/
 
-static struct saveas_dialogue		*results_save_results = NULL;		/**< The Save Results savebox data handle.				*/
-static struct saveas_dialogue		*results_save_paths = NULL;		/**< The Save Paths savebox data handle.				*/
-static struct saveas_dialogue		*results_save_options = NULL;		/**< The Save Options savebox data handle.				*/
+static struct saveas_block		*results_save_results = NULL;		/**< The Save Results savebox data handle.				*/
+static struct saveas_block		*results_save_paths = NULL;		/**< The Save Paths savebox data handle.				*/
+static struct saveas_block		*results_save_options = NULL;		/**< The Save Options savebox data handle.				*/
 
 static struct textdump_block		*results_clipboard = NULL;		/**< Text Dump for the clipboard contents.				*/
 

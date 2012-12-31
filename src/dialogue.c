@@ -341,7 +341,7 @@ static wimp_menu		*dialogue_type_mode_menu = NULL;		/**< The Type Mode popup men
 static wimp_menu		*dialogue_type_list_menu = NULL;		/**< The Filetype List popup menu.			*/
 static wimp_menu		*dialogue_contents_mode_menu = NULL;		/**< The Contents Mode popup menu.			*/
 
-static struct saveas_dialogue	*dialogue_save_search = NULL;			/**< The Save Search savebox data handle.		*/
+static struct saveas_block	*dialogue_save_search = NULL;			/**< The Save Search savebox data handle.		*/
 
 
 static void	dialogue_close_window(void);
