@@ -272,6 +272,7 @@ void discfile_write_blob(struct discfile_block *handle, char *id, byte *data, un
 {
 	struct discfile_chunk		chunk;
 	int				ptr, unwritten;
+	unsigned			zero = 0;
 	os_error			*error;
 
 
@@ -300,6 +301,13 @@ void discfile_write_blob(struct discfile_block *handle, char *id, byte *data, un
 		return;
 
 	error = xosgbpb_writew(handle->handle, (byte *) data, size, &unwritten);
+	if (error != NULL || unwritten != 0)
+		return;
+
+	if (size == WORDALIGN(size))
+		return;
+
+	error = xosgbpb_writew(handle->handle, (byte *) &zero, WORDALIGN(size) - size, &unwritten);
 	if (error != NULL || unwritten != 0)
 		return;
 }
@@ -411,8 +419,6 @@ static unsigned discfile_make_id(char *code)
 
 	for (i = 0; i < 4 && code[i] != '\0'; i++)
 		id += (code[i] << (8 * i));
-
-	debug_printf("Created 0x%xu from %s", id, code);
 
 	return id;
 }
