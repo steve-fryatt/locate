@@ -61,6 +61,7 @@
 
 #include "objdb.h"
 
+#include "discfile.h"
 #include "file.h"
 #include "textdump.h"
 
@@ -473,47 +474,22 @@ osbool objdb_load_file(char *leaf_name)
 
 
 /**
- * Save the contents of the object database into an object file.
+ * Save the contents of the database into a discfile.
  *
- * \param *leaf_name		The file leafname to save to.
+ * \param *handle		The database to be saved.
  * \return			TRUE on success; else FALSE.
  */
 
-osbool objdb_save_file(char *leaf_name)
+osbool objdb_save_file(struct objdb_block *handle, struct discfile_block *file)
 {
-#if 0
-	char	filename[1024];
-	int	current;
-	FILE	*file;
-
-
-	/* Find a buttons file to write somewhere in the usual config locations. */
-
-	config_find_save_file(filename, sizeof(filename), leaf_name);
-
-	if (*filename == '\0')
+	if (handle == NULL || file == NULL)
 		return FALSE;
 
-	/* Open the file and work through it using the config file handling library. */
+	discfile_start_section(file, DISCFILE_OBJECTDB_SECTION);
+	discfile_write_blob(file, "OBJS", (byte *) handle->list, handle->objects * sizeof(struct object));
+	textdump_save_file(handle->text, file);
+	discfile_end_section(file);
 
-	file = fopen(filename, "w");
-
-	if (file == NULL)
-		return FALSE;
-
-	fprintf(file, "# >Buttons\n#\n# Saved by Launcher.\n");
-
-	for (current = 0; current < objdb_apps; current++) {
-		fprintf(file, "\n[%s]\n", objdb_list[current].name);
-		fprintf(file, "XPos: %d\n", objdb_list[current].x);
-		fprintf(file, "YPos: %d\n", objdb_list[current].y);
-		fprintf(file, "Sprite: %s\n", objdb_list[current].sprite);
-		fprintf(file, "RunPath: %s\n", objdb_list[current].command);
-		fprintf(file, "Boot: %s\n", config_return_opt_string(objdb_list[current].filer_boot));
-	}
-
-	fclose(file);
-#endif
 	return TRUE;
 }
 

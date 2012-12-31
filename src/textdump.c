@@ -50,6 +50,8 @@
 
 #include "textdump.h"
 
+#include "discfile.h"
+
 
 #define TEXTDUMP_ALLOCATION 1024						/**< The default allocation block size.					*/
 
@@ -299,5 +301,15 @@ static int textdump_make_hash(struct textdump_block *handle, char *text)
 		hash += text[i];
 
 	return hash % handle->hashes;
+}
+
+void textdump_save_file(struct textdump_block *handle, struct discfile_block *file)
+{
+	if (handle == NULL || file == NULL)
+		return;
+
+	discfile_write_blob(file, "DMPT", handle->text, handle->free);
+	if (handle->hash != NULL)
+		discfile_write_blob(file, "DMPH", handle->hash, handle->hashes * sizeof(unsigned));
 }
 

@@ -32,6 +32,7 @@
 
 #include "oslib/osgbpb.h"
 
+#include "discfile.h"
 #include "file.h"
 
 #define OBJDB_NULL_KEY 0xffffffffu
@@ -148,13 +149,13 @@ osbool objdb_load_file(char *leaf_name);
 
 
 /**
- * Save the contents of the buttons database into a buttons file.
+ * Save the contents of the database into a discfile.
  *
- * \param *leaf_name		The file leafname to save to.
+ * \param *handle		The database to be saved.
  * \return			TRUE on success; else FALSE.
  */
 
-osbool objdb_save_file(char *leaf_name);
+osbool objdb_save_file(struct objdb_block *handle, struct discfile_block *file);
 
 
 /**

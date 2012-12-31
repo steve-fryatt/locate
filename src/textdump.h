@@ -64,6 +64,8 @@
 #include "oslib/types.h"
 #include "flex.h"
 
+#include "discfile.h"
+
 struct textdump_block;
 
 
@@ -133,6 +135,8 @@ size_t textdump_get_size(struct textdump_block *handle);
  */
 
 unsigned textdump_store(struct textdump_block *handle, char *text);
+
+void textdump_save_file(struct textdump_block *handle, struct discfile_block *file);
 
 #endif
 
