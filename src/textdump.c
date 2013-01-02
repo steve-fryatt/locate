@@ -308,8 +308,11 @@ void textdump_save_file(struct textdump_block *handle, struct discfile_block *fi
 	if (handle == NULL || file == NULL)
 		return;
 
-	discfile_write_blob(file, "DMPT", handle->text, handle->free);
-	if (handle->hash != NULL)
-		discfile_write_blob(file, "DMPH", handle->hash, handle->hashes * sizeof(unsigned));
+	discfile_start_chunk(file, DISCFILE_BLOB_CHUNK, "TEXT");
+
+	//discfile_write_blob(file, "DMPT", handle->text, handle->free);
+	//if (handle->hash != NULL)
+	//	discfile_write_blob(file, "DMPH", handle->hash, handle->hashes * sizeof(unsigned));
+	discfile_end_chunk(file);
 }
 

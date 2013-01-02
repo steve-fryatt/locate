@@ -1726,9 +1726,11 @@ static osbool results_save_result_data(char *filename, osbool selection, void *d
 	objdb_save_file(handle->objects, out);
 
 	discfile_start_section(out, DISCFILE_RESULTS_SECTION);
-	discfile_write_blob(out, "HEAD", (byte *) handle, sizeof(struct results_window));
-	discfile_write_string(out, "TITL", title);
-	discfile_write_blob(out, "LINE", (byte *) handle->redraw, handle->redraw_lines * sizeof(struct results_line));
+	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "RSLT");
+	//discfile_write_blob(out, "HEAD", (byte *) handle, sizeof(struct results_window));
+	//discfile_write_string(out, "TITL", title);
+	//discfile_write_blob(out, "LINE", (byte *) handle->redraw, handle->redraw_lines * sizeof(struct results_line));
+	discfile_end_chunk(out);
 	textdump_save_file(handle->text, out);
 	discfile_end_section(out);
 

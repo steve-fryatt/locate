@@ -90,7 +90,38 @@ void discfile_end_section(struct discfile_block *handle);
 
 
 /**
- * Write a binary chunk to disc, into an already open section of a file.
+ * Open a new chunk in a disc file, ready for data to be written to it.
+ *
+ * \param *handle		The discfile handle to be written to.
+ * \param type			The section type for the new section.
+ */
+
+void discfile_start_chunk(struct discfile_block *handle, enum discfile_chunk_type type, char *id);
+
+
+/**
+ * Close an already open chunk of a discfile, updating the chunk header
+ * appropriately.
+ *
+ * \param *handle		The discfile handle to be written to.
+ */
+
+void discfile_end_chunk(struct discfile_block *handle);
+
+
+/**
+ * Write a string chunk to disc, into an already open chunk of a file.
+ *
+ * \param *handle		The discfile handle to be written to.
+ * \param *id			The ID (1-4 characters) for the chunk.
+ * \param *text			Pointer to the text to be written.
+ */
+
+void discfile_write_string(struct discfile_block *handle, char *text);
+
+
+/**
+ * Write generic chunk data to disc, into an already open chunk of a file.
  *
  * \param *handle		The discfile handle to be written to.
  * \param *id			The ID (1-4 characters) for the chunk.
@@ -98,18 +129,7 @@ void discfile_end_section(struct discfile_block *handle);
  * \param size			The number of bytes to be written.
  */
 
-void discfile_write_blob(struct discfile_block *handle, char *id, byte *data, unsigned size);
-
-
-/**
- * Write a string chunk to disc, into an already open section of a file.
- *
- * \param *handle		The discfile handle to be written to.
- * \param *id			The ID (1-4 characters) for the chunk.
- * \param *text			Pointer to the text to be written.
- */
-
-void discfile_write_string(struct discfile_block *handle, char *id, char *text);
+void discfile_write_chunk(struct discfile_block *handle, byte *data, unsigned size);
 
 
 /**
