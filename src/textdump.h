@@ -136,6 +136,15 @@ size_t textdump_get_size(struct textdump_block *handle);
 
 unsigned textdump_store(struct textdump_block *handle, char *text);
 
+
+/**
+ * Save the text from a text dump into a file chunk.
+ *
+ * \param *handle		The handle of the text dump to be saved.
+ * \param *file			The file to be saved, which should have an
+ *				open section.
+ */
+
 void textdump_save_file(struct textdump_block *handle, struct discfile_block *file);
 
 #endif

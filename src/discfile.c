@@ -358,34 +358,27 @@ void discfile_end_chunk(struct discfile_block *handle)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * Write a string chunk to disc, into an already open chunk of a file.
  *
  * \param *handle		The discfile handle to be written to.
  * \param *id			The ID (1-4 characters) for the chunk.
  * \param *text			Pointer to the text to be written.
+ * \return			Pointer to the byte after the string terminator.
  */
 
-void discfile_write_string(struct discfile_block *handle, char *text)
+char *discfile_write_string(struct discfile_block *handle, char *text)
 {
-	if (text == NULL)
-		return;
+	unsigned	length;
 
-	discfile_write_chunk(handle, (byte *) text, strlen(text) + 1);
+	if (text == NULL)
+		return NULL;
+
+	length = strlen(text) + 1;
+
+	discfile_write_chunk(handle, (byte *) text, length);
+
+	return text + length;
 }
 
 

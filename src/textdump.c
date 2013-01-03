@@ -303,16 +303,34 @@ static int textdump_make_hash(struct textdump_block *handle, char *text)
 	return hash % handle->hashes;
 }
 
+
+/**
+ * Save the text from a text dump into a file chunk.
+ *
+ * \param *handle		The handle of the text dump to be saved.
+ * \param *file			The file to be saved, which should have an
+ *				open section.
+ */
+
 void textdump_save_file(struct textdump_block *handle, struct discfile_block *file)
 {
+	char	*ptr, *end;
+
 	if (handle == NULL || file == NULL)
 		return;
 
 	discfile_start_chunk(file, DISCFILE_BLOB_CHUNK, "TEXT");
 
-	//discfile_write_blob(file, "DMPT", handle->text, handle->free);
-	//if (handle->hash != NULL)
-	//	discfile_write_blob(file, "DMPH", handle->hash, handle->hashes * sizeof(unsigned));
+	ptr = (char *) handle->text;
+	end = (char *) handle->text + handle->free;
+
+	while (ptr < end) {
+		if (handle->hash != NULL)
+			ptr = (char *) (((int) ptr + (2 * sizeof(unsigned)) - 1) & 0xfffffffc);
+
+		ptr = discfile_write_string(file, ptr);
+	}
+
 	discfile_end_chunk(file);
 }
 

@@ -487,7 +487,7 @@ osbool objdb_save_file(struct objdb_block *handle, struct discfile_block *file)
 
 	discfile_start_section(file, DISCFILE_OBJECTDB_SECTION);
 	discfile_start_chunk(file, DISCFILE_BLOB_CHUNK, "OBJS");
-	//discfile_write_blob(file, "OBJS", (byte *) handle->list, handle->objects * sizeof(struct object));
+	discfile_write_chunk(file, (byte *) handle->list, handle->objects * sizeof(struct object));
 	discfile_end_chunk(file);
 	textdump_save_file(handle->text, file);
 	discfile_end_section(file);

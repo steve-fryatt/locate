@@ -115,9 +115,10 @@ void discfile_end_chunk(struct discfile_block *handle);
  * \param *handle		The discfile handle to be written to.
  * \param *id			The ID (1-4 characters) for the chunk.
  * \param *text			Pointer to the text to be written.
+ * \return			Pointer to the byte after the string terminator.
  */
 
-void discfile_write_string(struct discfile_block *handle, char *text);
+char *discfile_write_string(struct discfile_block *handle, char *text);
 
 
 /**
