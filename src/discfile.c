@@ -337,22 +337,26 @@ void discfile_end_chunk(struct discfile_block *handle)
 	if (chunk.magic_word != DISCFILE_CHUNK_MAGIC_WORD)
 		return;
 
-	/* If the data wasn't a multiple of four bytes, pad the chunk out with zeros. */
+	/* Calculate the current chunk size, and then round up to a word multiple. */
 
 	size = ptr - handle->chunk;
 	chunk.size = WORDALIGN(size);
 
-	if (size != chunk.size) {
-		error = xosgbpb_writew(handle->handle, (byte *) &zero, chunk.size - size, &unwritten);
-		if (error != NULL || unwritten != 0)
-			return;
-	}
+	debug_printf("Chunk size = %d, rounded = %d", size, chunk.size);
 
 	/* Write the modified chunk header. */
 
 	error = xosgbpb_write_atw(handle->handle, (byte *) &chunk, sizeof(struct discfile_chunk), handle->chunk, &unwritten);
 	if (error != NULL || unwritten != 0)
 		return;
+
+	/* If the data wasn't a multiple of four bytes, pad the chunk out with zeros. */
+
+	if (size != chunk.size) {
+		error = xosgbpb_write_atw(handle->handle, (byte *) &zero, chunk.size - size, ptr, &unwritten);
+		if (error != NULL || unwritten != 0)
+			return;
+	}
 
 	handle->chunk = 0;
 }
