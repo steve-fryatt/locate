@@ -176,6 +176,7 @@ struct results_line {
 	unsigned		index;						/**< Sort indirection index. UNCONNECTED TO REMAINING DATA.		*/
 };
 
+
 /** A data structure defining a results window. */
 
 struct results_window {
@@ -214,6 +215,22 @@ struct results_window {
 
 	wimp_w			window;						/**< The window handle.							*/
 	wimp_w			status;						/**< The status bar handle.						*/
+};
+
+
+/** File data structure for saving results lines. */
+
+struct results_file_block {
+	enum results_line_type	type;						/**< The type of line.							*/
+
+	enum results_line_flags	flags;						/**< Any flags relating to the line.					*/
+
+	unsigned		parent;						/**< The parent line for a group (points to itself for the parent).	*/
+
+	unsigned		data;						/**< Data (text offset; object key) for the line.			*/
+	unsigned		sprite;						/**< Text offset for the display icon's sprite name.			*/
+
+	wimp_colour		colour;						/**< The foreground colour of the text.					*/
 };
 
 
@@ -1708,8 +1725,9 @@ static char *results_create_address_string(unsigned load_addr, unsigned exec_add
 
 static osbool results_save_result_data(char *filename, osbool selection, void *data)
 {
-	struct results_window	*handle = (struct results_window *) data;
-	struct discfile_block	*out;
+	struct results_window		*handle = (struct results_window *) data;
+	struct results_file_block	block;
+	struct discfile_block		*out;
 
 	int			i;
 	char			*title;
@@ -1731,28 +1749,37 @@ static osbool results_save_result_data(char *filename, osbool selection, void *d
 
 	discfile_start_section(out, DISCFILE_RESULTS_SECTION);
 	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "RSLT");
-	//discfile_write_blob(out, "HEAD", (byte *) handle, sizeof(struct results_window));
-	//discfile_write_string(out, "TITL", title);
-	//discfile_write_blob(out, "LINE", (byte *) handle->redraw, handle->redraw_lines * sizeof(struct results_line));
+	for (i = 0; i < handle->redraw_lines; i++) {
+		if (handle->redraw[i].type != RESULTS_LINE_TEXT && handle->redraw[i].type != RESULTS_LINE_FILENAME)
+			continue;
 
-#if 0
-	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "6464");
-	discfile_write_chunk(out, buffer, 64);
+		block.type = handle->redraw[i].type;
+		block.flags = handle->redraw[i].flags;
+		block.parent = handle->redraw[i].parent;
+		block.colour = handle->redraw[i].colour;
+
+		switch (handle->redraw[i].type) {
+		case RESULTS_LINE_TEXT:
+			block.data = handle->redraw[i].text;
+			block.sprite = handle->redraw[i].sprite;
+			break;
+
+		case RESULTS_LINE_FILENAME:
+			block.data = handle->redraw[i].file;
+			block.sprite = handle->redraw[i].sprite;
+			break;
+
+		default:
+			block.data = RESULTS_NULL;
+			block.sprite = RESULTS_NULL;
+			break;
+		}
+
+		discfile_write_chunk(out, (byte *) &block, sizeof(struct results_file_block));
+	}
+
 	discfile_end_chunk(out);
-	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "6363");
-	discfile_write_chunk(out, buffer, 63);
-	discfile_end_chunk(out);
-	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "6262");
-	discfile_write_chunk(out, buffer, 62);
-	discfile_end_chunk(out);
-	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "6161");
-	discfile_write_chunk(out, buffer, 61);
-	discfile_end_chunk(out);
-	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "6060");
-	discfile_write_chunk(out, buffer, 60);
-#endif
-	discfile_end_chunk(out);
-	//textdump_save_file(handle->text, out);
+	textdump_save_file(handle->text, out);
 	discfile_end_section(out);
 
 	discfile_close(out);
