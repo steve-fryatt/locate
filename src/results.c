@@ -1318,10 +1318,6 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 	handle->redraw[offset].text = RESULTS_NULL;
 	handle->redraw[offset].file = OBJDB_NULL_KEY;
 	handle->redraw[offset].sprite = RESULTS_NULL;
-//	handle->redraw[offset].size = RESULTS_NULL;
-//	handle->redraw[offset].type = RESULTS_NULL;
-//	handle->redraw[offset].attributes = RESULTS_NULL;
-//	handle->redraw[offset].date = RESULTS_NULL;
 	handle->redraw[offset].truncate = 0;
 	handle->redraw[offset].colour = wimp_COLOUR_BLACK;
 
