@@ -1712,7 +1712,8 @@ static osbool results_save_result_data(char *filename, osbool selection, void *d
 	struct discfile_block	*out;
 
 	int			i;
-	char			*title, buffer[1024]; // \TODO -- Allocate properly!
+	char			*title;
+	unsigned		 buffer[1024]; // \TODO -- Allocate properly!
 
 	if (handle == NULL)
 		return FALSE;
@@ -1720,6 +1721,9 @@ static osbool results_save_result_data(char *filename, osbool selection, void *d
 	out = discfile_open_write(filename);
 	if (out == NULL)
 		return FALSE;
+
+	for (i = 0; i < 16; i++)
+		buffer[i] = i * 0x11111111u;
 
 	title = windows_get_indirected_title_addr(handle->window);
 
@@ -1730,8 +1734,25 @@ static osbool results_save_result_data(char *filename, osbool selection, void *d
 	//discfile_write_blob(out, "HEAD", (byte *) handle, sizeof(struct results_window));
 	//discfile_write_string(out, "TITL", title);
 	//discfile_write_blob(out, "LINE", (byte *) handle->redraw, handle->redraw_lines * sizeof(struct results_line));
+
+#if 0
+	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "6464");
+	discfile_write_chunk(out, buffer, 64);
 	discfile_end_chunk(out);
-	textdump_save_file(handle->text, out);
+	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "6363");
+	discfile_write_chunk(out, buffer, 63);
+	discfile_end_chunk(out);
+	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "6262");
+	discfile_write_chunk(out, buffer, 62);
+	discfile_end_chunk(out);
+	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "6161");
+	discfile_write_chunk(out, buffer, 61);
+	discfile_end_chunk(out);
+	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "6060");
+	discfile_write_chunk(out, buffer, 60);
+#endif
+	discfile_end_chunk(out);
+	//textdump_save_file(handle->text, out);
 	discfile_end_section(out);
 
 	discfile_close(out);

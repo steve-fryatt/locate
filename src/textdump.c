@@ -324,11 +324,14 @@ void textdump_save_file(struct textdump_block *handle, struct discfile_block *fi
 	ptr = (char *) handle->text;
 	end = (char *) handle->text + handle->free;
 
+	if (handle->hash != NULL)
+		ptr += sizeof(unsigned);
+
 	while (ptr < end) {
+		ptr = discfile_write_string(file, ptr);
+
 		if (handle->hash != NULL)
 			ptr = (char *) (((int) ptr + (2 * sizeof(unsigned)) - 1) & 0xfffffffc);
-
-		ptr = discfile_write_string(file, ptr);
 	}
 
 	discfile_end_chunk(file);
