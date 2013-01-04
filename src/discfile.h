@@ -43,16 +43,17 @@ enum discfile_format {
 };
 
 enum discfile_section_type {
-	DISCFILE_UNKNOWN_SECTION = 0,						/**< The section type is unknown.			*/
-	DISCFILE_OBJECTDB_SECTION = 1,						/**< The section contains an object database.		*/
-	DISCFILE_RESULTS_SECTION = 2,						/**< The section contains a results window definition.	*/
-	DISCFILE_SEARCH_SECTION = 3						/**< The section contains search settings.		*/
+	DISCFILE_SECTION_UNKNOWN = 0,						/**< The section type is unknown.			*/
+	DISCFILE_SECTION_OBJECTDB = 1,						/**< The section contains an object database.		*/
+	DISCFILE_SECTION_RESULTS = 2,						/**< The section contains a results window definition.	*/
+	DISCFILE_SECTION_SEARCH = 3						/**< The section contains search settings.		*/
 };
 
 enum discfile_chunk_type {
-	DISCFILE_UNKNOWN_CHUNK = 0,						/**< The chunk type is unknown.				*/
-	DISCFILE_BLOB_CHUNK = 1,						/**< The chunk type is a binary object.			*/
-	DISCFILE_TEXT_CHUNK = 2							/**< The chunk type is a text string.			*/
+	DISCFILE_CHUNK_UNKNOWN = 0,						/**< The chunk type is unknown.				*/
+	DISCFILE_CHUNK_TEXTDUMP = 1,						/**< The chunk contains the contents of a textdump.	*/
+	DISCFILE_CHUNK_OBJECTS = 2,						/**< The chunk contains objects from an ObjectDB.	*/
+	DISCFILE_CHUNK_RESULTS = 3						/**< The chunk contains entries from a results window.	*/
 };
 
 
@@ -96,7 +97,7 @@ void discfile_end_section(struct discfile_block *handle);
  * \param type			The section type for the new section.
  */
 
-void discfile_start_chunk(struct discfile_block *handle, enum discfile_chunk_type type, char *id);
+void discfile_start_chunk(struct discfile_block *handle, enum discfile_chunk_type type);
 
 
 /**

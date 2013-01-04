@@ -485,8 +485,8 @@ osbool objdb_save_file(struct objdb_block *handle, struct discfile_block *file)
 	if (handle == NULL || file == NULL)
 		return FALSE;
 
-	discfile_start_section(file, DISCFILE_OBJECTDB_SECTION);
-	discfile_start_chunk(file, DISCFILE_BLOB_CHUNK, "OBJS");
+	discfile_start_section(file, DISCFILE_SECTION_OBJECTDB);
+	discfile_start_chunk(file, DISCFILE_CHUNK_OBJECTS);
 	discfile_write_chunk(file, (byte *) handle->list, handle->objects * sizeof(struct object));
 	discfile_end_chunk(file);
 	textdump_save_file(handle->text, file);

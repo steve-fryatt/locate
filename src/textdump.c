@@ -319,7 +319,7 @@ void textdump_save_file(struct textdump_block *handle, struct discfile_block *fi
 	if (handle == NULL || file == NULL)
 		return;
 
-	discfile_start_chunk(file, DISCFILE_BLOB_CHUNK, "TEXT");
+	discfile_start_chunk(file, DISCFILE_CHUNK_TEXTDUMP);
 
 	ptr = (char *) handle->text;
 	end = (char *) handle->text + handle->free;

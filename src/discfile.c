@@ -97,14 +97,13 @@ struct discfile_section {
 struct discfile_chunk {
 	unsigned			magic_word;				/**< The chunk magic word.					*/
 	enum discfile_chunk_type	type;					/**< The chunk type identifier.					*/
-	unsigned			id;					/**< The chunk ID word.						*/
 	unsigned			size;					/**< The overall chunk size (bytes).				*/
+	unsigned			flags;					/**< The overall chunk flags (reserved and always zero).	*/
 };
 
 
 static void	discfile_read_header(struct discfile_block *handle);
 static void	discfile_write_header(struct discfile_block *handle);
-static unsigned	discfile_make_id(char *code);
 
 /**
  * Open a new file for writing and return its handle.
@@ -270,7 +269,7 @@ void discfile_end_section(struct discfile_block *handle)
  * \param type			The section type for the new section.
  */
 
-void discfile_start_chunk(struct discfile_block *handle, enum discfile_chunk_type type, char *id)
+void discfile_start_chunk(struct discfile_block *handle, enum discfile_chunk_type type)
 {
 	struct discfile_chunk		chunk;
 	int				ptr, unwritten;
@@ -283,8 +282,8 @@ void discfile_start_chunk(struct discfile_block *handle, enum discfile_chunk_typ
 
 	chunk.magic_word = DISCFILE_CHUNK_MAGIC_WORD;
 	chunk.type = type;
-	chunk.id = discfile_make_id(id);
 	chunk.size = 0;
+	chunk.flags = 0;
 
 	/* Get the curent file position. */
 
@@ -502,25 +501,5 @@ void discfile_close(struct discfile_block *handle)
 		xosfind_closew(handle->handle);
 
 	heap_free(handle);
-}
-
-
-/**
- * Return a four-byte word containing an ID code, made up from the first four
- * characters in a string.
- *
- * \param *code			The string to use for the code.
- * \return			The numeric ID code.
- */
-
-static unsigned discfile_make_id(char *code)
-{
-	unsigned	id = 0;
-	int		i;
-
-	for (i = 0; i < 4 && code[i] != '\0'; i++)
-		id += (code[i] << (8 * i));
-
-	return id;
 }
 

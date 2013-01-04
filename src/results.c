@@ -1743,8 +1743,8 @@ static osbool results_save_result_data(char *filename, osbool selection, void *d
 
 	objdb_save_file(handle->objects, out);
 
-	discfile_start_section(out, DISCFILE_RESULTS_SECTION);
-	discfile_start_chunk(out, DISCFILE_BLOB_CHUNK, "RSLT");
+	discfile_start_section(out, DISCFILE_SECTION_RESULTS);
+	discfile_start_chunk(out, DISCFILE_CHUNK_RESULTS);
 	for (i = 0; i < handle->redraw_lines; i++) {
 		if (handle->redraw[i].type != RESULTS_LINE_TEXT && handle->redraw[i].type != RESULTS_LINE_FILENAME)
 			continue;
