@@ -75,7 +75,12 @@ struct discfile_block {
 	enum discfile_format		format;					/**< The format of the file.					*/
 	int				section;				/**< File ptr to the current section, or 0 for none.		*/
 	int				chunk;					/**< File ptr to the current chunk, or 0 for none.		*/
+	char				*error_token;				/**< Pointer to a MessageTrans token for an error, or NULL.	*/
 };
+
+/**
+ * Locate 1 and Locate 2 file header.
+ */
 
 struct discfile_header {
 	unsigned			magic_word;				/**< The file magic word.					*/
@@ -102,8 +107,9 @@ struct discfile_chunk {
 };
 
 
-static void	discfile_read_header(struct discfile_block *handle);
 static void	discfile_write_header(struct discfile_block *handle);
+static void	discfile_read_header(struct discfile_block *handle);
+static void discfile_validate_structure(struct discfile_block *handle);
 
 /**
  * Open a new file for writing and return its handle.
@@ -133,6 +139,7 @@ struct discfile_block *discfile_open_write(char *filename)
 	new->chunk = 0;
 	new->mode = DISCFILE_WRITE;
 	new->format = DISCFILE_UNKNOWN_FORMAT;
+	new->error_token = NULL;
 
 	discfile_write_header(new);
 
@@ -440,8 +447,22 @@ struct discfile_block *discfile_open_read(char *filename)
 	new->chunk = 0;
 	new->mode = DISCFILE_READ;
 	new->format = DISCFILE_UNKNOWN_FORMAT;
+	new->error_token = NULL;
 
 	discfile_read_header(new);
+
+	switch (new->format) {
+	case DISCFILE_LOCATE1:
+		new->error_token = "BadFile";
+		break;
+	case DISCFILE_LOCATE2:
+		discfile_validate_structure(new);
+		break;
+	default:
+		if (new->error_token == NULL)
+			new->error_token = "BadFile";
+		break;
+	}
 
 	return new;
 }
@@ -450,6 +471,11 @@ struct discfile_block *discfile_open_read(char *filename)
 /**
  * Read the header from a disc-based file, and update the data in the block
  * to reflect the file contents.
+ *
+ * On return, handle->format will be set appropriately, while handle->error_token
+ * will be pointing to an error token if an error occurred.
+ *
+ * \param *handle		The handle of the file block to process.
  */
 
 static void discfile_read_header(struct discfile_block *handle)
@@ -458,31 +484,151 @@ static void discfile_read_header(struct discfile_block *handle)
 	int				unread;
 	os_error			*error;
 
-	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ)
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ) {
+		if (handle != NULL)
+			handle->error_token = "FileError";
 		return;
+	}
 
 	/* Read the file header.  If this fails, give up with an unknown format. */
 
 	error = xosgbpb_read_atw(handle->handle, (byte *) &header, sizeof(struct discfile_header), 0, &unread);
-	if (error != NULL || unread != 0)
+	if (error != NULL || unread != 0) {
+		handle->error_token = "FileError";
 		return;
+	}
 
 	/* The first word of the header should be a magic word to identify it. */
 
-	if (header.magic_word != DISCFILE_FILE_MAGIC_WORD)
+	if (header.magic_word != DISCFILE_FILE_MAGIC_WORD) {
+		handle->error_token = "FileUnrec";
 		return;
+	}
 
 	/* There are only two valid formats. */
 
-	if (header.format != DISCFILE_LOCATE1 && header.format != DISCFILE_LOCATE2)
+	if (header.format != DISCFILE_LOCATE1 && header.format != DISCFILE_LOCATE2) {
+		handle->error_token = "FileUnrec";
 		return;
+	}
 
 	/* The flags are reserved, and should always be zero. */
 
-	if (header.flags != 0)
+	if (header.flags != 0) {
+		handle->error_token = "FileUnrec";
 		return;
+	}
 
 	handle->format = header.format;
+}
+
+
+/**
+ * Walk through a Locate 2 file, checking that all of the sections and chunks
+ * add up and are consistant in size.
+ *
+ * On return, handle->format will be set appropriately, while handle->error_token
+ * will be pointing to an error token if an error occurred.
+ *
+ * \param *handle		The handle of the file block to process.
+ */
+
+static void discfile_validate_structure(struct discfile_block *handle)
+{
+	struct discfile_section		section;
+	struct discfile_chunk		chunk;
+	int				section_ptr, chunk_ptr, file_extent, unread;
+	os_error			*error;
+
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->format != DISCFILE_LOCATE2) {
+		if (handle != NULL)
+			handle->error_token = "FileError";
+		return;
+	}
+
+	handle->format = DISCFILE_UNKNOWN_FORMAT;
+
+	/* Get the file extent. */
+
+	error = xosargs_read_extw(handle->handle, &file_extent);
+	if (error != NULL) {
+		handle->error_token = "FileError";
+		return;
+	}
+
+	/* Walk through the sections of the file, checking that all of the sizes
+	 * make sense.
+	 */
+
+	section_ptr = sizeof(struct discfile_header);
+
+	while (section_ptr < file_extent) {
+		error = xosgbpb_read_atw(handle->handle, (byte *) &section, sizeof(struct discfile_section), section_ptr, &unread);
+		if (error != NULL || unread != 0) {
+			handle->error_token = "FileError";
+			return;
+		}
+
+		if (section.magic_word != DISCFILE_SECTION_MAGIC_WORD) {
+			handle->error_token = "FileUnrec";
+			return;
+		}
+
+		if (section.flags != 0) {
+			handle->error_token = "FileUnrec";
+			return;
+		}
+
+		/* Walk through the chunks in the section, checking that all of
+		 * the sizes make sense.
+		 */
+
+		chunk_ptr = section_ptr + sizeof(struct discfile_section);
+
+		while (chunk_ptr < section_ptr + section.size) {
+			error = xosgbpb_read_atw(handle->handle, (byte *) &chunk, sizeof(struct discfile_chunk), chunk_ptr, &unread);
+			if (error != NULL || unread != 0) {
+				handle->error_token = "FileError";
+				return;
+			}
+
+			if (chunk.magic_word != DISCFILE_CHUNK_MAGIC_WORD) {
+				handle->error_token = "FileUnrec";
+				return;
+			}
+
+			if (chunk.flags != 0) {
+				handle->error_token = "FileUnrec";
+				return;
+			}
+
+			chunk_ptr += chunk.size;
+		}
+
+		/* The end of the last chunk should align exactly with the end
+		 * of the current section.
+		 */
+
+		if (chunk_ptr != (section_ptr + section.size)) {
+			handle->error_token = "FileUnrec";
+			return;
+		}
+
+		section_ptr += section.size;
+	}
+
+	/* The end of the last section should align exactly with the end of the
+	 * file.
+	 */
+
+	if (section_ptr != file_extent) {
+		handle->error_token = "FileUnrec";
+		return;
+	}
+
+	handle->format = DISCFILE_LOCATE2;
 }
 
 

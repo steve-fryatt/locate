@@ -266,7 +266,12 @@ static osbool iconbar_icon_drop_handler(wimp_message *message)
 
 static osbool iconbar_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data)
 {
+	struct discfile_block	*in;
+
 	debug_printf("Load file %s", filename);
+
+	in = discfile_open_read(filename);
+	discfile_close(in);
 
 	return TRUE;
 }
