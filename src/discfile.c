@@ -633,6 +633,79 @@ static void discfile_validate_structure(struct discfile_block *handle)
 
 
 /**
+ * Open a section from a disc file, ready for chunks of data to be read from
+ * it.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param type			The type of the section to be opened.
+ */
+
+void discfile_open_section(struct discfile_block *handle, enum discfile_section_type type)
+{
+	struct discfile_section		section;
+	int				ptr, extent, unread;
+	os_error			*error;
+
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->section != 0 || handle->chunk != 0) {
+		if (handle != NULL)
+			handle->error_token = "FileError";
+		return;
+	}
+
+	/* The first section starts immediately following the file header. */
+
+	ptr = sizeof(struct discfile_header);
+
+	/* Get the file extent. */
+
+	error = xosargs_read_extw(handle->handle, &extent);
+	if (error != NULL) {
+		handle->error_token = "FileError";
+		return;
+	}
+
+	while (ptr < extent && handle->section == 0) {
+		error = xosgbpb_read_atw(handle->handle, (byte *) &section, sizeof(struct discfile_section), ptr, &unread);
+		if (error != NULL || unread != 0) {
+			handle->error_token = "FileError";
+			return;
+		}
+
+		if (section.magic_word != DISCFILE_SECTION_MAGIC_WORD || section.flags != 0) {
+			handle->error_token = "FileUnrec";
+			return;
+		}
+
+		if (section.type == type)
+			handle->section = ptr;
+		else
+			ptr += section.size;
+	}
+}
+
+
+/**
+ * Close a section from a disc file after reading from it.
+ *
+ * \param *handle		The discfile handle to be read from.
+ */
+
+void discfile_close_section(struct discfile_block *handle)
+{
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->section == 0 || handle->chunk != 0) {
+		if (handle != NULL)
+			handle->error_token = "FileError";
+		return;
+	}
+
+	handle->section = 0;
+}
+
+
+/**
  * Close a discfile and free any memory associated with it.
  *
  * \param *handle		The discfile handle to be closed.

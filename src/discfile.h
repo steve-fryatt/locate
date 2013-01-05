@@ -145,6 +145,26 @@ struct discfile_block *discfile_open_read(char *filename);
 
 
 /**
+ * Open a section from a disc file, ready for chunks of data to be read from
+ * it.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param type			The type of the section to be opened.
+ */
+
+void discfile_open_section(struct discfile_block *handle, enum discfile_section_type type);
+
+
+/**
+ * Close a section from a disc file after reading from it.
+ *
+ * \param *handle		The discfile handle to be read from.
+ */
+
+void discfile_close_section(struct discfile_block *handle);
+
+
+/**
  * Close a discfile and free any memory associated with it.
  *
  * \param *handle		The discfile handle to be closed.
