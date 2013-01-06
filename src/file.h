@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt
+/* Copyright 2012-2013, Stephen Fryatt
  *
  * This file is part of Locate:
  *
@@ -64,10 +64,12 @@ struct search_block *file_create_search(struct file_block *file, char *paths);
 
 
 /**
- * Create a new file block by loading in pre-saved results.
+ * Create a new file block by loading in pre-saved data.
+ *
+ * \param *filename		The file to be loaded.
  */
 
-void file_create_results(void);
+void file_create_from_saved(char *filename);
 
 
 /**

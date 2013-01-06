@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt
+/* Copyright 2012-2013, Stephen Fryatt
  *
  * This file is part of Locate:
  *
@@ -139,19 +139,21 @@ size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *inf
 
 
 /**
- * Load the contents of a button file into the buttons database.
+ * Load the contents of an object file into the database.
  *
- * \param *leaf_name		The file leafname to load.
- * \return			TRUE on success; else FALSE.
+ * \param *file			The file to which the database will belong.
+ * \param *load			The discfile handle to load from.
+ * \return			The new databse, or NULL on failure.
  */
 
-osbool objdb_load_file(char *leaf_name);
+struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_block *load);
 
 
 /**
  * Save the contents of the database into a discfile.
  *
  * \param *handle		The database to be saved.
+ * \param *file			The discfile handle to save to.
  * \return			TRUE on success; else FALSE.
  */
 

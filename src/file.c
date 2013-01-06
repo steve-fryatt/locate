@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt
+/* Copyright 2012-2013, Stephen Fryatt
  *
  * This file is part of Locate:
  *
@@ -185,16 +185,65 @@ struct search_block *file_create_search(struct file_block *file, char *paths)
 }
 
 
+
 /**
- * Create a new file block by loading in pre-saved results.
+ * Create a new file block by loading in pre-saved data.
+ *
+ * \param *filename		The file to be loaded.
  */
 
-void file_create_results(void)
+void file_create_from_saved(char *filename)
 {
-	struct file_block *new;
-	char title[128]; // \TODO -- Remove
-	int i;	// \TODO -- Remove
+	struct file_block	*new;
+	struct discfile_block	*load;
 
+	debug_printf("Load file %s", filename);
+
+	new = file_create();
+	if (new == NULL)
+		return;
+
+	load = discfile_open_read(filename);
+
+	/* Load an object database if there is one. */
+
+	if (discfile_open_section(load, DISCFILE_SECTION_OBJECTDB)) {
+		new->objects = objdb_load_file(new, load);
+		discfile_close_section(load);
+
+		if (new->objects == NULL) {
+			file_destroy(new);
+			discfile_close(load);
+			return;
+		}
+	}
+
+	/* Load the results window, if one is present and there's also an
+	 * object database.
+	 */
+
+	if (new->objects != NULL && discfile_open_section(load, DISCFILE_SECTION_RESULTS)) {
+		new->results = results_load_file(new, new->objects, load);
+		discfile_close_section(load);
+
+		if (new->results == NULL) {
+			file_destroy(new);
+			discfile_close(load);
+		}
+	}
+
+	/* Load the search settings, if present. */
+
+	if (discfile_open_section(load, DISCFILE_SECTION_SEARCH)) {
+		debug_printf("File contains a Search section.");
+
+		discfile_close_section(load);
+	}
+
+	discfile_close(load);
+
+
+#if 0
 	new = file_create();
 	if (new == NULL)
 		return;
@@ -212,21 +261,7 @@ void file_create_results(void)
 		file_destroy(new);
 		return;
 	}
-
-	/*
-	results_add_text(new->results, "This is some text", "small_unf", FALSE, wimp_COLOUR_RED);
-	results_add_text(new->results, "This is some more text", "small_1ca", FALSE, wimp_COLOUR_BLACK);
-	results_add_text(new->results, "A third text line", "file_1ca", TRUE, wimp_COLOUR_BLACK);
-	results_add_text(new->results, "And a foruth to finish off with", "small_xxx", FALSE, wimp_COLOUR_BLACK);
-	for (i = 0; i < 1000; i++) {
-		sprintf(title, "Dummy line %d", i);
-		results_add_text(new->results, title, "small_ffb", FALSE, wimp_COLOUR_DARK_BLUE);
-	}
-
-	results_reformat(new->results, FALSE);
-	*/
-
-	return;
+#endif
 }
 
 

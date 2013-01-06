@@ -415,61 +415,25 @@ size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *inf
 /**
  * Load the contents of an object file into the database.
  *
- * \param *leaf_name		The file leafname to load.
- * \return			TRUE on success; else FALSE.
+ * \param *file			The file to which the database will belong.
+ * \param *load			The discfile handle to load from.
+ * \return			The new databse, or NULL on failure.
  */
 
-osbool objdb_load_file(char *leaf_name)
+struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_block *load)
 {
-#if 0
-	int	result, current = -1;
-	char	token[1024], contents[1024], section[1024], filename[1024];
-	FILE	*file;
+	struct objdb_block	*handle;
 
-	/* Find a buttons file somewhere in the usual config locations. */
+	if (file == NULL || load == NULL)
+		return NULL;
 
-	config_find_load_file(filename, sizeof(filename), leaf_name);
+	handle = objdb_create(file);
 
-	if (*filename == '\0')
-		return FALSE;
+	if (handle == NULL)
+		return NULL;
 
-	/* Open the file and work through it using the config file handling library. */
 
-	file = fopen(filename, "r");
-
-	if (file == NULL)
-		return FALSE;
-
-	while ((result = config_read_token_pair(file, token, contents, section)) != sf_READ_CONFIG_EOF) {
-
-		/* A new section of the file, so create, initialise and link in a new button object. */
-
-		if (result == sf_READ_CONFIG_NEW_SECTION) {
-			current = objdb_new();
-
-			if (current != -1)
-				strncpy(objdb_list[current].name, section, OBJDB_NAME_LENGTH);
-		}
-
-		/* If there is a current button object, add the current piece of data to it. */
-
-		if (current != -1) {
-			if (strcmp(token, "XPos") == 0)
-				objdb_list[current].x = atoi(contents);
-			else if (strcmp(token, "YPos") == 0)
-				objdb_list[current].y = atoi(contents);
-			else if (strcmp(token, "Sprite") == 0)
-				strncpy(objdb_list[current].sprite, contents, OBJDB_SPRITE_LENGTH);
-			else if (strcmp(token, "RunPath") == 0)
-				strncpy(objdb_list[current].command, contents, OBJDB_COMMAND_LENGTH);
-			else if (strcmp(token, "Boot") == 0)
-				objdb_list[current].filer_boot = config_read_opt_string(contents);
-		}
-	}
-
-	fclose(file);
-#endif
-	return TRUE;
+	return handle;
 }
 
 
@@ -477,6 +441,7 @@ osbool objdb_load_file(char *leaf_name)
  * Save the contents of the database into a discfile.
  *
  * \param *handle		The database to be saved.
+ * \param *file			The discfile handle to save to.
  * \return			TRUE on success; else FALSE.
  */
 

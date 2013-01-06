@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt
+/* Copyright 2012-2013, Stephen Fryatt
  *
  * This file is part of Locate:
  *
@@ -263,15 +263,23 @@ static osbool iconbar_icon_drop_handler(wimp_message *message)
 }
 
 
+/**
+ * Handle attempts to load Locate files to the iconbar.
+ *
+ * \param w			The target window handle.
+ * \param i			The target icon handle.
+ * \param filetype		The filetype being loaded.
+ * \param *filename		The name of the file being loaded.
+ * \param *data			Unused NULL pointer.
+ * \return			TRUE on loading; FALSE on passing up.
+ */
 
 static osbool iconbar_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data)
 {
-	struct discfile_block	*in;
+	if (filetype != DISCFILE_LOCATE_FILETYPE)
+		return FALSE;
 
-	debug_printf("Load file %s", filename);
-
-	in = discfile_open_read(filename);
-	discfile_close(in);
+	file_create_from_saved(filename);
 
 	return TRUE;
 }

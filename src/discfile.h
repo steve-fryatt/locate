@@ -150,9 +150,10 @@ struct discfile_block *discfile_open_read(char *filename);
  *
  * \param *handle		The discfile handle to be read from.
  * \param type			The type of the section to be opened.
+ * \return			TRUE if the section was opened; else FALSE.
  */
 
-void discfile_open_section(struct discfile_block *handle, enum discfile_section_type type);
+osbool discfile_open_section(struct discfile_block *handle, enum discfile_section_type type);
 
 
 /**

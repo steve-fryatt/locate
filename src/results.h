@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt
+/* Copyright 2012-2013, Stephen Fryatt
  *
  * This file is part of Locate:
  *
@@ -65,6 +65,18 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
  */
 
 void results_destroy(struct results_window *handle);
+
+
+/**
+ * Load results data from a file and create a results window from it.
+ *
+ * \param *file			The file block to which the window belongs.
+ * \param *objects		The boject database from which file data should be taken.
+ * \param *load			The discfile from which to load the details
+ * \return			The results window handle, or NULL on failure.
+ */
+
+struct results_window *results_load_file(struct file_block *file, struct objdb_block *objects, struct discfile_block *load);
 
 
 /**
