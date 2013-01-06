@@ -166,6 +166,36 @@ void discfile_close_section(struct discfile_block *handle);
 
 
 /**
+ * Open a chunk from a disc file, ready for data to be read from it.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param type			The type of the chunk to be opened.
+ * \return			TRUE if the section was opened; else FALSE.
+ */
+
+osbool discfile_open_chunk(struct discfile_block *handle, enum discfile_chunk_type type);
+
+
+/**
+ * Close a chunk from a disc file after reading from it.
+ *
+ * \param *handle		The discfile handle to be read from.
+ */
+
+void discfile_close_chunk(struct discfile_block *handle);
+
+
+/**
+ * Return the size of the currently open chunk from a disc file.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \return			The number of bytes of data in the chunk.
+ */
+
+int discfile_chunk_size(struct discfile_block *handle);
+
+
+/**
  * Close a discfile and free any memory associated with it.
  *
  * \param *handle		The discfile handle to be closed.

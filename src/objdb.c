@@ -432,6 +432,19 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 	if (handle == NULL)
 		return NULL;
 
+	if (discfile_open_chunk(load, DISCFILE_CHUNK_OBJECTS)) {
+		debug_printf("Objects chunk size %d", discfile_chunk_size(load));
+
+		discfile_close_chunk(load);
+	}
+
+	if (discfile_open_chunk(load, DISCFILE_CHUNK_TEXTDUMP)) {
+		debug_printf("Textdump chunk size %d", discfile_chunk_size(load));
+
+		discfile_close_chunk(load);
+	}
+
+
 
 	return handle;
 }

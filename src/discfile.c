@@ -76,6 +76,7 @@ struct discfile_block {
 	enum discfile_format		format;					/**< The format of the file.					*/
 	int				section;				/**< File ptr to the current section, or 0 for none.		*/
 	int				chunk;					/**< File ptr to the current chunk, or 0 for none.		*/
+	int				chunk_size;				/**< The size of the current chunk, or 0 for none.		*/
 	char				*error_token;				/**< Pointer to a MessageTrans token for an error, or NULL.	*/
 };
 
@@ -93,17 +94,34 @@ struct discfile_header {
  * Locate 2 Format structure handling.
  */
 
+/**
+ * The file consists of a sequence of sections, each a multiple of four bytes
+ * long and starting immediately after the file header.
+ *
+ * Section sizes are stored in the file as exact multiples of four, as sections
+ * should always be multiples of four.
+ */
+
 struct discfile_section {
 	unsigned			magic_word;				/**< The section magic word.					*/
 	enum discfile_section_type	type;					/**< The section type identifier.				*/
-	unsigned			size;					/**< The section size (bytes).					*/
+	unsigned			size;					/**< The section size (bytes), always a multiple of four.	*/
 	unsigned			flags;					/**< The overall section flags (reserved and always zero).	*/
 };
+
+/**
+ * Each section contains a sequence of chunks. Each is rounded up to a multiple
+ * of four bytes by adding up to three zero bytes if required.
+ *
+ * Chunk sizes are stored in the file unrounded, (and so consist of the header
+ * size plus the data size). Thus they might be up to three bytes less than the
+ * rounded chunk size.
+ */
 
 struct discfile_chunk {
 	unsigned			magic_word;				/**< The chunk magic word.					*/
 	enum discfile_chunk_type	type;					/**< The chunk type identifier.					*/
-	unsigned			size;					/**< The overall chunk size (bytes).				*/
+	unsigned			size;					/**< The unrounded chunk size (bytes), before rounding up.	*/
 	unsigned			flags;					/**< The overall chunk flags (reserved and always zero).	*/
 };
 
@@ -138,6 +156,7 @@ struct discfile_block *discfile_open_write(char *filename)
 
 	new->section = 0;
 	new->chunk = 0;
+	new->chunk_size = 0;
 	new->mode = DISCFILE_WRITE;
 	new->format = DISCFILE_UNKNOWN_FORMAT;
 	new->error_token = NULL;
@@ -320,7 +339,7 @@ void discfile_end_chunk(struct discfile_block *handle)
 {
 	struct discfile_chunk		chunk;
 	int				ptr, unread, unwritten;
-	unsigned			size, zero = 0;
+	unsigned			zero = 0;
 	os_error			*error;
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_WRITE ||
@@ -346,10 +365,9 @@ void discfile_end_chunk(struct discfile_block *handle)
 
 	/* Calculate the current chunk size, and then round up to a word multiple. */
 
-	size = ptr - handle->chunk;
-	chunk.size = WORDALIGN(size);
+	chunk.size = ptr - handle->chunk;
 
-	debug_printf("Chunk size = %d, rounded = %d", size, chunk.size);
+	debug_printf("Chunk size = %d, rounded = %d", chunk.size, WORDALIGN(chunk.size));
 
 	/* Write the modified chunk header. */
 
@@ -359,8 +377,8 @@ void discfile_end_chunk(struct discfile_block *handle)
 
 	/* If the data wasn't a multiple of four bytes, pad the chunk out with zeros. */
 
-	if (size != chunk.size) {
-		error = xosgbpb_write_atw(handle->handle, (byte *) &zero, chunk.size - size, ptr, &unwritten);
+	if (WORDALIGN(chunk.size) != chunk.size) {
+		error = xosgbpb_write_atw(handle->handle, (byte *) &zero, WORDALIGN(chunk.size) - chunk.size, ptr, &unwritten);
 		if (error != NULL || unwritten != 0)
 			return;
 	}
@@ -446,6 +464,7 @@ struct discfile_block *discfile_open_read(char *filename)
 
 	new->section = 0;
 	new->chunk = 0;
+	new->chunk_size = 0;
 	new->mode = DISCFILE_READ;
 	new->format = DISCFILE_UNKNOWN_FORMAT;
 	new->error_token = NULL;
@@ -622,7 +641,7 @@ static void discfile_validate_structure(struct discfile_block *handle)
 				return;
 			}
 
-			chunk_ptr += chunk.size;
+			chunk_ptr += WORDALIGN(chunk.size);
 		}
 
 		/* The end of the last chunk should align exactly with the end
@@ -732,6 +751,122 @@ void discfile_close_section(struct discfile_block *handle)
 	}
 
 	handle->section = 0;
+}
+
+
+/**
+ * Open a chunk from a disc file, ready for data to be read from it.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param type			The type of the chunk to be opened.
+ * \return			TRUE if the section was opened; else FALSE.
+ */
+
+osbool discfile_open_chunk(struct discfile_block *handle, enum discfile_chunk_type type)
+{
+	struct discfile_section		section;
+	struct discfile_chunk		chunk;
+	int				ptr, extent, unread;
+	os_error			*error;
+
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->section == 0 || handle->chunk != 0) {
+		if (handle != NULL) {
+			handle->error_token = "FileError";
+			handle->mode = DISCFILE_ERROR;
+		}
+		return FALSE;
+	}
+
+	/* The first chunk starts immediately following the section header. */
+
+	ptr = handle->section + sizeof(struct discfile_section);
+
+	/* Get the section extent. */
+
+	error = xosgbpb_read_atw(handle->handle, (byte *) &section, sizeof(struct discfile_section), handle->section, &unread);
+	if (error != NULL || unread != 0) {
+		handle->error_token = "FileError";
+		handle->mode = DISCFILE_ERROR;
+		return FALSE;
+	}
+
+	if (section.magic_word != DISCFILE_SECTION_MAGIC_WORD || section.flags != 0) {
+		handle->error_token = "FileUnrec";
+		handle->mode = DISCFILE_ERROR;
+		return FALSE;
+	}
+
+	extent = handle->section + section.size;
+
+	while (ptr < extent && handle->chunk == 0) {
+		error = xosgbpb_read_atw(handle->handle, (byte *) &chunk, sizeof(struct discfile_chunk), ptr, &unread);
+		if (error != NULL || unread != 0) {
+			handle->error_token = "FileError";
+			handle->mode = DISCFILE_ERROR;
+			return FALSE;
+		}
+
+		if (chunk.magic_word != DISCFILE_CHUNK_MAGIC_WORD || chunk.flags != 0) {
+			handle->error_token = "FileUnrec";
+			handle->mode = DISCFILE_ERROR;
+			return FALSE;
+		}
+
+		if (chunk.type == type) {
+			handle->chunk = ptr;
+			handle->chunk_size = chunk.size;
+		} else {
+			ptr += WORDALIGN(chunk.size);
+		}
+	}
+
+	return (handle->chunk == 0) ? FALSE : TRUE;
+}
+
+
+/**
+ * Close a chunk from a disc file after reading from it.
+ *
+ * \param *handle		The discfile handle to be read from.
+ */
+
+void discfile_close_chunk(struct discfile_block *handle)
+{
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->section == 0 || handle->chunk == 0) {
+		if (handle != NULL) {
+			handle->error_token = "FileError";
+			handle->mode = DISCFILE_ERROR;
+		}
+		return;
+	}
+
+	handle->chunk = 0;
+	handle->chunk_size = 0;
+}
+
+
+/**
+ * Return the size of the currently open chunk from a disc file.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \return			The number of bytes of data in the chunk.
+ */
+
+int discfile_chunk_size(struct discfile_block *handle)
+{
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->section == 0 || handle->chunk == 0) {
+		if (handle != NULL) {
+			handle->error_token = "FileError";
+			handle->mode = DISCFILE_ERROR;
+		}
+		return 0;
+	}
+
+	return handle->chunk_size - sizeof(struct discfile_chunk);
 }
 
 
