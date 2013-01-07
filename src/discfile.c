@@ -39,6 +39,7 @@
 
 /* OSLib Header files. */
 
+#include "oslib/fileswitch.h"
 #include "oslib/osargs.h"
 #include "oslib/osfind.h"
 #include "oslib/osgbpb.h"
@@ -391,7 +392,6 @@ void discfile_end_chunk(struct discfile_block *handle)
  * Write a string chunk to disc, into an already open chunk of a file.
  *
  * \param *handle		The discfile handle to be written to.
- * \param *id			The ID (1-4 characters) for the chunk.
  * \param *text			Pointer to the text to be written.
  * \return			Pointer to the byte after the string terminator.
  */
@@ -415,7 +415,6 @@ char *discfile_write_string(struct discfile_block *handle, char *text)
  * Write generic chunk data to disc, into an already open chunk of a file.
  *
  * \param *handle		The discfile handle to be written to.
- * \param *id			The ID (1-4 characters) for the chunk.
  * \param *data			Pointer to the first byte of data to be written.
  * \param size			The number of bytes to be written.
  */
@@ -867,6 +866,83 @@ int discfile_chunk_size(struct discfile_block *handle)
 	}
 
 	return handle->chunk_size - sizeof(struct discfile_chunk);
+}
+
+
+/**
+ * Read a string chunk from disc, out of an already open chunk of a file.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *text			Pointer to the text to be written.
+ * \return			Pointer to the byte after the string terminator.
+ */
+
+char *discfile_read_string(struct discfile_block *handle, char *text, size_t size)
+{
+	unsigned	length;
+	size_t		read = 0;
+
+	if (text == NULL)
+		return NULL;
+
+
+
+	length = strlen(text) + 1;
+
+	discfile_write_chunk(handle, (byte *) text, length);
+
+	return text + length;
+}
+
+
+/**
+ * Read a generic chunk data from disc, out of an already open chunk of a file.
+ *
+ * \param *handle		The discfile handle to be written to.
+ * \param *data			Pointer to the buffer into which to read the data.
+ * \param size			The number of bytes to be written.
+ */
+
+void discfile_read_chunk(struct discfile_block *handle, byte *data, unsigned size)
+{
+	int		unread;
+	os_error	*error;
+
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_WRITE ||
+			handle->section == 0 || handle->chunk == 0) {
+		if (handle != NULL) {
+			handle->error_token = "FileError";
+			handle->mode = DISCFILE_ERROR;
+		}
+		return;
+	}
+
+	/* Get the curent file position. */
+
+	error = xosargs_read_ptrw(handle->handle, &ptr);
+	if (error != NULL) {
+		handle-error_token = "FileError";
+		handle->mode = DISCFILE_ERROR;
+		return;
+	}
+
+	/* Check that there are enough bytes left in the chunk. */
+
+	if (size > (handle->chunk_end - ptr)) {
+		handle->error_token = "FileUnrec";
+		handle->mode = DISCFILE_ERROR;
+		return;
+	}
+
+	/* Read the contents. */
+
+	error = xosgbpb_readw(handle->handle, (byte *) data, size, &unread);
+	if (error != NULL || unread != 0) {
+		handle->error_token = "FileError";
+		handle->mode = DISCFILE_ERROR;
+		return;
+	}
 }
 
 

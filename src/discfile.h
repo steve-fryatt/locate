@@ -114,7 +114,6 @@ void discfile_end_chunk(struct discfile_block *handle);
  * Write a string chunk to disc, into an already open chunk of a file.
  *
  * \param *handle		The discfile handle to be written to.
- * \param *id			The ID (1-4 characters) for the chunk.
  * \param *text			Pointer to the text to be written.
  * \return			Pointer to the byte after the string terminator.
  */
@@ -126,7 +125,6 @@ char *discfile_write_string(struct discfile_block *handle, char *text);
  * Write generic chunk data to disc, into an already open chunk of a file.
  *
  * \param *handle		The discfile handle to be written to.
- * \param *id			The ID (1-4 characters) for the chunk.
  * \param *data			Pointer to the first byte of data to be written.
  * \param size			The number of bytes to be written.
  */
