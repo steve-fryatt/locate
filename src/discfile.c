@@ -916,7 +916,7 @@ char *discfile_read_string(struct discfile_block *handle, char *text, size_t siz
 	read = 0;
 
 	while (flags != 2 && read < max_bytes && error == NULL && (read == 0 || text[read - 1] != '\0'))
-		error = xos_bgetw(handle->handle, text + read++, &flags);
+		error = xos_bgetw(handle->handle, text + (read++), &flags);
 
 	if (error != NULL || read == 0) {
 		text[0] = '\0';
