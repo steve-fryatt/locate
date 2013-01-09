@@ -438,11 +438,7 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 		discfile_close_chunk(load);
 	}
 
-	if (discfile_open_chunk(load, DISCFILE_CHUNK_TEXTDUMP)) {
-		debug_printf("Textdump chunk size %d", discfile_chunk_size(load));
-
-		discfile_close_chunk(load);
-	}
+	textdump_load_file(handle->text, load);
 
 
 

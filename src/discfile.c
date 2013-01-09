@@ -874,24 +874,65 @@ int discfile_chunk_size(struct discfile_block *handle)
  *
  * \param *handle		The discfile handle to be read from.
  * \param *text			Pointer to the text to be written.
- * \return			Pointer to the byte after the string terminator.
+ * \return			Pointer to the next free byte in the buffer.
  */
 
 char *discfile_read_string(struct discfile_block *handle, char *text, size_t size)
 {
-	unsigned	length;
-	size_t		read = 0;
-
-	if (text == NULL)
-		return NULL;
+	int		read, max_bytes, ptr;
+	bits		flags;
+	os_error	*error;
 
 
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_WRITE ||
+			handle->section == 0 || handle->chunk == 0 || text == NULL) {
+		if (handle != NULL) {
+			handle->error_token = "FileError";
+			handle->mode = DISCFILE_ERROR;
+		}
+		return text;
+	}
 
-	length = strlen(text) + 1;
+	/* Get the curent file position. */
 
-	discfile_write_chunk(handle, (byte *) text, length);
+	error = xosargs_read_ptrw(handle->handle, &ptr);
+	if (error != NULL) {
+		handle->error_token = "FileError";
+		handle->mode = DISCFILE_ERROR;
+		return text;
+	}
 
-	return text + length;
+	/* Work out how many bytes can be read, based on the size of the
+	 * supplied buffer and the number of bytes left in the chunk.
+	 */
+
+	max_bytes = handle->chunk + handle->chunk_size - ptr;
+
+	if (max_bytes > size)
+		max_bytes = size;
+
+	/* Read the bytes in from disc. */
+
+	read = 0;
+
+	while (flags != 2 && read < max_bytes && error == NULL && (read == 0 || text[read - 1] != '\0'))
+		error = xos_bgetw(handle->handle, text + read++, &flags);
+
+	if (error != NULL || read == 0) {
+		text[0] = '\0';
+		handle->error_token = "FileError";
+		handle->mode = DISCFILE_ERROR;
+		return text + 1;
+	}
+
+	if (text[read - 1] != '\0') {
+		text[read - 1] = '\0';
+		handle->error_token = "FileUnrec";
+		handle->mode = DISCFILE_ERROR;
+		return text + read;
+	}
+
+	return text;
 }
 
 
@@ -900,17 +941,17 @@ char *discfile_read_string(struct discfile_block *handle, char *text, size_t siz
  *
  * \param *handle		The discfile handle to be written to.
  * \param *data			Pointer to the buffer into which to read the data.
- * \param size			The number of bytes to be written.
+ * \param size			The number of bytes to be read.
  */
 
 void discfile_read_chunk(struct discfile_block *handle, byte *data, unsigned size)
 {
-	int		unread;
+	int		unread, ptr;
 	os_error	*error;
 
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_WRITE ||
-			handle->section == 0 || handle->chunk == 0) {
+			handle->section == 0 || handle->chunk == 0 || data == NULL) {
 		if (handle != NULL) {
 			handle->error_token = "FileError";
 			handle->mode = DISCFILE_ERROR;
@@ -922,14 +963,14 @@ void discfile_read_chunk(struct discfile_block *handle, byte *data, unsigned siz
 
 	error = xosargs_read_ptrw(handle->handle, &ptr);
 	if (error != NULL) {
-		handle-error_token = "FileError";
+		handle->error_token = "FileError";
 		handle->mode = DISCFILE_ERROR;
 		return;
 	}
 
 	/* Check that there are enough bytes left in the chunk. */
 
-	if (size > (handle->chunk_end - ptr)) {
+	if (size > (handle->chunk + handle->chunk_size - ptr)) {
 		handle->error_token = "FileUnrec";
 		handle->mode = DISCFILE_ERROR;
 		return;
@@ -938,8 +979,14 @@ void discfile_read_chunk(struct discfile_block *handle, byte *data, unsigned siz
 	/* Read the contents. */
 
 	error = xosgbpb_readw(handle->handle, (byte *) data, size, &unread);
-	if (error != NULL || unread != 0) {
+	if (error != NULL) {
 		handle->error_token = "FileError";
+		handle->mode = DISCFILE_ERROR;
+		return;
+	}
+
+	if (unread != 0) {
+		handle->error_token = "FileUnrec";
 		handle->mode = DISCFILE_ERROR;
 		return;
 	}

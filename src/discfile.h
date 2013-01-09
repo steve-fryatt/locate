@@ -194,6 +194,28 @@ int discfile_chunk_size(struct discfile_block *handle);
 
 
 /**
+ * Read a string chunk from disc, out of an already open chunk of a file.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *text			Pointer to the text to be written.
+ * \return			Pointer to the next free byte in the buffer.
+ */
+
+char *discfile_read_string(struct discfile_block *handle, char *text, size_t size);
+
+
+/**
+ * Read a generic chunk data from disc, out of an already open chunk of a file.
+ *
+ * \param *handle		The discfile handle to be written to.
+ * \param *data			Pointer to the buffer into which to read the data.
+ * \param size			The number of bytes to be read.
+ */
+
+void discfile_read_chunk(struct discfile_block *handle, byte *data, unsigned size);
+
+
+/**
  * Close a discfile and free any memory associated with it.
  *
  * \param *handle		The discfile handle to be closed.

@@ -305,6 +305,37 @@ static int textdump_make_hash(struct textdump_block *handle, char *text)
 
 
 /**
+ * Load text from a file chunk into a text dump.
+ *
+ * \param *handle		The handle of the text dump to load into.
+ * \param *file			The file to be loaded from, which should have an
+ *				open section.
+ */
+
+void textdump_load_file(struct textdump_block *handle, struct discfile_block *file)
+{
+	size_t		size;
+	char		buffer[1024]; // \TODO -- Remove!
+
+	if (handle == NULL || file == NULL || !discfile_open_chunk(file, DISCFILE_CHUNK_TEXTDUMP))
+		return;
+
+	size = discfile_chunk_size(file);
+
+	debug_printf("Textdump chunk size %d", size);
+
+	while (size > 0) {
+		discfile_read_string(file, buffer, 1024);
+
+		size -= (strlen(buffer) + 1);
+
+		debug_printf("Read '%s', %d bytes remaining", buffer, size);
+	}
+
+	discfile_close_chunk(file);
+}
+
+/**
  * Save the text from a text dump into a file chunk.
  *
  * \param *handle		The handle of the text dump to be saved.

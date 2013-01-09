@@ -138,6 +138,17 @@ unsigned textdump_store(struct textdump_block *handle, char *text);
 
 
 /**
+ * Load text from a file chunk into a text dump.
+ *
+ * \param *handle		The handle of the text dump to load into.
+ * \param *file			The file to be loaded from, which should have an
+ *				open section.
+ */
+
+void textdump_load_file(struct textdump_block *handle, struct discfile_block *file);
+
+
+/**
  * Save the text from a text dump into a file chunk.
  *
  * \param *handle		The handle of the text dump to be saved.
