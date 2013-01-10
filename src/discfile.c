@@ -884,9 +884,11 @@ char *discfile_read_string(struct discfile_block *handle, char *text, size_t siz
 	os_error	*error;
 
 
-	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_WRITE ||
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			handle->section == 0 || handle->chunk == 0 || text == NULL) {
 		if (handle != NULL) {
+			if (text != NULL)
+				text[0] = '\0';
 			handle->error_token = "FileError";
 			handle->mode = DISCFILE_ERROR;
 		}
@@ -897,6 +899,7 @@ char *discfile_read_string(struct discfile_block *handle, char *text, size_t siz
 
 	error = xosargs_read_ptrw(handle->handle, &ptr);
 	if (error != NULL) {
+		text[0] = '\0';
 		handle->error_token = "FileError";
 		handle->mode = DISCFILE_ERROR;
 		return text;
@@ -950,7 +953,7 @@ void discfile_read_chunk(struct discfile_block *handle, byte *data, unsigned siz
 	os_error	*error;
 
 
-	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_WRITE ||
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			handle->section == 0 || handle->chunk == 0 || data == NULL) {
 		if (handle != NULL) {
 			handle->error_token = "FileError";

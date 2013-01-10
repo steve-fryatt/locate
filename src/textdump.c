@@ -329,6 +329,8 @@ void textdump_load_file(struct textdump_block *handle, struct discfile_block *fi
 
 		size -= (strlen(buffer) + 1);
 
+		textdump_store(handle, buffer);
+
 		debug_printf("Read '%s', %d bytes remaining", buffer, size);
 	}
 
