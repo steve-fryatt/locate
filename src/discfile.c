@@ -569,9 +569,7 @@ struct discfile_block *discfile_open_read(char *filename)
 		discfile_validate_structure(new);
 		break;
 	default:
-		if (new->error_token == NULL)
-			new->error_token = "BadFile";
-		new->mode = DISCFILE_ERROR;
+		discfile_set_error(new, "BadFile");
 		break;
 	}
 
@@ -1197,7 +1195,8 @@ void discfile_set_error(struct discfile_block *handle, char *token)
 	if (handle == NULL || token == NULL)
 		return;
 
-	handle->error_token = token;
+	if (handle->error_token == NULL)
+		handle->error_token = token;
 	handle->mode = DISCFILE_ERROR;
 }
 
