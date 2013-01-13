@@ -563,8 +563,7 @@ struct discfile_block *discfile_open_read(char *filename)
 
 	switch (new->format) {
 	case DISCFILE_LOCATE1:
-		new->error_token = "BadFile";
-		new->mode = DISCFILE_ERROR;
+		discfile_set_error(new, "BadFile");
 		break;
 	case DISCFILE_LOCATE2:
 		discfile_validate_structure(new);
@@ -597,10 +596,8 @@ static void discfile_read_header(struct discfile_block *handle)
 	os_error			*error;
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ) {
-		if (handle != NULL) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
-		}
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
 		return;
 	}
 
@@ -608,32 +605,28 @@ static void discfile_read_header(struct discfile_block *handle)
 
 	error = xosgbpb_read_atw(handle->handle, (byte *) &header, sizeof(struct discfile_header), 0, &unread);
 	if (error != NULL || unread != 0) {
-		handle->error_token = "FileError";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileError");
 		return;
 	}
 
 	/* The first word of the header should be a magic word to identify it. */
 
 	if (header.magic_word != DISCFILE_FILE_MAGIC_WORD) {
-		handle->error_token = "FileUnrec";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileUnrec");
 		return;
 	}
 
 	/* There are only two valid formats. */
 
 	if (header.format != DISCFILE_LOCATE1 && header.format != DISCFILE_LOCATE2) {
-		handle->error_token = "FileUnrec";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileUnrec");
 		return;
 	}
 
 	/* The flags are reserved, and should always be zero. */
 
 	if (header.flags != 0) {
-		handle->error_token = "FileUnrec";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileUnrec");
 		return;
 	}
 
@@ -661,10 +654,8 @@ static void discfile_validate_structure(struct discfile_block *handle)
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			handle->format != DISCFILE_LOCATE2) {
-		if (handle != NULL) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
-		}
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
 		return;
 	}
 
@@ -674,8 +665,7 @@ static void discfile_validate_structure(struct discfile_block *handle)
 
 	error = xosargs_read_extw(handle->handle, &file_extent);
 	if (error != NULL) {
-		handle->error_token = "FileError";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileError");
 		return;
 	}
 
@@ -688,20 +678,17 @@ static void discfile_validate_structure(struct discfile_block *handle)
 	while (section_ptr < file_extent) {
 		error = xosgbpb_read_atw(handle->handle, (byte *) &section, sizeof(struct discfile_section), section_ptr, &unread);
 		if (error != NULL || unread != 0) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
+			discfile_set_error(handle, "FileError");
 			return;
 		}
 
 		if (section.magic_word != DISCFILE_SECTION_MAGIC_WORD) {
-			handle->error_token = "FileUnrec";
-			handle->mode = DISCFILE_ERROR;
+			discfile_set_error(handle, "FileUnrec");
 			return;
 		}
 
 		if (section.flags != 0) {
-			handle->error_token = "FileUnrec";
-			handle->mode = DISCFILE_ERROR;
+			discfile_set_error(handle, "FileUnrec");
 			return;
 		}
 
@@ -714,20 +701,17 @@ static void discfile_validate_structure(struct discfile_block *handle)
 		while (chunk_ptr < section_ptr + section.size) {
 			error = xosgbpb_read_atw(handle->handle, (byte *) &chunk, sizeof(struct discfile_chunk), chunk_ptr, &unread);
 			if (error != NULL || unread != 0) {
-				handle->error_token = "FileError";
-				handle->mode = DISCFILE_ERROR;
+				discfile_set_error(handle, "FileError");
 				return;
 			}
 
 			if (chunk.magic_word != DISCFILE_CHUNK_MAGIC_WORD) {
-				handle->error_token = "FileUnrec";
-				handle->mode = DISCFILE_ERROR;
+				discfile_set_error(handle, "FileUnrec");
 				return;
 			}
 
 			if (chunk.flags != 0) {
-				handle->error_token = "FileUnrec";
-				handle->mode = DISCFILE_ERROR;
+				discfile_set_error(handle, "FileUnrec");
 				return;
 			}
 
@@ -739,8 +723,7 @@ static void discfile_validate_structure(struct discfile_block *handle)
 		 */
 
 		if (chunk_ptr != (section_ptr + section.size)) {
-			handle->error_token = "FileUnrec";
-			handle->mode = DISCFILE_ERROR;
+			discfile_set_error(handle, "FileUnrec");
 			return;
 		}
 
@@ -752,8 +735,7 @@ static void discfile_validate_structure(struct discfile_block *handle)
 	 */
 
 	if (section_ptr != file_extent) {
-		handle->error_token = "FileUnrec";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileUnrec");
 		return;
 	}
 
@@ -779,10 +761,8 @@ osbool discfile_open_section(struct discfile_block *handle, enum discfile_sectio
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			handle->section != 0 || handle->chunk != 0) {
-		if (handle != NULL) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
-		}
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
 		return FALSE;
 	}
 
@@ -794,22 +774,19 @@ osbool discfile_open_section(struct discfile_block *handle, enum discfile_sectio
 
 	error = xosargs_read_extw(handle->handle, &extent);
 	if (error != NULL) {
-		handle->error_token = "FileError";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileError");
 		return FALSE;
 	}
 
 	while (ptr < extent && handle->section == 0) {
 		error = xosgbpb_read_atw(handle->handle, (byte *) &section, sizeof(struct discfile_section), ptr, &unread);
 		if (error != NULL || unread != 0) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
+			discfile_set_error(handle, "FileError");
 			return FALSE;
 		}
 
 		if (section.magic_word != DISCFILE_SECTION_MAGIC_WORD || section.flags != 0) {
-			handle->error_token = "FileUnrec";
-			handle->mode = DISCFILE_ERROR;
+			discfile_set_error(handle, "FileUnrec");
 			return FALSE;
 		}
 
@@ -833,10 +810,8 @@ void discfile_close_section(struct discfile_block *handle)
 {
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			handle->section == 0 || handle->chunk != 0) {
-		if (handle != NULL) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
-		}
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
 		return;
 	}
 
@@ -862,10 +837,8 @@ osbool discfile_open_chunk(struct discfile_block *handle, enum discfile_chunk_ty
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			handle->section == 0 || handle->chunk != 0) {
-		if (handle != NULL) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
-		}
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
 		return FALSE;
 	}
 
@@ -877,14 +850,12 @@ osbool discfile_open_chunk(struct discfile_block *handle, enum discfile_chunk_ty
 
 	error = xosgbpb_read_atw(handle->handle, (byte *) &section, sizeof(struct discfile_section), handle->section, &unread);
 	if (error != NULL || unread != 0) {
-		handle->error_token = "FileError";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileError");
 		return FALSE;
 	}
 
 	if (section.magic_word != DISCFILE_SECTION_MAGIC_WORD || section.flags != 0) {
-		handle->error_token = "FileUnrec";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileUnrec");
 		return FALSE;
 	}
 
@@ -893,14 +864,12 @@ osbool discfile_open_chunk(struct discfile_block *handle, enum discfile_chunk_ty
 	while (ptr < extent && handle->chunk == 0) {
 		error = xosgbpb_read_atw(handle->handle, (byte *) &chunk, sizeof(struct discfile_chunk), ptr, &unread);
 		if (error != NULL || unread != 0) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
+			discfile_set_error(handle, "FileError");
 			return FALSE;
 		}
 
 		if (chunk.magic_word != DISCFILE_CHUNK_MAGIC_WORD || chunk.flags != 0) {
-			handle->error_token = "FileUnrec";
-			handle->mode = DISCFILE_ERROR;
+			discfile_set_error(handle, "FileUnrec");
 			return FALSE;
 		}
 
@@ -926,10 +895,8 @@ void discfile_close_chunk(struct discfile_block *handle)
 {
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			handle->section == 0 || handle->chunk == 0) {
-		if (handle != NULL) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
-		}
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
 		return;
 	}
 
@@ -949,10 +916,8 @@ int discfile_chunk_size(struct discfile_block *handle)
 {
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			handle->section == 0 || handle->chunk == 0) {
-		if (handle != NULL) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
-		}
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
 		return 0;
 	}
 
@@ -991,8 +956,7 @@ osbool discfile_read_option_unsigned(struct discfile_block *handle, char *tag, u
 
 	error = xosgbpb_read_atw(handle->handle, (byte *) &option, sizeof(struct discfile_option), ptr, &unread);
 	if (error != NULL || unread != 0) {
-		handle->error_token = "FileError";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileError");
 		return FALSE;
 	}
 
@@ -1036,8 +1000,7 @@ osbool discfile_read_option_string(struct discfile_block *handle, char *tag, cha
 
 	error = xosgbpb_read_atw(handle->handle, (byte *) &option, sizeof(struct discfile_option), ptr, &unread);
 	if (error != NULL || unread != 0) {
-		handle->error_token = "FileError";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileError");
 		value[0] = '\0';
 		return FALSE;
 	}
@@ -1069,10 +1032,8 @@ static int discfile_find_option_data(struct discfile_block *handle, unsigned id)
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			handle->section == 0 || handle->chunk == 0) {
-		if (handle != NULL) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
-		}
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
 		return 0;
 	}
 
@@ -1082,8 +1043,7 @@ static int discfile_find_option_data(struct discfile_block *handle, unsigned id)
 	while (ptr < handle->chunk + handle->chunk_size && location == 0) {
 		error = xosgbpb_read_atw(handle->handle, (byte *) &option, sizeof(struct discfile_option), ptr, &unread);
 		if (error != NULL || unread != 0) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
+			discfile_set_error(handle, "FileError");
 			return 0;
 		}
 
@@ -1128,8 +1088,7 @@ char *discfile_read_string(struct discfile_block *handle, char *text, size_t siz
 		if (handle != NULL) {
 			if (text != NULL)
 				text[0] = '\0';
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
+			discfile_set_error(handle, "FileError");
 		}
 		return text;
 	}
@@ -1139,8 +1098,7 @@ char *discfile_read_string(struct discfile_block *handle, char *text, size_t siz
 	error = xosargs_read_ptrw(handle->handle, &ptr);
 	if (error != NULL) {
 		text[0] = '\0';
-		handle->error_token = "FileError";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileError");
 		return text;
 	}
 
@@ -1162,15 +1120,13 @@ char *discfile_read_string(struct discfile_block *handle, char *text, size_t siz
 
 	if (error != NULL || read == 0) {
 		text[0] = '\0';
-		handle->error_token = "FileError";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileError");
 		return text + 1;
 	}
 
 	if (text[read - 1] != '\0') {
 		text[read - 1] = '\0';
-		handle->error_token = "FileUnrec";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileUnrec");
 		return text + read;
 	}
 
@@ -1194,10 +1150,8 @@ void discfile_read_chunk(struct discfile_block *handle, byte *data, unsigned siz
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			handle->section == 0 || handle->chunk == 0 || data == NULL) {
-		if (handle != NULL) {
-			handle->error_token = "FileError";
-			handle->mode = DISCFILE_ERROR;
-		}
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
 		return;
 	}
 
@@ -1205,16 +1159,14 @@ void discfile_read_chunk(struct discfile_block *handle, byte *data, unsigned siz
 
 	error = xosargs_read_ptrw(handle->handle, &ptr);
 	if (error != NULL) {
-		handle->error_token = "FileError";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileError");
 		return;
 	}
 
 	/* Check that there are enough bytes left in the chunk. */
 
 	if (size > (handle->chunk + handle->chunk_size - ptr)) {
-		handle->error_token = "FileUnrec";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileUnrec");
 		return;
 	}
 
@@ -1222,16 +1174,31 @@ void discfile_read_chunk(struct discfile_block *handle, byte *data, unsigned siz
 
 	error = xosgbpb_readw(handle->handle, (byte *) data, size, &unread);
 	if (error != NULL) {
-		handle->error_token = "FileError";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileError");
 		return;
 	}
 
 	if (unread != 0) {
-		handle->error_token = "FileUnrec";
-		handle->mode = DISCFILE_ERROR;
+		discfile_set_error(handle, "FileUnrec");
 		return;
 	}
+}
+
+
+/**
+ * Set an error state on an open disc file.
+ *
+ * \param *handle		The discfile handle to be closed.
+ * \param *token		The token to use for an error message.
+ */
+
+void discfile_set_error(struct discfile_block *handle, char *token)
+{
+	if (handle == NULL || token == NULL)
+		return;
+
+	handle->error_token = token;
+	handle->mode = DISCFILE_ERROR;
 }
 
 

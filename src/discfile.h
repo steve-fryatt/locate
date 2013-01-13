@@ -264,6 +264,16 @@ void discfile_read_chunk(struct discfile_block *handle, byte *data, unsigned siz
 
 
 /**
+ * Set an error state on an open disc file.
+ *
+ * \param *handle		The discfile handle to be closed.
+ * \param *token		The token to use for an error message.
+ */
+
+void discfile_set_error(struct discfile_block *handle, char *token);
+
+
+/**
  * Close a discfile and free any memory associated with it.
  *
  * \param *handle		The discfile handle to be closed.
