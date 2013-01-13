@@ -109,6 +109,7 @@ struct object
 
 static unsigned	objdb_find(struct objdb_block *handle, unsigned key);
 static unsigned	objdb_new(struct objdb_block *handle);
+static osbool	objdb_extend(struct objdb_block *handle, unsigned allocation);
 static void	objdb_delete(struct objdb_block *handle, unsigned index);
 
 
@@ -432,13 +433,16 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 	if (handle == NULL)
 		return NULL;
 
+	/* Load the settings chunk into memory. */
+
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
-		if (discfile_read_option_unsigned(load, "KEY", &handle->key))
-			debug_printf("Read value = %u", data);
-		if (discfile_read_option_unsigned(load, "OBJ", &handle->objects))
-			debug_printf("Read value = %u", data);
-		if (discfile_read_option_unsigned(load, "LEN", &handle->longest_name))
-			debug_printf("Read value = %u", data);
+		if (!discfile_read_option_unsigned(load, "OBJ", &handle->objects) ||
+				!discfile_read_option_unsigned(load, "KEY", &handle->key) ||
+				!discfile_read_option_unsigned(load, "LEN", &handle->longest_name))
+			discfile_set_error(load, "FileUnrec");
+
+		if (handle->objects > handle->allocation)
+			objdb_extend(handle, handle->objects);
 
 		discfile_close_chunk(load);
 	}
@@ -474,7 +478,6 @@ osbool objdb_save_file(struct objdb_block *handle, struct discfile_block *file)
 
 	discfile_start_chunk(file, DISCFILE_CHUNK_OPTIONS);
 	discfile_write_option_unsigned(file, "OBJ", handle->objects);
-	discfile_write_option_unsigned(file, "ALC", handle->allocation);
 	discfile_write_option_unsigned(file, "LEN", handle->longest_name);
 	discfile_write_option_unsigned(file, "KEY", handle->key);
 	discfile_end_chunk(file);
@@ -635,12 +638,11 @@ static unsigned objdb_find(struct objdb_block *handle, unsigned key)
 
 static unsigned objdb_new(struct objdb_block *handle)
 {
-	if (handle == NULL)
+	if (handle == NULL || handle->list == NULL)
 		return OBJDB_NULL_INDEX;
 
-	if (handle->objects >= handle->allocation && flex_extend((flex_ptr) &(handle->list),
-			(handle->allocation + OBJDB_ALLOC_CHUNK) * sizeof(struct object)) == 1)
-		handle->allocation += OBJDB_ALLOC_CHUNK;
+	if (handle->objects >= handle->allocation)
+		objdb_extend(handle, handle->allocation + OBJDB_ALLOC_CHUNK);
 
 	if (handle->objects >= handle->allocation)
 		return OBJDB_NULL_INDEX;
@@ -654,6 +656,28 @@ static unsigned objdb_new(struct objdb_block *handle)
 	handle->list[handle->objects].name = 0;
 
 	return handle->objects++;
+}
+
+
+/**
+ * Extend the memory allocaton for a database by the given number of objects.
+ *
+ * \param *handle		The database to extend.
+ * \param allocation		The required number of objects in the database.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+static osbool objdb_extend(struct objdb_block *handle, unsigned allocation)
+{
+	if (handle == NULL || handle->list == NULL || handle->allocation > allocation)
+		return FALSE;
+
+	if (flex_extend((flex_ptr) &(handle->list), allocation * sizeof(struct object)) != 1)
+		return FALSE;
+
+	handle->allocation = allocation;
+
+	return TRUE;
 }
 
 
