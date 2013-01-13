@@ -56,9 +56,21 @@
 #include "discfile.h"
 
 
+/**
+ * File block magic words.
+ */
+
 #define DISCFILE_FILE_MAGIC_WORD (0x48435253u)
 #define DISCFILE_SECTION_MAGIC_WORD (0x54434553u)
 #define DISCFILE_CHUNK_MAGIC_WORD (0x4b4e4843u)
+
+/**
+ * Options chunk type ids.
+ */
+
+#define DISCFILE_OPTION_UNSIGNED (0x00000000u)
+#define DISCFILE_OPTION_INT (0x00000001u)
+#define DISCFILE_OPTION_STRING (0x00000002u)
 
 /**
  * Generic file structure handling.
@@ -126,10 +138,29 @@ struct discfile_chunk {
 	unsigned			flags;					/**< The overall chunk flags (reserved and always zero).	*/
 };
 
+/**
+ * Option chunks can contain a sequence of option blocks. These consist
+ * of an option ID containing the option type and a three-character
+ * identifier, then four bytes of option-specific data.
+ */
+
+union discfile_option_data {
+	unsigned			data_unsigned;				/**< The option data for unsigned options.			*/
+	int				data_int;				/**< The option data for integer options.			*/
+	unsigned			length_string;				/**< The word-aligned string length for string options.		*/
+};
+
+struct discfile_option {
+	unsigned			id;					/**< The option id (0xttttttiiu).				*/
+	union discfile_option_data	data;					/**< The option data.						*/
+};
+
 
 static void	discfile_write_header(struct discfile_block *handle);
 static void	discfile_read_header(struct discfile_block *handle);
-static void discfile_validate_structure(struct discfile_block *handle);
+static void	discfile_validate_structure(struct discfile_block *handle);
+static int	discfile_find_option_data(struct discfile_block *handle, unsigned id);
+static unsigned	discfile_make_id(unsigned type, char *code);
 
 /**
  * Open a new file for writing and return its handle.
@@ -385,6 +416,66 @@ void discfile_end_chunk(struct discfile_block *handle)
 	}
 
 	handle->chunk = 0;
+}
+
+
+/**
+ * Write an unsigned value to an open chunk in a file.
+ *
+ * \param *handle		The handle to be written to.
+ * \param *tag			The tag to give to the value.
+ * \param value			The value to be written.
+ */
+
+void discfile_write_option_unsigned(struct discfile_block *handle, char *tag, unsigned value)
+{
+	struct discfile_option		option;
+
+	if (tag == NULL)
+		return;
+
+	option.id = discfile_make_id(DISCFILE_OPTION_UNSIGNED, tag);
+	option.data.data_unsigned = value;
+
+	discfile_write_chunk(handle, (byte *) &option, sizeof(struct discfile_option));
+}
+
+
+/**
+ * Write an text string to an open chunk in a file. Strings are always padded out
+ * to a multiple of four bytes, so that options are always word-alinged inside
+ * their chunk.
+ *
+ * \param *handle		The handle to be written to.
+ * \param *tag			The tag to give to the text.
+ * \param *text			Pointer to the text to be written.
+ */
+
+void discfile_write_option_string(struct discfile_block *handle, char *tag, char *text)
+{
+	unsigned			length, zero = 0;
+	int				unwritten;
+	struct discfile_option		option;
+	os_error			*error;
+
+	if (tag == NULL || text == NULL)
+		return;
+
+	length = strlen(text) + 1;
+
+	option.id = discfile_make_id(DISCFILE_OPTION_STRING, tag);
+	option.data.length_string = WORDALIGN(length);
+
+	discfile_write_chunk(handle, (byte *) &option, sizeof(struct discfile_option));
+	discfile_write_string(handle, text);
+
+	/* If the data wasn't a multiple of four bytes, pad the option out with zeros. */
+
+	if (option.data.length_string != length) {
+		error = xosgbpb_writew(handle->handle, (byte *) &zero, option.data.length_string - length, &unwritten);
+		if (error != NULL || unwritten != 0)
+			return;
+	}
 }
 
 
@@ -870,6 +961,104 @@ int discfile_chunk_size(struct discfile_block *handle)
 
 
 /**
+ * Read an unsigned option from an open chunk in a discfile.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *tag			The tag of the option to be read.
+ * \param *value		Pointer to an unsigned variable to take the value.
+ * \return			TRUE if a value was found; else FALSE.
+ */
+
+osbool discfile_read_option_unsigned(struct discfile_block *handle, char *tag, unsigned *value)
+{
+	unsigned			id;
+	int				ptr, unread;
+	os_error			*error;
+	struct discfile_option		option;
+
+	if (handle == NULL || tag == NULL || value == NULL)
+		return FALSE;
+
+	debug_printf("Looking for option %s", tag);
+
+	id = discfile_make_id(DISCFILE_OPTION_UNSIGNED, tag);
+	ptr = discfile_find_option_data(handle, id);
+
+	debug_printf("Found at ptr=%d", ptr);
+
+	if (ptr == 0)
+		return FALSE;
+
+	error = xosgbpb_read_atw(handle->handle, (byte *) &option, sizeof(struct discfile_option), ptr, &unread);
+	if (error != NULL || unread != 0) {
+		handle->error_token = "FileError";
+		handle->mode = DISCFILE_ERROR;
+		return FALSE;
+	}
+
+	*value = option.data.data_unsigned;
+
+	return TRUE;
+}
+
+
+/**
+ * Locate an option with the given ID word in the currently open chunk, returning
+ * a pointer to its option block.
+ *
+ * \param *handle		The discfile handle being read from.
+ * \param id			The ID word to look for.
+ * \return			The file pointer to the option block, or 0.
+ */
+
+static int discfile_find_option_data(struct discfile_block *handle, unsigned id)
+{
+	int				ptr, location, unread;
+	struct discfile_option		option;
+	os_error			*error;
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->section == 0 || handle->chunk == 0) {
+		if (handle != NULL) {
+			handle->error_token = "FileError";
+			handle->mode = DISCFILE_ERROR;
+		}
+		return 0;
+	}
+
+	ptr = handle->chunk + sizeof(struct discfile_chunk);
+	location = 0;
+
+	while (ptr < handle->chunk + handle->chunk_size && location == 0) {
+		error = xosgbpb_read_atw(handle->handle, (byte *) &option, sizeof(struct discfile_option), ptr, &unread);
+		if (error != NULL || unread != 0) {
+			handle->error_token = "FileError";
+			handle->mode = DISCFILE_ERROR;
+			return 0;
+		}
+
+		debug_printf("Option type %d, tag %c%c%c", option.id & 0xffu, (option.id & 0xff00u) >> 8, (option.id & 0xff0000u) >> 16, (option.id & 0xff000000u) >> 24);
+
+		if (option.id == id) {
+			location = ptr;
+		} else {
+			switch (option.id & 0xffu) {
+			case DISCFILE_OPTION_STRING:
+				ptr += sizeof(struct discfile_option) + option.data.length_string;
+				break;
+
+			default:
+				ptr += sizeof(struct discfile_option);
+				break;
+			}
+		}
+	}
+
+	return location;
+}
+
+
+/**
  * Read a string chunk from disc, out of an already open chunk of a file.
  *
  * \param *handle		The discfile handle to be read from.
@@ -1011,5 +1200,29 @@ void discfile_close(struct discfile_block *handle)
 		xosfind_closew(handle->handle);
 
 	heap_free(handle);
+}
+
+
+/**
+ * Return a four-byte word containing a data type and ID code, made up from
+ * the id byte in byte 0 and the first three characters in a string in bytes
+ * 1 to 3.
+ *
+ * \param type			The block type.
+ * \param *code			The string to use for the code.
+ * \return			The numeric ID code.
+ */
+
+static unsigned discfile_make_id(unsigned type, char *code)
+{
+	unsigned	id = 0;
+	int		i;
+
+	id = type & 0xffu;
+
+	for (i = 0; i < 3 && code[i] != '\0'; i++)
+		id += (code[i] << (8 * (i + 1)));
+
+	return id;
 }
 

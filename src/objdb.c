@@ -423,6 +423,7 @@ size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *inf
 struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_block *load)
 {
 	struct objdb_block	*handle;
+	unsigned		data;
 
 	if (file == NULL || load == NULL)
 		return NULL;
@@ -431,6 +432,21 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 
 	if (handle == NULL)
 		return NULL;
+
+	if (discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
+
+		discfile_read_option_unsigned(load, "ALC", &data);
+		debug_printf("Read value = %u", data);
+		discfile_read_option_unsigned(load, "KEY", &data);
+		debug_printf("Read value = %u", data);
+		discfile_read_option_unsigned(load, "OBJ", &data);
+		debug_printf("Read value = %u", data);
+		discfile_read_option_unsigned(load, "LEN", &data);
+		debug_printf("Read value = %u", data);
+
+
+		discfile_close_chunk(load);
+	}
 
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_OBJECTS)) {
 		debug_printf("Objects chunk size %d", discfile_chunk_size(load));
@@ -460,10 +476,20 @@ osbool objdb_save_file(struct objdb_block *handle, struct discfile_block *file)
 		return FALSE;
 
 	discfile_start_section(file, DISCFILE_SECTION_OBJECTDB);
+
+	discfile_start_chunk(file, DISCFILE_CHUNK_OPTIONS);
+	discfile_write_option_unsigned(file, "OBJ", handle->objects);
+	discfile_write_option_unsigned(file, "ALC", handle->allocation);
+	discfile_write_option_unsigned(file, "LEN", handle->longest_name);
+	discfile_write_option_unsigned(file, "KEY", handle->key);
+	discfile_end_chunk(file);
+
 	discfile_start_chunk(file, DISCFILE_CHUNK_OBJECTS);
 	discfile_write_chunk(file, (byte *) handle->list, handle->objects * sizeof(struct object));
 	discfile_end_chunk(file);
+
 	textdump_save_file(handle->text, file);
+
 	discfile_end_section(file);
 
 	return TRUE;

@@ -53,7 +53,8 @@ enum discfile_chunk_type {
 	DISCFILE_CHUNK_UNKNOWN = 0,						/**< The chunk type is unknown.				*/
 	DISCFILE_CHUNK_TEXTDUMP = 1,						/**< The chunk contains the contents of a textdump.	*/
 	DISCFILE_CHUNK_OBJECTS = 2,						/**< The chunk contains objects from an ObjectDB.	*/
-	DISCFILE_CHUNK_RESULTS = 3						/**< The chunk contains entries from a results window.	*/
+	DISCFILE_CHUNK_RESULTS = 3,						/**< The chunk contains entries from a results window.	*/
+	DISCFILE_CHUNK_OPTIONS = 4						/**< The chunk contains a series of option values.	*/
 };
 
 
@@ -108,6 +109,28 @@ void discfile_start_chunk(struct discfile_block *handle, enum discfile_chunk_typ
  */
 
 void discfile_end_chunk(struct discfile_block *handle);
+
+
+/**
+ * Write an unsigned value to an open chunk in a file.
+ *
+ * \param *handle		The handle to be written to.
+ * \param *tag			The tag to give to the value.
+ * \param value			The value to be written.
+ */
+
+void discfile_write_option_unsigned(struct discfile_block *handle, char *tag, unsigned value);
+
+
+/**
+ * Write an text string to an open chunk in a file.
+ *
+ * \param *handle		The handle to be written to.
+ * \param *tag			The tag to give to the text.
+ * \param *text			Pointer to the text to be written.
+ */
+
+void discfile_write_option_string(struct discfile_block *handle, char *tag, char *text);
 
 
 /**
@@ -192,6 +215,17 @@ void discfile_close_chunk(struct discfile_block *handle);
 
 int discfile_chunk_size(struct discfile_block *handle);
 
+
+/**
+ * Read an unsigned option from an open chunk in a discfile.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *tag			The tag of the option to be read.
+ * \param *value		Pointer to an unsigned variable to take the value.
+ * \return			TRUE if a value was found; else FALSE.
+ */
+
+osbool discfile_read_option_unsigned(struct discfile_block *handle, char *tag, unsigned *value);
 
 /**
  * Read a string chunk from disc, out of an already open chunk of a file.
