@@ -690,10 +690,13 @@ static osbool objdb_extend(struct objdb_block *handle, unsigned allocation)
 
 static void objdb_delete(struct objdb_block *handle, unsigned index)
 {
-	if (handle == NULL || index >= handle->objects)
+	if (handle == NULL || handle->list == NULL || index >= handle->objects)
 		return;
 
-	flex_midextend((flex_ptr) &(handle->list), (index + 1) * sizeof(struct object),
-			-sizeof(struct object));
+	if (flex_midextend((flex_ptr) &(handle->list), (index + 1) * sizeof(struct object),
+			-sizeof(struct object)) == 1) {
+		handle->objects--;
+		handle->allocation--;
+	}
 }
 
