@@ -1003,6 +1003,56 @@ osbool discfile_read_option_unsigned(struct discfile_block *handle, char *tag, u
 
 
 /**
+ * Read an string option from an open chunk in a discfile.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *tag			The tag of the option to be read.
+ * \param *value		Pointer to an string buffer to take the text.
+ * \param length		The size of the supplied buffer.
+ * \return			TRUE if a value was found; else FALSE.
+ */
+
+osbool discfile_read_option_string(struct discfile_block *handle, char *tag, char *value, size_t length)
+{
+	unsigned			id;
+	int				ptr, unread;
+	os_error			*error;
+	struct discfile_option		option;
+
+	if (handle == NULL || tag == NULL || value == NULL)
+		return FALSE;
+
+	debug_printf("Looking for option %s", tag);
+
+	id = discfile_make_id(DISCFILE_OPTION_STRING, tag);
+	ptr = discfile_find_option_data(handle, id);
+
+	debug_printf("Found at ptr=%d", ptr);
+
+	if (ptr == 0) {
+		value[0] = '\0';
+		return FALSE;
+	}
+
+	error = xosgbpb_read_atw(handle->handle, (byte *) &option, sizeof(struct discfile_option), ptr, &unread);
+	if (error != NULL || unread != 0) {
+		handle->error_token = "FileError";
+		handle->mode = DISCFILE_ERROR;
+		value[0] = '\0';
+		return FALSE;
+	}
+
+	if (option.data.length_string > length) {
+		value[0] = '\0';
+		return FALSE;
+	}
+
+	discfile_read_string(handle, value, length);
+	return TRUE;
+}
+
+
+/**
  * Locate an option with the given ID word in the currently open chunk, returning
  * a pointer to its option block.
  *

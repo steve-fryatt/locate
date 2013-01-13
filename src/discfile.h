@@ -227,6 +227,20 @@ int discfile_chunk_size(struct discfile_block *handle);
 
 osbool discfile_read_option_unsigned(struct discfile_block *handle, char *tag, unsigned *value);
 
+
+/**
+ * Read an string option from an open chunk in a discfile.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *tag			The tag of the option to be read.
+ * \param *value		Pointer to an string buffer to take the text.
+ * \param length		The size of the supplied buffer.
+ * \return			TRUE if a value was found; else FALSE.
+ */
+
+osbool discfile_read_option_string(struct discfile_block *handle, char *tag, char *value, size_t length);
+
+
 /**
  * Read a string chunk from disc, out of an already open chunk of a file.
  *

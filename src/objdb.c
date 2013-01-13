@@ -423,7 +423,6 @@ size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *inf
 struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_block *load)
 {
 	struct objdb_block	*handle;
-	unsigned		data;
 
 	if (file == NULL || load == NULL)
 		return NULL;
@@ -434,16 +433,12 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 		return NULL;
 
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
-
-		discfile_read_option_unsigned(load, "ALC", &data);
-		debug_printf("Read value = %u", data);
-		discfile_read_option_unsigned(load, "KEY", &data);
-		debug_printf("Read value = %u", data);
-		discfile_read_option_unsigned(load, "OBJ", &data);
-		debug_printf("Read value = %u", data);
-		discfile_read_option_unsigned(load, "LEN", &data);
-		debug_printf("Read value = %u", data);
-
+		if (discfile_read_option_unsigned(load, "KEY", &handle->key))
+			debug_printf("Read value = %u", data);
+		if (discfile_read_option_unsigned(load, "OBJ", &handle->objects))
+			debug_printf("Read value = %u", data);
+		if (discfile_read_option_unsigned(load, "LEN", &handle->longest_name))
+			debug_printf("Read value = %u", data);
 
 		discfile_close_chunk(load);
 	}
