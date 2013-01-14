@@ -1198,6 +1198,10 @@ void discfile_set_error(struct discfile_block *handle, char *token)
 	if (handle->error_token == NULL)
 		handle->error_token = token;
 	handle->mode = DISCFILE_ERROR;
+
+	handle->section = 0;
+	handle->chunk = 0;
+	handle->chunk_size = 0;
 }
 
 
