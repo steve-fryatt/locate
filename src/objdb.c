@@ -505,6 +505,8 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 		return NULL;
 	}
 
+	/* Close the database section of the file. */
+
 	discfile_close_section(load);
 
 	return handle;
@@ -524,7 +526,11 @@ osbool objdb_save_file(struct objdb_block *handle, struct discfile_block *file)
 	if (handle == NULL || file == NULL)
 		return FALSE;
 
+	/* Open the database section of the file. */
+
 	discfile_start_section(file, DISCFILE_SECTION_OBJECTDB);
+
+	/* Write the database settings. */
 
 	discfile_start_chunk(file, DISCFILE_CHUNK_OPTIONS);
 	discfile_write_option_unsigned(file, "OBJ", handle->objects);
@@ -532,11 +538,17 @@ osbool objdb_save_file(struct objdb_block *handle, struct discfile_block *file)
 	discfile_write_option_unsigned(file, "KEY", handle->key);
 	discfile_end_chunk(file);
 
+	/* Write the database object data. */
+
 	discfile_start_chunk(file, DISCFILE_CHUNK_OBJECTS);
 	discfile_write_chunk(file, (byte *) handle->list, handle->objects * sizeof(struct object));
 	discfile_end_chunk(file);
 
+	/* Write the textdump contents. */
+
 	textdump_save_file(handle->text, file);
+
+	/* Close the database section of the file. */
 
 	discfile_end_section(file);
 
