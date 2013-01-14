@@ -207,15 +207,12 @@ void file_create_from_saved(char *filename)
 
 	/* Load an object database if there is one. */
 
-	if (discfile_open_section(load, DISCFILE_SECTION_OBJECTDB)) {
-		new->objects = objdb_load_file(new, load);
-		discfile_close_section(load);
+	new->objects = objdb_load_file(new, load);
 
-		if (new->objects == NULL) {
-			file_destroy(new);
-			discfile_close(load);
-			return;
-		}
+	if (new->objects == NULL) {
+		file_destroy(new);
+		discfile_close(load);
+		return;
 	}
 
 	/* Load the results window, if one is present and there's also an

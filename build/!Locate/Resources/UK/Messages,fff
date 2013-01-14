@@ -62,6 +62,7 @@ BadFiletype:Type %0 was not recognised.
 BadFile:This file is not compatible with the version of Locate currently running.
 FileError:There was an error while loading or saving the file: the operation has been aborted.
 FileUnrec:The file format was not understood: the operation has been aborted.
+FileMem:There was not enough memory to load the file: the operation has been aborted.
 
 
 

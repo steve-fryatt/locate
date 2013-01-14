@@ -143,9 +143,10 @@ unsigned textdump_store(struct textdump_block *handle, char *text);
  * \param *handle		The handle of the text dump to load into.
  * \param *file			The file to be loaded from, which should have an
  *				open section.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-void textdump_load_file(struct textdump_block *handle, struct discfile_block *file);
+osbool textdump_load_file(struct textdump_block *handle, struct discfile_block *file);
 
 
 /**

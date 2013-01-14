@@ -424,38 +424,88 @@ size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *inf
 struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_block *load)
 {
 	struct objdb_block	*handle;
+	int			size;
 
 	if (file == NULL || load == NULL)
 		return NULL;
 
+	/* Open the object database section of the file. */
+
+	if (!discfile_open_section(load, DISCFILE_SECTION_OBJECTDB)) {
+		discfile_set_error(load, "FileUnrec");
+		return NULL;
+	}
+
+	/* Create a new object database. */
+
 	handle = objdb_create(file);
 
-	if (handle == NULL)
+	if (handle == NULL) {
+		discfile_close_section(load);
+		discfile_set_error(load, "FileMem");
 		return NULL;
+	}
 
 	/* Load the settings chunk into memory. */
 
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
 		if (!discfile_read_option_unsigned(load, "OBJ", &handle->objects) ||
 				!discfile_read_option_unsigned(load, "KEY", &handle->key) ||
-				!discfile_read_option_unsigned(load, "LEN", &handle->longest_name))
+				!discfile_read_option_unsigned(load, "LEN", &handle->longest_name)) {
 			discfile_set_error(load, "FileUnrec");
+			objdb_destroy(handle);
+			return NULL;
+		}
 
 		if (handle->objects > handle->allocation)
 			objdb_extend(handle, handle->objects);
 
+		debug_printf("Object database objects=%d, allocation=%d", handle->objects, handle->allocation);
+
 		discfile_close_chunk(load);
+
+		if (handle->objects > handle->allocation) {
+			discfile_set_error(load, "FileMem");
+			objdb_destroy(handle);
+			return NULL;
+		}
+	} else {
+		discfile_set_error(load, "FileUnrec");
+		objdb_destroy(handle);
+		return NULL;
 	}
+
+	/* Load the database contents into memory. */
 
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_OBJECTS)) {
-		debug_printf("Objects chunk size %d", discfile_chunk_size(load));
+		size = discfile_chunk_size(load);
+
+		debug_printf("Objects chunk size=%d, available=%d", size, handle->allocation*sizeof(struct object));
+
+		if ((size <= handle->allocation*sizeof(struct object)) || (size != handle->objects * sizeof(struct object)))
+			discfile_read_chunk(load, (byte *) handle->list, size);
+		else {
+			discfile_set_error(load, "FileUnrec");
+			objdb_destroy(handle);
+			return NULL;
+		}
 
 		discfile_close_chunk(load);
+	} else {
+		discfile_set_error(load, "FileUnrec");
+		objdb_destroy(handle);
+		return NULL;
 	}
 
-	textdump_load_file(handle->text, load);
+	/* Load the textdump contents into memory. */
 
+	if (!textdump_load_file(handle->text, load)) {
+		discfile_set_error(load, "FileUnrec");
+		objdb_destroy(handle);
+		return NULL;
+	}
 
+	discfile_close_section(load);
 
 	return handle;
 }

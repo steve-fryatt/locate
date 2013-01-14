@@ -310,15 +310,16 @@ static int textdump_make_hash(struct textdump_block *handle, char *text)
  * \param *handle		The handle of the text dump to load into.
  * \param *file			The file to be loaded from, which should have an
  *				open section.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-void textdump_load_file(struct textdump_block *handle, struct discfile_block *file)
+osbool textdump_load_file(struct textdump_block *handle, struct discfile_block *file)
 {
 	size_t		size;
 	char		buffer[1024]; // \TODO -- Remove!
 
 	if (handle == NULL || file == NULL || !discfile_open_chunk(file, DISCFILE_CHUNK_TEXTDUMP))
-		return;
+		return FALSE;
 
 	size = discfile_chunk_size(file);
 
@@ -329,13 +330,19 @@ void textdump_load_file(struct textdump_block *handle, struct discfile_block *fi
 
 		size -= (strlen(buffer) + 1);
 
-		textdump_store(handle, buffer);
+		if (textdump_store(handle, buffer) == TEXTDUMP_NULL) {
+			discfile_set_error(file, "FileMem");
+			return FALSE;
+		}
 
 		debug_printf("Read '%s', %d bytes remaining", buffer, size);
 	}
 
 	discfile_close_chunk(file);
+
+	return TRUE;
 }
+
 
 /**
  * Save the text from a text dump into a file chunk.
