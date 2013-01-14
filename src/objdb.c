@@ -480,11 +480,11 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_OBJECTS)) {
 		size = discfile_chunk_size(load);
 
-		debug_printf("Objects chunk size=%d, available=%d", size, handle->allocation*sizeof(struct object));
+		debug_printf("Objects chunk size=%d, available=%d", size, handle->allocation * sizeof(struct object));
 
-		if ((size <= handle->allocation*sizeof(struct object)) || (size != handle->objects * sizeof(struct object)))
+		if ((size <= handle->allocation * sizeof(struct object)) || (size != handle->objects * sizeof(struct object))){
 			discfile_read_chunk(load, (byte *) handle->list, size);
-		else {
+		} else {
 			discfile_set_error(load, "FileUnrec");
 			objdb_destroy(handle);
 			return NULL;
