@@ -112,6 +112,17 @@ void discfile_end_chunk(struct discfile_block *handle);
 
 
 /**
+ * Write a boolean value to an open chunk in a file.
+ *
+ * \param *handle		The handle to be written to.
+ * \param *tag			The tag to give to the value.
+ * \param value			The value to be written.
+ */
+
+void discfile_write_option_boolean(struct discfile_block *handle, char *tag, osbool value);
+
+
+/**
  * Write an unsigned value to an open chunk in a file.
  *
  * \param *handle		The handle to be written to.
@@ -214,6 +225,18 @@ void discfile_close_chunk(struct discfile_block *handle);
  */
 
 int discfile_chunk_size(struct discfile_block *handle);
+
+
+/**
+ * Read a boolean option from an open chunk in a discfile.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *tag			The tag of the option to be read.
+ * \param *value		Pointer to an osbool variable to take the value.
+ * \return			TRUE if a value was found; else FALSE.
+ */
+
+osbool discfile_read_option_boolean(struct discfile_block *handle, char *tag, osbool *value);
 
 
 /**

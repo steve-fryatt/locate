@@ -71,6 +71,7 @@
 #define DISCFILE_OPTION_UNSIGNED (0x00000000u)
 #define DISCFILE_OPTION_INT (0x00000001u)
 #define DISCFILE_OPTION_STRING (0x00000002u)
+#define DISCFILE_OPTION_BOOLEAN (0x00000003u)
 
 /**
  * Generic file structure handling.
@@ -147,6 +148,7 @@ struct discfile_chunk {
 union discfile_option_data {
 	unsigned			data_unsigned;				/**< The option data for unsigned options.			*/
 	int				data_int;				/**< The option data for integer options.			*/
+	osbool				data_osbool;				/**< The option data for boolean options.			*/
 	unsigned			length_string;				/**< The word-aligned string length for string options.		*/
 };
 
@@ -416,6 +418,28 @@ void discfile_end_chunk(struct discfile_block *handle)
 	}
 
 	handle->chunk = 0;
+}
+
+
+/**
+ * Write a boolean value to an open chunk in a file.
+ *
+ * \param *handle		The handle to be written to.
+ * \param *tag			The tag to give to the value.
+ * \param value			The value to be written.
+ */
+
+void discfile_write_option_boolean(struct discfile_block *handle, char *tag, osbool value)
+{
+	struct discfile_option		option;
+
+	if (tag == NULL)
+		return;
+
+	option.id = discfile_make_id(DISCFILE_OPTION_BOOLEAN, tag);
+	option.data.data_osbool = value;
+
+	discfile_write_chunk(handle, (byte *) &option, sizeof(struct discfile_option));
 }
 
 
@@ -920,6 +944,47 @@ int discfile_chunk_size(struct discfile_block *handle)
 	}
 
 	return handle->chunk_size - sizeof(struct discfile_chunk);
+}
+
+
+/**
+ * Read a boolean option from an open chunk in a discfile.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *tag			The tag of the option to be read.
+ * \param *value		Pointer to an osbool variable to take the value.
+ * \return			TRUE if a value was found; else FALSE.
+ */
+
+osbool discfile_read_option_boolean(struct discfile_block *handle, char *tag, osbool *value)
+{
+	unsigned			id;
+	int				ptr, unread;
+	os_error			*error;
+	struct discfile_option		option;
+
+	if (handle == NULL || tag == NULL || value == NULL)
+		return FALSE;
+
+	debug_printf("Looking for option %s", tag);
+
+	id = discfile_make_id(DISCFILE_OPTION_BOOLEAN, tag);
+	ptr = discfile_find_option_data(handle, id);
+
+	debug_printf("Found at ptr=%d", ptr);
+
+	if (ptr == 0)
+		return FALSE;
+
+	error = xosgbpb_read_atw(handle->handle, (byte *) &option, sizeof(struct discfile_option), ptr, &unread);
+	if (error != NULL || unread != 0) {
+		discfile_set_error(handle, "FileError");
+		return FALSE;
+	}
+
+	*value = option.data.data_osbool;
+
+	return TRUE;
 }
 
 
