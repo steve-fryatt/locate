@@ -520,11 +520,63 @@ void results_destroy(struct results_window *handle)
 struct results_window *results_load_file(struct file_block *file, struct objdb_block *objects, struct discfile_block *load)
 {
 	struct results_window	*new;
+	char			title[TITLE_LENGTH];
 
 	if (file == NULL || objects == NULL || load == NULL)
 		return NULL;
 
+	/* Open the results window section of the file. */
+
+	if (!discfile_open_section(load, DISCFILE_SECTION_RESULTS)) {
+		discfile_set_error(load, "FileUnrec");
+		return NULL;
+	}
+
+	/* Create a new results window. */
+
 	new = results_create(file, objects, NULL);
+
+	if (new == NULL) {
+		discfile_close_section(load);
+		discfile_set_error(load, "FileMem");
+		return NULL;
+	}
+
+
+	if (discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
+		if (!discfile_read_option_unsigned(load, "LIN", &new->redraw_lines) ||
+				!discfile_read_option_string(load, "TIT", title, TITLE_LENGTH) ||
+				!discfile_read_option_boolean(load, "FUL", &new->full_info)) {
+			discfile_set_error(load, "FileUnrec");
+			results_destroy(new);
+			return NULL;
+		}
+
+	//	if (handle->objects > handle->allocation)
+	//		objdb_extend(handle, handle->objects);
+
+	//	debug_printf("Object database objects=%d, allocation=%d", handle->objects, handle->allocation);
+
+		discfile_close_chunk(load);
+
+	//	if (handle->objects > handle->allocation) {
+	//		discfile_set_error(load, "FileMem");
+	//		results_destroy(handle);
+	//		return NULL;
+	//	}
+
+		results_set_title(new, title);
+	} else {
+		discfile_set_error(load, "FileUnrec");
+		results_destroy(new);
+		return NULL;
+	}
+
+
+
+
+
+	discfile_close_section(load);
 
 	return new;
 }
@@ -1746,26 +1798,35 @@ static osbool results_save_result_data(char *filename, osbool selection, void *d
 	struct results_window		*handle = (struct results_window *) data;
 	struct results_file_block	block;
 	struct discfile_block		*out;
-
-	int			i;
-	char			*title;
-	unsigned		 buffer[1024]; // \TODO -- Allocate properly!
+	int				i;
+	char				*title;
 
 	if (handle == NULL)
+		return FALSE;
+
+	title = windows_get_indirected_title_addr(handle->window);
+
+	if (title == NULL)
 		return FALSE;
 
 	out = discfile_open_write(filename);
 	if (out == NULL)
 		return FALSE;
 
-	for (i = 0; i < 16; i++)
-		buffer[i] = i * 0x11111111u;
-
-	title = windows_get_indirected_title_addr(handle->window);
-
 	objdb_save_file(handle->objects, out);
 
 	discfile_start_section(out, DISCFILE_SECTION_RESULTS);
+
+	/* Write out the results options. */
+
+	discfile_start_chunk(out, DISCFILE_CHUNK_OPTIONS);
+	discfile_write_option_unsigned(out, "LIN", handle->redraw_lines);
+	discfile_write_option_boolean(out, "FUL", handle->full_info);
+	discfile_write_option_string(out, "TIT", title);
+	discfile_end_chunk(out);
+
+	/* Write the results line data. */
+
 	discfile_start_chunk(out, DISCFILE_CHUNK_RESULTS);
 	for (i = 0; i < handle->redraw_lines; i++) {
 		if (handle->redraw[i].type != RESULTS_LINE_TEXT && handle->redraw[i].type != RESULTS_LINE_FILENAME)
@@ -1795,9 +1856,10 @@ static osbool results_save_result_data(char *filename, osbool selection, void *d
 
 		discfile_write_chunk(out, (byte *) &block, sizeof(struct results_file_block));
 	}
-
 	discfile_end_chunk(out);
+
 	textdump_save_file(handle->text, out);
+
 	discfile_end_section(out);
 
 	discfile_close(out);

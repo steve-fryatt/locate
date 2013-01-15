@@ -215,18 +215,13 @@ void file_create_from_saved(char *filename)
 		return;
 	}
 
-	/* Load the results window, if one is present and there's also an
-	 * object database.
-	 */
+	/* Load the results window if one is present. */
 
-	if (new->objects != NULL && discfile_open_section(load, DISCFILE_SECTION_RESULTS)) {
-		new->results = results_load_file(new, new->objects, load);
-		discfile_close_section(load);
+	new->results = results_load_file(new, new->objects, load);
 
-		if (new->results == NULL) {
-			file_destroy(new);
-			discfile_close(load);
-		}
+	if (new->results == NULL) {
+		file_destroy(new);
+		discfile_close(load);
 	}
 
 	/* Load the search settings, if present. */
@@ -238,27 +233,6 @@ void file_create_from_saved(char *filename)
 	}
 
 	discfile_close(load);
-
-
-#if 0
-	new = file_create();
-	if (new == NULL)
-		return;
-
-	sprintf(title, "Results block 0x%x", (int) new); // \TODO -- Remove
-
-	new->results = results_create(new, NULL, title);
-	if (new->results == NULL) {
-		file_destroy(new);
-		return;
-	}
-
-	new->search = search_create(new, NULL, new->results, "ADFS::4.$,ADFS::4.$.Transient,ADFS::4.$.Test");
-	if (new->search == NULL) {
-		file_destroy(new);
-		return;
-	}
-#endif
 }
 
 
