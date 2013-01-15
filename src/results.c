@@ -552,6 +552,10 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 			return NULL;
 		}
 
+	// \TODO -- allocate all memory required via results_extend() then
+	//	    loop through lines adding them in one by one.
+
+
 	//	if (handle->objects > handle->allocation)
 	//		objdb_extend(handle, handle->objects);
 
