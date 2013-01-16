@@ -86,6 +86,8 @@ struct objdb_block
 	unsigned		longest_name;					/**< The length of the longest filename string in the database.	*/
 
 	unsigned		key;						/**< Track new unique primary keys.				*/
+
+	osbool			full_scan;					/**< TRUE if the database contains a full scan; FALSE if not.	*/
 };
 
 /**
@@ -140,6 +142,7 @@ struct objdb_block *objdb_create(struct file_block *file)
 	new->allocation = 0;
 	new->key = 0;
 	new->longest_name = 0;
+	new->full_scan = FALSE;
 
 	/* Claim the database flex block and a text dump for the names. */
 
@@ -451,7 +454,8 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
 		if (!discfile_read_option_unsigned(load, "OBJ", &handle->objects) ||
 				!discfile_read_option_unsigned(load, "KEY", &handle->key) ||
-				!discfile_read_option_unsigned(load, "LEN", &handle->longest_name)) {
+				!discfile_read_option_unsigned(load, "LEN", &handle->longest_name) ||
+				!discfile_read_option_boolean(load, "FUL", &handle->full_scan)) {
 			discfile_set_error(load, "FileUnrec");
 			objdb_destroy(handle);
 			return NULL;
@@ -536,6 +540,7 @@ osbool objdb_save_file(struct objdb_block *handle, struct discfile_block *file)
 	discfile_write_option_unsigned(file, "OBJ", handle->objects);
 	discfile_write_option_unsigned(file, "LEN", handle->longest_name);
 	discfile_write_option_unsigned(file, "KEY", handle->key);
+	discfile_write_option_boolean(file, "FUL", handle->full_scan);
 	discfile_end_chunk(file);
 
 	/* Write the database object data. */
