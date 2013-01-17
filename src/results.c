@@ -139,14 +139,19 @@
 #define RESULTS_MENU_SAVE_SEARCH_OPTIONS 2
 
 
-/* Data structures. */
+/**
+ * Data structures.
+ *
+ * enum results_line_type gets saved into files, so values must remain constant
+ * between builds.
+ */
 
 enum results_line_type {
 	RESULTS_LINE_NONE = 0,							/**< A blank line (nothing plotted).					*/
-	RESULTS_LINE_TEXT,							/**< A line containing unspecific text.					*/
-	RESULTS_LINE_FILENAME,							/**< A line containing a filename.					*/
-	RESULTS_LINE_FILEINFO,							/**< A line containing file information.				*/
-	RESULTS_LINE_CONTENTS							/**< A line containing a file contents match.				*/
+	RESULTS_LINE_TEXT = 1,							/**< A line containing unspecific text.					*/
+	RESULTS_LINE_FILENAME = 2,						/**< A line containing a filename.					*/
+	RESULTS_LINE_FILEINFO = 3,						/**< A line containing file information.				*/
+	RESULTS_LINE_CONTENTS = 4						/**< A line containing a file contents match.				*/
 };
 
 enum results_line_flags {
@@ -519,8 +524,10 @@ void results_destroy(struct results_window *handle)
 
 struct results_window *results_load_file(struct file_block *file, struct objdb_block *objects, struct discfile_block *load)
 {
-	struct results_window	*new;
-	char			title[TITLE_LENGTH];
+	struct results_window		*new;
+	struct results_file_block	data;
+	char				title[TITLE_LENGTH];
+	int				i, size, position;
 
 	if (file == NULL || objects == NULL || load == NULL)
 		return NULL;
@@ -570,6 +577,28 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 	//	}
 
 		results_set_title(new, title);
+	} else {
+		discfile_set_error(load, "FileUnrec");
+		results_destroy(new);
+		return NULL;
+	}
+
+	if (discfile_open_chunk(load, DISCFILE_CHUNK_RESULTS)) {
+		size = discfile_chunk_size(load);
+		position = sizeof(struct results_file_block);
+
+		for (i = 0; i < new->redraw_lines && position <= size; i++) {
+			discfile_read_chunk(load, (byte *) &data, sizeof(struct results_file_block));
+
+			switch (data.type) {
+			case RESULTS_LINE_FILENAME:
+				results_add_file(new, data.data);
+				break;
+			}
+
+			debug_printf("Results Line %d, type %d", i, data.type);
+			position += sizeof(struct results_file_block);
+		}
 	} else {
 		discfile_set_error(load, "FileUnrec");
 		results_destroy(new);
