@@ -528,6 +528,7 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 	struct results_file_block	data;
 	char				title[TITLE_LENGTH];
 	int				i, size, position;
+	unsigned			lines;
 
 	if (file == NULL || objects == NULL || load == NULL)
 		return NULL;
@@ -551,7 +552,7 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 
 
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
-		if (!discfile_read_option_unsigned(load, "LIN", &new->redraw_lines) ||
+		if (!discfile_read_option_unsigned(load, "LIN", &lines) ||
 				!discfile_read_option_string(load, "TIT", title, TITLE_LENGTH) ||
 				!discfile_read_option_boolean(load, "FUL", &new->full_info)) {
 			discfile_set_error(load, "FileUnrec");
@@ -587,7 +588,7 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 		size = discfile_chunk_size(load);
 		position = sizeof(struct results_file_block);
 
-		for (i = 0; i < new->redraw_lines && position <= size; i++) {
+		for (i = 0; i < lines && position <= size; i++) {
 			discfile_read_chunk(load, (byte *) &data, sizeof(struct results_file_block));
 
 			switch (data.type) {
@@ -610,6 +611,8 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 
 
 	discfile_close_section(load);
+
+	results_reformat(new, TRUE);
 
 	return new;
 }
