@@ -444,7 +444,6 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 	handle = objdb_create(file);
 
 	if (handle == NULL) {
-		discfile_close_section(load);
 		discfile_set_error(load, "FileMem");
 		return NULL;
 	}
@@ -461,12 +460,12 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 			return NULL;
 		}
 
+		discfile_close_chunk(load);
+
 		if (handle->objects > handle->allocation)
 			objdb_extend(handle, handle->objects);
 
 		debug_printf("Object database objects=%d, allocation=%d", handle->objects, handle->allocation);
-
-		discfile_close_chunk(load);
 
 		if (handle->objects > handle->allocation) {
 			discfile_set_error(load, "FileMem");
