@@ -271,6 +271,7 @@ static void	results_close_handler(wimp_close *close);
 static void	results_set_display_mode(struct results_window *handle, osbool full_info);
 static void	results_update_extent(struct results_window *handle);
 static unsigned	results_add_line(struct results_window *handle, osbool show);
+static osbool	results_extend(struct results_window *handle, unsigned lines);
 static unsigned	results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state);
 static void	results_select_click_select(struct results_window *handle, unsigned row);
 static void	results_select_click_adjust(struct results_window *handle, unsigned row);
@@ -545,11 +546,11 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 	new = results_create(file, objects, NULL);
 
 	if (new == NULL) {
-		discfile_close_section(load);
 		discfile_set_error(load, "FileMem");
 		return NULL;
 	}
 
+	/* Load the results window settings details. */
 
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
 		if (!discfile_read_option_unsigned(load, "LIN", &lines) ||
@@ -560,22 +561,16 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 			return NULL;
 		}
 
-	// \TODO -- allocate all memory required via results_extend() then
-	//	    loop through lines adding them in one by one.
-
-
-	//	if (handle->objects > handle->allocation)
-	//		objdb_extend(handle, handle->objects);
-
-	//	debug_printf("Object database objects=%d, allocation=%d", handle->objects, handle->allocation);
-
 		discfile_close_chunk(load);
 
-	//	if (handle->objects > handle->allocation) {
-	//		discfile_set_error(load, "FileMem");
-	//		results_destroy(handle);
-	//		return NULL;
-	//	}
+		if (lines > new->redraw_size)
+			results_extend(new, lines);
+
+		if (lines > new->redraw_size) {
+			discfile_set_error(load, "FileMem");
+			results_destroy(new);
+			return NULL;
+		}
 
 		results_set_title(new, title);
 	} else {
@@ -583,6 +578,8 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 		results_destroy(new);
 		return NULL;
 	}
+
+	/* Load the window lines into the window. */
 
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_RESULTS)) {
 		size = discfile_chunk_size(load);
@@ -606,11 +603,11 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 		return NULL;
 	}
 
-
-
-
+	/* Close the results section of the file. */
 
 	discfile_close_section(load);
+
+	/* Reformat the loaded lines in the window. */
 
 	results_reformat(new, TRUE);
 
@@ -1411,12 +1408,8 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 	 * line, allocating more if required.
 	 */
 
-	if (handle->redraw_lines >= handle->redraw_size) {
-		if (flex_extend((flex_ptr) &(handle->redraw), (handle->redraw_size + RESULTS_ALLOC_REDRAW) * sizeof(struct results_line)) == 0)
-			return RESULTS_NULL;
-
-		handle->redraw_size += RESULTS_ALLOC_REDRAW;
-	}
+	if (handle->redraw_lines >= handle->redraw_size)
+		results_extend(handle, handle->redraw_size + RESULTS_ALLOC_REDRAW);
 
 	if (handle->redraw_lines >= handle->redraw_size)
 		return RESULTS_NULL;
@@ -1440,6 +1433,29 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 		handle->redraw[handle->display_lines++].index = offset;
 
 	return offset;
+}
+
+
+/**
+ * Extend the memory allocaton for a results window by the given number of
+ * entries.
+ *
+ * \param *handle		The window to extend.
+ * \param lines			The required number of lines in the window.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+static osbool results_extend(struct results_window *handle, unsigned lines)
+{
+	if (handle == NULL || handle->redraw == NULL || handle->redraw_size > lines)
+		return FALSE;
+
+	if (flex_extend((flex_ptr) &(handle->redraw), lines * sizeof(struct results_line)) != 1)
+		return FALSE;
+
+	handle->redraw_size = lines;
+
+	return TRUE;
 }
 
 
