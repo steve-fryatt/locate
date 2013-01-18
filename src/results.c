@@ -1415,6 +1415,9 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 		handle->redraw_size += RESULTS_ALLOC_REDRAW;
 	}
 
+	if (handle->redraw_lines >= handle->redraw_size)
+		return RESULTS_NULL;
+
 	/* Get the new line and initialise it. */
 
 	offset = handle->redraw_lines++;
