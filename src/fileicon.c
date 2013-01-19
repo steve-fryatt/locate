@@ -116,11 +116,13 @@ void fileicon_initialise(void)
 	fileicon_specials[FILEICON_DIRECTORY].name = textdump_store(fileicon_text, msgs_lookup("Dir", name, sizeof(name)));
 	fileicon_specials[FILEICON_APPLICATION].name = textdump_store(fileicon_text, msgs_lookup("App", name, sizeof(name)));
 	fileicon_specials[FILEICON_UNTYPED].name = textdump_store(fileicon_text, msgs_lookup("File", name, sizeof(name)));
+	fileicon_specials[FILEICON_INCOMPLETE].name = textdump_store(fileicon_text, msgs_lookup("Unf", name, sizeof(name)));
 
 	fileicon_find_sprites(fileicon_specials + FILEICON_UNKNOWN, "small_xxx", "file_xxx");
 	fileicon_find_sprites(fileicon_specials + FILEICON_DIRECTORY, "small_dir", "directory");
 	fileicon_find_sprites(fileicon_specials + FILEICON_APPLICATION, "small_app", "application");
 	fileicon_find_sprites(fileicon_specials + FILEICON_UNTYPED, "small_lxa", "file_lxa");
+	fileicon_find_sprites(fileicon_specials + FILEICON_INCOMPLETE, "small_unf", "file_unf");
 
 	/* The error sprite is in our own sprite area, so won't show up in searches
 	 * of the Wimp Sprite Pool.

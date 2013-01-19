@@ -41,6 +41,7 @@ File:File
 Dir:Directory
 App:Application
 Err:Error
+Unf:Incomplete
 
 FileName:Results
 ExptName:FileNames
