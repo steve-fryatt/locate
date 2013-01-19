@@ -603,6 +603,8 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 			case RESULTS_LINE_TEXT:
 				results_add_raw(new, RESULTS_LINE_TEXT, data.data, data.colour, data.sprite);
 				break;
+			default:
+				break;
 			}
 
 			debug_printf("Results Line %d, type %d", i, data.type);
