@@ -310,6 +310,22 @@ osbool file_search_active(struct file_block *file)
 
 
 /**
+ * Identify whether a file has a set of dialogue data associated with it.
+ *
+ * \param *file			The file to be tested.
+ * \return			TRUE if there is dialogue data; FALSE if not.
+ */
+
+osbool file_has_dialogue(struct file_block *file)
+{
+	if (file == NULL)
+		return FALSE;
+
+	return (file->dialogue == NULL) ? FALSE : TRUE;
+}
+
+
+/**
  * Stop any active search associated with a file.
  *
  * \param *file			The file to be stopped.
