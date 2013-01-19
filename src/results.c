@@ -172,8 +172,9 @@ struct results_line {
 	unsigned		parent;						/**< The parent line for a group (points to itself for the parent).	*/
 
 	unsigned		text;						/**< Text offset for text-based lines (RESULTS_NULL if not used).	*/
-	unsigned		sprite;						/**< Text offset for the display icon's sprite name.			*/
 	unsigned		file;						/**< Object key for file objects.					*/
+
+	enum fileicon_icons	sprite;						/**< Fileicon sprite id for the icon's sprite.				*/
 
 	unsigned		truncate;					/**< Non-zero indicates first character of text to be displayed.	*/
 	wimp_colour		colour;						/**< The foreground colour of the text.					*/
@@ -233,7 +234,7 @@ struct results_file_block {
 	unsigned		parent;						/**< The parent line for a group (points to itself for the parent).	*/
 
 	unsigned		data;						/**< Data (text offset; object key) for the line.			*/
-	unsigned		sprite;						/**< Text offset for the display icon's sprite name.			*/
+	enum fileicon_icons	sprite;						/**< Fileicon ID for the display icon's sprite.				*/
 
 	wimp_colour		colour;						/**< The foreground colour of the text.					*/
 };
@@ -599,12 +600,25 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 			case RESULTS_LINE_FILENAME:
 				results_add_file(new, data.data);
 				break;
+			case RESULTS_LINE_TEXT:
+				results_add_raw(new, RESULTS_LINE_TEXT, data.data, data.colour, data.sprite);
+				break;
 			}
 
 			debug_printf("Results Line %d, type %d", i, data.type);
 			position += sizeof(struct results_file_block);
 		}
+
+		discfile_close_chunk(load);
 	} else {
+		discfile_set_error(load, "FileUnrec");
+		results_destroy(new);
+		return NULL;
+	}
+
+	/* Load the textdump contents into memory. */
+
+	if (!textdump_load_file(new->text, load)) {
 		discfile_set_error(load, "FileUnrec");
 		results_destroy(new);
 		return NULL;
@@ -1027,7 +1041,18 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
-				strcpy(validation + 1, fileicon + line->sprite);
+				fileicon_get_special_icon(line->sprite, &typeinfo);
+
+				if (typeinfo.small != TEXTDUMP_NULL) {
+					strcpy(validation + 1, fileicon + typeinfo.small);
+					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
+				} else if (typeinfo.large != TEXTDUMP_NULL) {
+					strcpy(validation + 1, fileicon + typeinfo.large);
+					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
+				} else {
+					strcpy(validation + 1, "small_xxx");
+					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
+				}
 
 				if (line->truncate > 0) {
 					strcpy(truncation + 3, text + line->text + line->truncate);
@@ -1037,10 +1062,6 @@ static void results_redraw_handler(wimp_draw *redraw)
 				}
 				icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_FG_COLOUR;
 				icon[RESULTS_ICON_FILE].flags |= line->colour << wimp_ICON_FG_COLOUR_SHIFT;
-				if (line->flags & RESULTS_FLAG_HALFSIZE)
-					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
-				else
-					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 
 				if (line->flags & RESULTS_FLAG_SELECTED)
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SELECTED;
@@ -1166,8 +1187,7 @@ void results_set_title(struct results_window *handle, char *title)
 
 static void results_add_raw(struct results_window *handle, enum results_line_type type, unsigned message, wimp_colour colour, enum fileicon_icons sprite)
 {
-	unsigned		line, offv, offt;
-	struct fileicon_info	icon;
+	unsigned		line;
 
 	if (handle == NULL || message == TEXTDUMP_NULL)
 		return;
@@ -1176,23 +1196,9 @@ static void results_add_raw(struct results_window *handle, enum results_line_typ
 	if (line == RESULTS_NULL)
 		return;
 
-	fileicon_get_special_icon(sprite, &icon);
-
-	if (icon.small != TEXTDUMP_NULL) {
-		offv = icon.small;
-	} else if (icon.large != TEXTDUMP_NULL) {
-		offv = icon.large;
-		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
-	} else {
-		offv = TEXTDUMP_NULL;
-	}
-
-	if (offv == TEXTDUMP_NULL)
-		return;
-
 	handle->redraw[line].type = type;
-	handle->redraw[line].text = offt;
-	handle->redraw[line].sprite = offv;
+	handle->redraw[line].text = message;
+	handle->redraw[line].sprite = sprite;
 	handle->redraw[line].colour = colour;
 }
 
@@ -1208,8 +1214,7 @@ static void results_add_raw(struct results_window *handle, enum results_line_typ
 
 void results_add_error(struct results_window *handle, char *message, char *path)
 {
-	unsigned		line, offv, offt;
-	struct fileicon_info	icon;
+	unsigned		line, offt;
 
 	if (handle == NULL)
 		return;
@@ -1219,23 +1224,13 @@ void results_add_error(struct results_window *handle, char *message, char *path)
 		return;
 
 	offt = textdump_store(handle->text, message);
-	fileicon_get_special_icon(FILEICON_ERROR, &icon);
 
-	if (icon.small != TEXTDUMP_NULL) {
-		offv = icon.small;
-	} else if (icon.large != TEXTDUMP_NULL) {
-		offv = icon.large;
-		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
-	} else {
-		offv = TEXTDUMP_NULL;
-	}
-
-	if (offt == TEXTDUMP_NULL || offv == TEXTDUMP_NULL)
+	if (offt == TEXTDUMP_NULL)
 		return;
 
 	handle->redraw[line].type = RESULTS_LINE_TEXT;
 	handle->redraw[line].text = offt;
-	handle->redraw[line].sprite = offv;
+	handle->redraw[line].sprite = FILEICON_ERROR;
 	handle->redraw[line].colour = wimp_COLOUR_RED;
 }
 
@@ -1473,7 +1468,7 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 	handle->redraw[offset].parent = RESULTS_NULL;
 	handle->redraw[offset].text = RESULTS_NULL;
 	handle->redraw[offset].file = OBJDB_NULL_KEY;
-	handle->redraw[offset].sprite = RESULTS_NULL;
+	handle->redraw[offset].sprite = FILEICON_UNKNOWN;
 	handle->redraw[offset].truncate = 0;
 	handle->redraw[offset].colour = wimp_COLOUR_BLACK;
 
