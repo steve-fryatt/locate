@@ -584,6 +584,12 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_RESULTS)) {
 		size = discfile_chunk_size(load);
+		if ((size % sizeof(struct results_file_block)) != 0) {
+			discfile_set_error(load, "FileUnrec");
+			results_destroy(new);
+			return NULL;
+		}
+
 		position = sizeof(struct results_file_block);
 
 		for (i = 0; i < lines && position <= size; i++) {
