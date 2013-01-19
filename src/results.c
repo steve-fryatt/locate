@@ -270,6 +270,7 @@ static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
 static void	results_set_display_mode(struct results_window *handle, osbool full_info);
 static void	results_update_extent(struct results_window *handle);
+static void	results_add_raw(struct results_window *handle, enum results_line_type type, unsigned message, wimp_colour colour, enum fileicon_icons sprite);
 static unsigned	results_add_line(struct results_window *handle, osbool show);
 static osbool	results_extend(struct results_window *handle, unsigned lines);
 static unsigned	results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state);
@@ -1144,6 +1145,49 @@ void results_set_title(struct results_window *handle, char *title)
 		windows_title_strncpy(handle->window, title);
 
 	xwimp_force_redraw_title(handle->window);
+}
+
+
+/**
+ * Add a raw line to the results window.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param type			The type of line to be added.
+ * \param message		The error message text, as a textdump offset.
+ * \param colour		The colour of the text.
+ * \param sprite		The icon sprite to use.
+ */
+
+static void results_add_raw(struct results_window *handle, enum results_line_type type, unsigned message, wimp_colour colour, enum fileicon_icons sprite)
+{
+	unsigned		line, offv, offt;
+	struct fileicon_info	icon;
+
+	if (handle == NULL || message == TEXTDUMP_NULL)
+		return;
+
+	line = results_add_line(handle, TRUE);
+	if (line == RESULTS_NULL)
+		return;
+
+	fileicon_get_special_icon(sprite, &icon);
+
+	if (icon.small != TEXTDUMP_NULL) {
+		offv = icon.small;
+	} else if (icon.large != TEXTDUMP_NULL) {
+		offv = icon.large;
+		handle->redraw[line].flags |= RESULTS_FLAG_HALFSIZE;
+	} else {
+		offv = TEXTDUMP_NULL;
+	}
+
+	if (offv == TEXTDUMP_NULL)
+		return;
+
+	handle->redraw[line].type = type;
+	handle->redraw[line].text = offt;
+	handle->redraw[line].sprite = offv;
+	handle->redraw[line].colour = colour;
 }
 
 
