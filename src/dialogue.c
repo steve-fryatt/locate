@@ -1899,7 +1899,6 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 	/* Set the datestamp search options. */
 
 	if (!dialogue->use_age && dialogue->date_mode != DIALOGUE_DATE_AT_ANY_TIME && dialogue->date_min_status != DATETIME_DATE_INVALID) {
-		char				line[DIALOGUE_MAX_FILE_LINE];
 		os_date_and_time	min_date, max_date;
 
 		switch (dialogue->date_mode) {
@@ -1954,7 +1953,6 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 	}
 
 	if (dialogue->use_age && dialogue->age_mode != DIALOGUE_AGE_ANY_AGE) {
-		char				line[DIALOGUE_MAX_FILE_LINE];
 		os_date_and_time		min_date, max_date;
 		oswordreadclock_utc_block	now;
 
