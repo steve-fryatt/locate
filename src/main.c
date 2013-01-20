@@ -89,6 +89,7 @@
 
 static void	main_poll_loop(void);
 static void	main_initialise(void);
+static void	main_parse_command_line(int argc, char *argv[]);
 static osbool	main_message_quit(wimp_message *message);
 static osbool	main_message_prequit(wimp_message *message);
 
@@ -109,6 +110,8 @@ osspriteop_area		*main_wimp_sprites;
 int main(int argc, char *argv[])
 {
 	main_initialise();
+
+	main_parse_command_line(argc, argv);
 
 	main_poll_loop();
 
@@ -257,6 +260,26 @@ static void main_initialise(void)
 	templates_close();
 
 	hourglass_off();
+}
+
+
+/**
+ * Take the command line and parse it for useful arguments.
+ *
+ * \param argc                  The number of parameters passed.
+ * \param *argv[]               Pointer to the parameter array.
+ */
+
+static void main_parse_command_line(int argc, char *argv[])
+{
+	int     i;
+
+	if (argc > 1) {
+		for (i=1; i<argc; i++) {
+			if (strcmp(argv[i], "-file") == 0 && i <= argc)
+				file_create_from_saved(argv[i+1]);
+		}
+	}
 }
 
 
