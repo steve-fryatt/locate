@@ -645,8 +645,6 @@ struct discfile_block *discfile_open_read(char *filename)
 	switch (new->format) {
 	case DISCFILE_LOCATE1:
 		discfile_legacy_validate_structure(new);
-		debug_printf("File format = %u", new->format);
-		discfile_set_error(new, "BadFile");
 		break;
 	case DISCFILE_LOCATE2:
 		discfile_validate_structure(new);
@@ -657,6 +655,19 @@ struct discfile_block *discfile_open_read(char *filename)
 	}
 
 	return new;
+}
+
+
+/**
+ * Read the file format of a discfile.
+ *
+ * \param *handle		The handle of the file to read.
+ * \return			The format of the file.
+ */
+
+enum discfile_format discfile_read_format(struct discfile_block *handle)
+{
+	return (handle == NULL) ? DISCFILE_UNKNOWN_FORMAT : handle->format;
 }
 
 

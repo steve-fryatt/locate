@@ -611,6 +611,9 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 	if (file == NULL || objects == NULL || load == NULL)
 		return NULL;
 
+	if (discfile_read_format(load) != DISCFILE_LOCATE2)
+		return NULL;
+
 	/* Open the results window section of the file. */
 
 	if (!discfile_open_section(load, DISCFILE_SECTION_RESULTS))

@@ -203,6 +203,16 @@ struct discfile_block *discfile_open_read(char *filename);
 
 
 /**
+ * Read the file format of a discfile.
+ *
+ * \param *handle		The handle of the file to read.
+ * \return			The format of the file.
+ */
+
+enum discfile_format discfile_read_format(struct discfile_block *handle);
+
+
+/**
  * Open a section from a disc file, ready for chunks of data to be read from
  * it.
  *

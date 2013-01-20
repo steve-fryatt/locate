@@ -786,6 +786,9 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 	if (file == NULL || load == NULL)
 		return NULL;
 
+	if (discfile_read_format(load) != DISCFILE_LOCATE2)
+		return NULL;
+
 	dialogue = dialogue_create(file, NULL, NULL);
 	if (dialogue == NULL)
 		return NULL;

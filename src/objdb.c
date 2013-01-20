@@ -428,6 +428,9 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 	if (file == NULL || load == NULL)
 		return NULL;
 
+	if (discfile_read_format(load) != DISCFILE_LOCATE2)
+		return NULL;
+
 	/* Open the object database section of the file. */
 
 	if (!discfile_open_section(load, DISCFILE_SECTION_OBJECTDB))
