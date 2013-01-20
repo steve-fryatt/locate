@@ -168,8 +168,6 @@ struct objdb_block *objdb_create(struct file_block *file)
 		return NULL;
 	}
 
-	debug_printf("New object database 0x%x created", new);
-
 	return new;
 }
 
@@ -191,8 +189,6 @@ void objdb_destroy(struct objdb_block *handle)
 
 	if (handle->list != NULL)
 		flex_free((flex_ptr) &(handle->list));
-
-	debug_printf("Object database 0x%x destroyed.", handle);
 
 	heap_free(handle);
 }
@@ -463,8 +459,6 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 		if (handle->objects > handle->allocation)
 			objdb_extend(handle, handle->objects);
 
-		debug_printf("Object database objects=%d, allocation=%d", handle->objects, handle->allocation);
-
 		if (handle->objects > handle->allocation) {
 			discfile_set_error(load, "FileMem");
 			objdb_destroy(handle);
@@ -480,8 +474,6 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_OBJECTS)) {
 		size = discfile_chunk_size(load);
-
-		debug_printf("Objects chunk size=%d, available=%d", size, handle->allocation * sizeof(struct object));
 
 		if ((size <= handle->allocation * sizeof(struct object)) || (size != handle->objects * sizeof(struct object))){
 			discfile_read_chunk(load, (byte *) handle->list, size);

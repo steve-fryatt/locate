@@ -406,8 +406,6 @@ void discfile_end_chunk(struct discfile_block *handle)
 
 	chunk.size = ptr - handle->chunk;
 
-	debug_printf("Chunk size = %d, rounded = %d", chunk.size, WORDALIGN(chunk.size));
-
 	/* Write the modified chunk header. */
 
 	error = xosgbpb_write_atw(handle->handle, (byte *) &chunk, sizeof(struct discfile_chunk), handle->chunk, &unwritten);
@@ -1024,12 +1022,8 @@ osbool discfile_read_option_boolean(struct discfile_block *handle, char *tag, os
 	if (handle == NULL || tag == NULL || value == NULL)
 		return FALSE;
 
-	debug_printf("Looking for option %s", tag);
-
 	id = discfile_make_id(DISCFILE_OPTION_BOOLEAN, tag);
 	ptr = discfile_find_option_data(handle, id);
-
-	debug_printf("Found at ptr=%d", ptr);
 
 	if (ptr == 0)
 		return FALSE;
@@ -1065,12 +1059,8 @@ osbool discfile_read_option_unsigned(struct discfile_block *handle, char *tag, u
 	if (handle == NULL || tag == NULL || value == NULL)
 		return FALSE;
 
-	debug_printf("Looking for option %s", tag);
-
 	id = discfile_make_id(DISCFILE_OPTION_UNSIGNED, tag);
 	ptr = discfile_find_option_data(handle, id);
-
-	debug_printf("Found at ptr=%d", ptr);
 
 	if (ptr == 0)
 		return FALSE;
@@ -1107,12 +1097,8 @@ osbool discfile_read_option_string(struct discfile_block *handle, char *tag, cha
 	if (handle == NULL || tag == NULL || value == NULL)
 		return FALSE;
 
-	debug_printf("Looking for option %s", tag);
-
 	id = discfile_make_id(DISCFILE_OPTION_STRING, tag);
 	ptr = discfile_find_option_data(handle, id);
-
-	debug_printf("Found at ptr=%d", ptr);
 
 	if (ptr == 0) {
 		value[0] = '\0';
@@ -1156,12 +1142,8 @@ osbool discfile_read_option_flex_string(struct discfile_block *handle, char *tag
 	if (handle == NULL || tag == NULL || string_ptr == NULL)
 		return FALSE;
 
-	debug_printf("Looking for option %s", tag);
-
 	id = discfile_make_id(DISCFILE_OPTION_STRING, tag);
 	ptr = discfile_find_option_data(handle, id);
-
-	debug_printf("Found at ptr=%d", ptr);
 
 	if (ptr == 0)
 		return FALSE;
@@ -1179,8 +1161,6 @@ osbool discfile_read_option_flex_string(struct discfile_block *handle, char *tag
 		return FALSE;
 	}
 
-	debug_printf("Allocate %u bytes of memory.", option.data.length);
-
 	/* Allocate enough memory to store the string. */
 
 	if (flex_extend(string_ptr, option.data.length) == 0) {
@@ -1191,12 +1171,8 @@ osbool discfile_read_option_flex_string(struct discfile_block *handle, char *tag
 	discfile_read_string(handle, *string_ptr, option.data.length);
 	length = strlen(*string_ptr) + 1;
 
-	if (length < option.data.length) {
+	if (length < option.data.length)
 		flex_extend(string_ptr, length);
-		debug_printf("Shrunk allocation to %u bytes.", length);
-	} else {
-		debug_printf("Memory exactly right!");
-	}
 
 	return TRUE;
 }
@@ -1221,12 +1197,8 @@ osbool discfile_read_option_date(struct discfile_block *handle, char *tag, os_da
 	if (handle == NULL || tag == NULL)
 		return FALSE;
 
-	debug_printf("Looking for option %s", tag);
-
 	id = discfile_make_id(DISCFILE_OPTION_DATE, tag);
 	ptr = discfile_find_option_data(handle, id);
-
-	debug_printf("Found at ptr=%d", ptr);
 
 	if (ptr == 0)
 		return FALSE;
@@ -1274,12 +1246,8 @@ osbool discfile_read_option_unsigned_array(struct discfile_block *handle, char *
 	if (handle == NULL || tag == NULL || array_ptr == NULL)
 		return FALSE;
 
-	debug_printf("Looking for option %s", tag);
-
 	id = discfile_make_id(DISCFILE_OPTION_UNSIGNED_ARRAY, tag);
 	ptr = discfile_find_option_data(handle, id);
-
-	debug_printf("Found at ptr=%d", ptr);
 
 	if (ptr == 0)
 		return FALSE;
@@ -1350,8 +1318,6 @@ static int discfile_find_option_data(struct discfile_block *handle, unsigned id)
 			discfile_set_error(handle, "FileError");
 			return 0;
 		}
-
-		debug_printf("Option type %d, tag %c%c%c", option.id & 0xffu, (option.id & 0xff00u) >> 8, (option.id & 0xff0000u) >> 16, (option.id & 0xff000000u) >> 24);
 
 		if (option.id == id) {
 			location = ptr;
@@ -1502,8 +1468,6 @@ void discfile_set_error(struct discfile_block *handle, char *token)
 {
 	if (handle == NULL || token == NULL)
 		return;
-
-	debug_printf("\\RDiscfile set error: %s", token);
 
 	if (handle->error_token == NULL)
 		handle->error_token = token;

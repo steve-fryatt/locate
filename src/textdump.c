@@ -323,8 +323,6 @@ osbool textdump_load_file(struct textdump_block *handle, struct discfile_block *
 
 	size = discfile_chunk_size(file);
 
-	debug_printf("Textdump chunk size %d", size);
-
 	while (size > 0) {
 		discfile_read_string(file, buffer, 1024);
 
@@ -334,8 +332,6 @@ osbool textdump_load_file(struct textdump_block *handle, struct discfile_block *
 			discfile_set_error(file, "FileMem");
 			return FALSE;
 		}
-
-		debug_printf("Read '%s', %d bytes remaining", buffer, size);
 	}
 
 	discfile_close_chunk(file);

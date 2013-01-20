@@ -680,7 +680,6 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 				break;
 			}
 
-			debug_printf("Results Line %d, type %d", i, data.type);
 			position += sizeof(struct results_file_block);
 		}
 

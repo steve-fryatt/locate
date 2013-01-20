@@ -157,15 +157,11 @@ struct search_block *file_create_search(struct file_block *file, char *paths)
 	if (file == NULL)
 		return NULL;
 
-	debug_printf("Starting to create file");
-
 	file->objects = objdb_create(file);
 	if (file->objects == NULL) {
 		file_destroy(file);
 		return NULL;
 	}
-
-	debug_printf("Objects: 0x%x", file->objects);
 
 	file->results = results_create(file, file->objects, NULL);
 	if (file->results == NULL) {
@@ -173,15 +169,11 @@ struct search_block *file_create_search(struct file_block *file, char *paths)
 		return NULL;
 	}
 
-	debug_printf("Results: 0x%x", file->results);
-
 	file->search = search_create(file, file->objects, file->results, paths);
 	if (file->search == NULL) {
 		file_destroy(file);
 		return NULL;
 	}
-
-	debug_printf("Search: 0x%x", file->search);
 
 	return file->search;
 }
@@ -199,7 +191,6 @@ void file_create_from_saved(char *filename)
 	struct discfile_block	*load;
 	wimp_pointer		pointer;
 
-	debug_printf("Load file %s", filename);
 
 	new = file_create();
 	if (new == NULL)
