@@ -223,13 +223,14 @@ void file_create_from_saved(char *filename)
 
 	new->dialogue = dialogue_load_file(new, load);
 
-	discfile_close(load);
-
 	hourglass_off();
 
-	/* If none of the items loaded, give up. */
+	/* If an error is raised when the file closes, or none of the items
+	 * loaded, give up.
+	 */
 
-	if (new->dialogue == NULL && new->objects == NULL && new->results == NULL) {
+	if (discfile_close(load) ||
+			(new->dialogue == NULL && new->objects == NULL && new->results == NULL)) {
 		file_destroy(new);
 		return;
 	}

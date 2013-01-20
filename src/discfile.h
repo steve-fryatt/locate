@@ -364,9 +364,10 @@ void discfile_set_error(struct discfile_block *handle, char *token);
  * Close a discfile and free any memory associated with it.
  *
  * \param *handle		The discfile handle to be closed.
+ * \return			TRUE if the file had an error flagged; else FALSE.
  */
 
-void discfile_close(struct discfile_block *handle);
+osbool discfile_close(struct discfile_block *handle);
 
 #endif
 

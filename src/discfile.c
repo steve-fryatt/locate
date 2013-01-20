@@ -1519,17 +1519,33 @@ void discfile_set_error(struct discfile_block *handle, char *token)
  * Close a discfile and free any memory associated with it.
  *
  * \param *handle		The discfile handle to be closed.
+ * \return			TRUE if the file had an error flagged; else FALSE.
  */
 
-void discfile_close(struct discfile_block *handle)
+osbool discfile_close(struct discfile_block *handle)
 {
+	osbool	error;
+
 	if (handle == NULL)
-		return;
+		return FALSE;
+
+	/* Close the RISC OS file, if open. */
 
 	if (handle->handle != 0)
 		xosfind_closew(handle->handle);
 
+	/* Handle any error that is pending. */
+
+	error = (handle->mode == DISCFILE_ERROR) ? TRUE : FALSE;
+
+	if (error == TRUE)
+		error_msgs_report_error(handle->error_token);
+
+	/* Free the discfile handle storage. */
+
 	heap_free(handle);
+
+	return error;
 }
 
 
