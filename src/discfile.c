@@ -643,6 +643,7 @@ struct discfile_block *discfile_open_read(char *filename)
 	discfile_read_header(new);
 
 	switch (new->format) {
+	case DISCFILE_LOCATE0:
 	case DISCFILE_LOCATE1:
 		discfile_legacy_validate_structure(new);
 		break;
@@ -708,9 +709,9 @@ static void discfile_read_header(struct discfile_block *handle)
 		return;
 	}
 
-	/* There are only two valid formats. */
+	/* There are only three valid formats. */
 
-	if (header.format != DISCFILE_LOCATE1 && header.format != DISCFILE_LOCATE2) {
+	if (header.format != DISCFILE_LOCATE0 && header.format != DISCFILE_LOCATE1 && header.format != DISCFILE_LOCATE2) {
 		discfile_set_error(handle, "FileUnrec");
 		return;
 	}
@@ -743,7 +744,7 @@ static void discfile_legacy_validate_structure(struct discfile_block *handle)
 
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
-			handle->format != DISCFILE_LOCATE1) {
+			(handle->format != DISCFILE_LOCATE0 && handle->format != DISCFILE_LOCATE1)) {
 		if (handle != NULL)
 			discfile_set_error(handle, "FileError");
 		return;

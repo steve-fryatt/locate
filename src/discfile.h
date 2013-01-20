@@ -41,9 +41,10 @@
  */
 
 enum discfile_format {
-	DISCFILE_UNKNOWN_FORMAT = 0,						/**< The format has not been recognised.		*/
-	DISCFILE_LOCATE1 = 1,							/**< The file is from Locate 1.				*/
-	DISCFILE_LOCATE2 = 2							/**< The file is from Locate 2.				*/
+	DISCFILE_LOCATE0 = 0,							/**< The file is from an early version of Locate 1.	*/
+	DISCFILE_LOCATE1 = 1,							/**< The file is from a later version of Locate 1.	*/
+	DISCFILE_LOCATE2 = 2,							/**< The file is from Locate 2.				*/
+	DISCFILE_UNKNOWN_FORMAT = 0xffffffffu					/**< The format has not been recognised.		*/
 };
 
 enum discfile_section_type {
