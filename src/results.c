@@ -285,6 +285,7 @@ static void	results_object_info_prepare(struct results_window *handle);
 static char	*results_create_attributes_string(fileswitch_attr attributes, char *buffer, size_t length);
 static char	*results_create_address_string(unsigned load_addr, unsigned exec_addr, char *buffer, size_t length);
 static osbool	results_save_result_data(char *filename, osbool selection, void *data);
+static osbool	results_save_dialogue_data(char *filename, osbool selection, void *data);
 static osbool	results_save_filenames(char *filename, osbool selection, void *data);
 static void	results_clipboard_copy_filenames(struct results_window *handle);
 static void	*results_clipboard_find(void *data);
@@ -332,7 +333,7 @@ void results_initialise(osspriteop_area *sprites)
 
 	results_save_results = saveas_create_dialogue(FALSE, "file_1a1", results_save_result_data);
 	results_save_paths = saveas_create_dialogue(TRUE, "file_fff", results_save_filenames);
-	results_save_options = saveas_create_dialogue(FALSE, "file_1a1", NULL);
+	results_save_options = saveas_create_dialogue(FALSE, "file_1a1", results_save_dialogue_data);
 
 	results_clipboard = textdump_create(RESULTS_ALLOC_CLIPBOARD, 0, '\n');
 }
@@ -1978,6 +1979,27 @@ static osbool results_save_result_data(char *filename, osbool selection, void *d
 		return FALSE;
 
 	return file_full_save(handle->file, filename);
+}
+
+
+/**
+ * Handle a callback from the dataxfer system and call the file module to
+ * save the linked dialogue data to disc.
+ *
+ * \param *filename		The filename to save to.
+ * \param selection		TRUE if Selection is ticked; else FALSE.
+ * \param *data			The handle of the results window to save from.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+static osbool results_save_dialogue_data(char *filename, osbool selection, void *data)
+{
+	struct results_window		*handle = (struct results_window *) data;
+
+	if (handle == NULL)
+		return FALSE;
+
+	return file_dialogue_save(handle->file, filename);
 }
 
 

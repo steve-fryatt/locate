@@ -76,6 +76,7 @@
 #define DISCFILE_OPTION_STRING (0x00000002u)
 #define DISCFILE_OPTION_BOOLEAN (0x00000003u)
 #define DISCFILE_OPTION_DATE (0x00000004u)
+#define DISCFILE_OPTION_UNSIGNED_ARRAY (0x00000005u)
 
 /**
  * Generic file structure handling.
@@ -504,6 +505,32 @@ void discfile_write_option_string(struct discfile_block *handle, char *tag, char
 		if (error != NULL || unwritten != 0)
 			return;
 	}
+}
+
+
+/**
+ * Write an unsigned array to an open chunk in a file.
+ *
+ * \param *handle		The handle to be written to.
+ * \param *tag			The tag to give to the text.
+ * \param *text			Pointer to the text to be written.
+ */
+
+void discfile_write_option_unsigned_array(struct discfile_block *handle, char *tag, unsigned *array, unsigned terminator)
+{
+	unsigned			length;
+	struct discfile_option		option;
+
+	if (tag == NULL || array == NULL)
+		return;
+
+	for (length = 0; array[length] != terminator; length++);
+
+	option.id = discfile_make_id(DISCFILE_OPTION_UNSIGNED_ARRAY, tag);
+	option.data.length = length * sizeof(unsigned);
+
+	discfile_write_chunk(handle, (byte *) &option, sizeof(struct discfile_option));
+	discfile_write_chunk(handle, (byte *) array, length * sizeof(unsigned));
 }
 
 

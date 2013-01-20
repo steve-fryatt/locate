@@ -736,7 +736,7 @@ void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *
 	discfile_write_option_boolean(out, "TDR", dialogue->type_directories);
 	discfile_write_option_boolean(out, "TAP", dialogue->type_applications);
 	discfile_write_option_unsigned(out, "TMD", dialogue->type_mode);
-	//unsigned			*type_types;				/**< 0xffffffffu terminated list of file types.		*/
+	discfile_write_option_unsigned_array(out, "TTL", dialogue->type_types, 0xffffffffu);
 
 	/* The File Attributes. */
 
@@ -1482,7 +1482,7 @@ static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointe
 		return;
 
 	if (menu == dialogue_menu) {
-		saveas_initialise_dialogue(dialogue_save_search, "SrchName", NULL, FALSE, FALSE, NULL);
+		saveas_initialise_dialogue(dialogue_save_search, "SrchName", NULL, FALSE, FALSE, dialogue_data);
 		return;
 	}
 
@@ -2026,28 +2026,18 @@ static void dialogue_scale_age(os_date_and_time date, unsigned base, enum dialog
  *
  * \param *filename		The filename to save to.
  * \param selection		TRUE to save just the selection, else FALSE.
- * \param *data			Context data; unused and NULL.
+ * \param *data			Context data: the handle of the parent dialogue.
  * \return			TRUE on success; FALSE on failure.
  */
 
 static osbool dialogue_save_settings(char *filename, osbool selection, void *data)
 {
-	FILE	*out;
+	struct dialogue_block *dialogue = data;
 
-	debug_printf("Save file to %s with selection at %d", filename, selection);
-
-
-
-	out = fopen(filename, "w");
-	if (out == NULL)
+	if (dialogue == NULL)
 		return FALSE;
 
-	fprintf(out, "# >Locate Settings File\n#\n# Written by Locate\n\n");
-
-	fclose(out);
-	osfile_set_type(filename, (bits) DISCFILE_LOCATE_FILETYPE);
-
-	return TRUE;
+	return file_dialogue_save(dialogue->file, filename);
 }
 
 

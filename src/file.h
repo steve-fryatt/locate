@@ -85,6 +85,18 @@ osbool file_full_save(struct file_block *block, char *filename);
 
 
 /**
+ * Perform a dialogue save on a file block, storing only the search
+ * dialogue settings.
+ *
+ * \param *block		The handle of the file to save.
+ * \param *filename		Pointer to the filename to save to.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool file_dialogue_save(struct file_block *block, char *filename);
+
+
+/**
  * Destroy a file, freeing its data and closing any windows.
  *
  * \param *block		The handle of the file to destroy.

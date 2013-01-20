@@ -147,6 +147,17 @@ void discfile_write_option_string(struct discfile_block *handle, char *tag, char
 
 
 /**
+ * Write an unsigned array to an open chunk in a file.
+ *
+ * \param *handle		The handle to be written to.
+ * \param *tag			The tag to give to the text.
+ * \param *text			Pointer to the text to be written.
+ */
+
+void discfile_write_option_unsigned_array(struct discfile_block *handle, char *tag, unsigned *array, unsigned terminator);
+
+
+/**
  * Write an OS date to an open chunk in a file.
  *
  * \param *handle		The handle to be written to.

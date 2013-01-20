@@ -277,6 +277,37 @@ osbool file_full_save(struct file_block *block, char *filename)
 
 
 /**
+ * Perform a dialogue save on a file block, storing only the search
+ * dialogue settings.
+ *
+ * \param *block		The handle of the file to save.
+ * \param *filename		Pointer to the filename to save to.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool file_dialogue_save(struct file_block *block, char *filename)
+{
+	struct discfile_block		*out;
+
+	out = discfile_open_write(filename);
+	if (out == NULL)
+		return FALSE;
+
+	hourglass_on();
+
+	dialogue_save_file(block->dialogue, out);
+
+	hourglass_off();
+
+	discfile_close(out);
+
+	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
+
+	return TRUE;
+}
+
+
+/**
  * Destroy a file, freeing its data and closing any windows.
  *
  * \param *block		The handle of the file to destroy.
