@@ -165,6 +165,7 @@ struct discfile_option {
 
 static void	discfile_write_header(struct discfile_block *handle);
 static void	discfile_read_header(struct discfile_block *handle);
+static void	discfile_legacy_validate_structure(struct discfile_block *handle);
 static void	discfile_validate_structure(struct discfile_block *handle);
 static int	discfile_find_option_data(struct discfile_block *handle, unsigned id);
 static unsigned	discfile_make_id(unsigned type, char *code);
@@ -643,6 +644,8 @@ struct discfile_block *discfile_open_read(char *filename)
 
 	switch (new->format) {
 	case DISCFILE_LOCATE1:
+		discfile_legacy_validate_structure(new);
+		debug_printf("File format = %u", new->format);
 		discfile_set_error(new, "BadFile");
 		break;
 	case DISCFILE_LOCATE2:
@@ -710,6 +713,74 @@ static void discfile_read_header(struct discfile_block *handle)
 
 	handle->format = header.format;
 }
+
+
+/**
+ * Walk through a Locate 1 file, checking that the sections all add up to the
+ * correct size.
+ *
+ * On return, handle->format will be set appropriately, while handle->error_token
+ * will be pointing to an error token if an error occurred.
+ *
+ * \param *handle		The handle of the file block to process.
+ */
+
+static void discfile_legacy_validate_structure(struct discfile_block *handle)
+{
+	int				ptr, section_size, file_extent, unread;
+	os_error			*error;
+
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->format != DISCFILE_LOCATE1) {
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
+		return;
+	}
+
+	handle->format = DISCFILE_UNKNOWN_FORMAT;
+
+	/* Get the file extent. */
+
+	error = xosargs_read_extw(handle->handle, &file_extent);
+	if (error != NULL) {
+		discfile_set_error(handle, "FileError");
+		return;
+	}
+
+	/* Walk through the sections of the file, checking that all of the sizes
+	 * make sense.
+	 */
+
+	ptr = sizeof(struct discfile_header);
+
+	while (ptr < file_extent) {
+		error = xosgbpb_read_atw(handle->handle, (byte *) &section_size, sizeof(int), ptr, &unread);
+		if (error != NULL || unread != 0) {
+			discfile_set_error(handle, "FileError");
+			return;
+		}
+
+		if (section_size < 0) {
+			discfile_set_error(handle, "FileUnrec");
+			return;
+		}
+
+		ptr += section_size + sizeof(int);
+	}
+
+	/* The end of the last section should align exactly with the end of the
+	 * file.
+	 */
+
+	if (ptr != file_extent) {
+		discfile_set_error(handle, "FileUnrec");
+		return;
+	}
+
+	handle->format = DISCFILE_LOCATE1;
+}
+
 
 
 /**
