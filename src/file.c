@@ -39,6 +39,7 @@
 
 /* OSLib Header files. */
 
+#include "oslib/hourglass.h"
 #include "oslib/osbyte.h"
 #include "oslib/osfile.h"
 #include "oslib/wimp.h"
@@ -203,6 +204,8 @@ void file_create_from_saved(char *filename)
 	if (new == NULL)
 		return;
 
+	hourglass_on();
+
 	load = discfile_open_read(filename);
 
 	/* Load an object database if there is one. */
@@ -212,6 +215,7 @@ void file_create_from_saved(char *filename)
 	if (new->objects == NULL) {
 		file_destroy(new);
 		discfile_close(load);
+		hourglass_off();
 		return;
 	}
 
@@ -222,6 +226,7 @@ void file_create_from_saved(char *filename)
 	if (new->results == NULL) {
 		file_destroy(new);
 		discfile_close(load);
+		hourglass_off();
 	}
 
 	/* Load the search settings, if present. */
@@ -233,6 +238,8 @@ void file_create_from_saved(char *filename)
 	}
 
 	discfile_close(load);
+
+	hourglass_off();
 }
 
 
@@ -253,9 +260,13 @@ osbool file_full_save(struct file_block *block, char *filename)
 	if (out == NULL)
 		return FALSE;
 
+	hourglass_on();
+
 	objdb_save_file(block->objects, out);
 	results_save_file(block->results, out);
 	dialogue_save_file(block->dialogue, out);
+
+	hourglass_off();
 
 	discfile_close(out);
 
