@@ -30,6 +30,8 @@
 #ifndef LOCATE_DISCFILE
 #define LOCATE_DISCFILE
 
+#include "oslib/os.h"
+
 #define DISCFILE_LOCATE_FILETYPE (0x1a1)
 
 /**
@@ -46,7 +48,7 @@ enum discfile_section_type {
 	DISCFILE_SECTION_UNKNOWN = 0,						/**< The section type is unknown.			*/
 	DISCFILE_SECTION_OBJECTDB = 1,						/**< The section contains an object database.		*/
 	DISCFILE_SECTION_RESULTS = 2,						/**< The section contains a results window definition.	*/
-	DISCFILE_SECTION_SEARCH = 3						/**< The section contains search settings.		*/
+	DISCFILE_SECTION_DIALOGUE = 3						/**< The section contains dialogue settings.		*/
 };
 
 enum discfile_chunk_type {
@@ -134,7 +136,7 @@ void discfile_write_option_unsigned(struct discfile_block *handle, char *tag, un
 
 
 /**
- * Write an text string to an open chunk in a file.
+ * Write a text string to an open chunk in a file.
  *
  * \param *handle		The handle to be written to.
  * \param *tag			The tag to give to the text.
@@ -142,6 +144,17 @@ void discfile_write_option_unsigned(struct discfile_block *handle, char *tag, un
  */
 
 void discfile_write_option_string(struct discfile_block *handle, char *tag, char *text);
+
+
+/**
+ * Write an OS date to an open chunk in a file.
+ *
+ * \param *handle		The handle to be written to.
+ * \param *tag			The tag to give to the text.
+ * \param *text			Pointer to the text to be written.
+ */
+
+void discfile_write_option_date(struct discfile_block *handle, char *tag, os_date_and_time date);
 
 
 /**

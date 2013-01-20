@@ -68,6 +68,17 @@ void results_destroy(struct results_window *handle);
 
 
 /**
+ * Save the contents of a results window into an open discfile.
+ *
+ * \param *handle		The results window to be saved.
+ * \param *out			The discfile to write to.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool results_save_file(struct results_window *handle, struct discfile_block *out);
+
+
+/**
  * Load results data from a file and create a results window from it.
  *
  * \param *file			The file block to which the window belongs.

@@ -32,6 +32,7 @@
 
 struct dialogue_block;
 
+#include "discfile.h"
 #include "file.h"
 
 /**
@@ -61,6 +62,16 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
  */
 
 void dialogue_destroy(struct dialogue_block *dialogue);
+
+
+/**
+ * Save a dialogue's settings to an open disc file.
+ *
+ * \param *dialogue		The dialogue to be saved.
+ * \param *out			The handle of the file to save to.
+ */
+
+void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *out);
 
 
 /**

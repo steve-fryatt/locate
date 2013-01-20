@@ -40,6 +40,7 @@
 /* OSLib Header files. */
 
 #include "oslib/osbyte.h"
+#include "oslib/osfile.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib Header files. */
@@ -185,7 +186,6 @@ struct search_block *file_create_search(struct file_block *file, char *paths)
 }
 
 
-
 /**
  * Create a new file block by loading in pre-saved data.
  *
@@ -226,13 +226,42 @@ void file_create_from_saved(char *filename)
 
 	/* Load the search settings, if present. */
 
-	if (discfile_open_section(load, DISCFILE_SECTION_SEARCH)) {
+	if (discfile_open_section(load, DISCFILE_SECTION_DIALOGUE)) {
 		debug_printf("File contains a Search section.");
 
 		discfile_close_section(load);
 	}
 
 	discfile_close(load);
+}
+
+
+/**
+ * Perform a full file save on a file block, storing object database,
+ * results window and search dialogue settings.
+ *
+ * \param *block		The handle of the file to save.
+ * \param *filename		Pointer to the filename to save to.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool file_full_save(struct file_block *block, char *filename)
+{
+	struct discfile_block		*out;
+
+	out = discfile_open_write(filename);
+	if (out == NULL)
+		return FALSE;
+
+	objdb_save_file(block->objects, out);
+	results_save_file(block->results, out);
+	dialogue_save_file(block->dialogue, out);
+
+	discfile_close(out);
+
+	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
+
+	return TRUE;
 }
 
 

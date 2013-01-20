@@ -517,6 +517,80 @@ void results_destroy(struct results_window *handle)
 
 
 /**
+ * Save the contents of a results window into an open discfile.
+ *
+ * \param *handle		The results window to be saved.
+ * \param *out			The discfile to write to.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool results_save_file(struct results_window *handle, struct discfile_block *out)
+{
+	struct results_file_block	block;
+	int				i;
+	char				*title;
+
+	if (handle == NULL || out == NULL)
+		return FALSE;
+
+	title = windows_get_indirected_title_addr(handle->window);
+
+	if (title == NULL)
+		return FALSE;
+
+	discfile_start_section(out, DISCFILE_SECTION_RESULTS);
+
+	/* Write out the results options. */
+
+	discfile_start_chunk(out, DISCFILE_CHUNK_OPTIONS);
+	discfile_write_option_unsigned(out, "LIN", handle->redraw_lines);
+	discfile_write_option_boolean(out, "FUL", handle->full_info);
+	discfile_write_option_string(out, "TIT", title);
+	discfile_end_chunk(out);
+
+	/* Write the results line data. */
+
+	discfile_start_chunk(out, DISCFILE_CHUNK_RESULTS);
+	for (i = 0; i < handle->redraw_lines; i++) {
+		if (handle->redraw[i].type != RESULTS_LINE_TEXT && handle->redraw[i].type != RESULTS_LINE_FILENAME)
+			continue;
+
+		block.type = handle->redraw[i].type;
+		block.flags = handle->redraw[i].flags;
+		block.parent = handle->redraw[i].parent;
+		block.colour = handle->redraw[i].colour;
+
+		switch (handle->redraw[i].type) {
+		case RESULTS_LINE_TEXT:
+			block.data = handle->redraw[i].text;
+			block.sprite = handle->redraw[i].sprite;
+			break;
+
+		case RESULTS_LINE_FILENAME:
+			block.data = handle->redraw[i].file;
+			block.sprite = handle->redraw[i].sprite;
+			break;
+
+		default:
+			block.data = RESULTS_NULL;
+			block.sprite = RESULTS_NULL;
+			break;
+		}
+
+		discfile_write_chunk(out, (byte *) &block, sizeof(struct results_file_block));
+	}
+	discfile_end_chunk(out);
+
+	/* Write out the textdump data. */
+
+	textdump_save_file(handle->text, out);
+
+	discfile_end_section(out);
+
+	return TRUE;
+}
+
+/**
  * Load results data from a file and create a results window from it.
  *
  * \param *file			The file block to which the window belongs.
@@ -1887,7 +1961,8 @@ static char *results_create_address_string(unsigned load_addr, unsigned exec_add
 
 
 /**
- * Handle a callback from the dataxfer system and save the results to disc
+ * Handle a callback from the dataxfer system and call the file module to
+ * save a full set of results and associated data to disc.
  *
  * \param *filename		The filename to save to.
  * \param selection		TRUE if Selection is ticked; else FALSE.
@@ -1898,77 +1973,11 @@ static char *results_create_address_string(unsigned load_addr, unsigned exec_add
 static osbool results_save_result_data(char *filename, osbool selection, void *data)
 {
 	struct results_window		*handle = (struct results_window *) data;
-	struct results_file_block	block;
-	struct discfile_block		*out;
-	int				i;
-	char				*title;
 
 	if (handle == NULL)
 		return FALSE;
 
-	title = windows_get_indirected_title_addr(handle->window);
-
-	if (title == NULL)
-		return FALSE;
-
-	out = discfile_open_write(filename);
-	if (out == NULL)
-		return FALSE;
-
-	objdb_save_file(handle->objects, out);
-
-	discfile_start_section(out, DISCFILE_SECTION_RESULTS);
-
-	/* Write out the results options. */
-
-	discfile_start_chunk(out, DISCFILE_CHUNK_OPTIONS);
-	discfile_write_option_unsigned(out, "LIN", handle->redraw_lines);
-	discfile_write_option_boolean(out, "FUL", handle->full_info);
-	discfile_write_option_string(out, "TIT", title);
-	discfile_end_chunk(out);
-
-	/* Write the results line data. */
-
-	discfile_start_chunk(out, DISCFILE_CHUNK_RESULTS);
-	for (i = 0; i < handle->redraw_lines; i++) {
-		if (handle->redraw[i].type != RESULTS_LINE_TEXT && handle->redraw[i].type != RESULTS_LINE_FILENAME)
-			continue;
-
-		block.type = handle->redraw[i].type;
-		block.flags = handle->redraw[i].flags;
-		block.parent = handle->redraw[i].parent;
-		block.colour = handle->redraw[i].colour;
-
-		switch (handle->redraw[i].type) {
-		case RESULTS_LINE_TEXT:
-			block.data = handle->redraw[i].text;
-			block.sprite = handle->redraw[i].sprite;
-			break;
-
-		case RESULTS_LINE_FILENAME:
-			block.data = handle->redraw[i].file;
-			block.sprite = handle->redraw[i].sprite;
-			break;
-
-		default:
-			block.data = RESULTS_NULL;
-			block.sprite = RESULTS_NULL;
-			break;
-		}
-
-		discfile_write_chunk(out, (byte *) &block, sizeof(struct results_file_block));
-	}
-	discfile_end_chunk(out);
-
-	textdump_save_file(handle->text, out);
-
-	discfile_end_section(out);
-
-	discfile_close(out);
-
-	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
-
-	return TRUE;
+	return file_full_save(handle->file, filename);
 }
 
 

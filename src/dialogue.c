@@ -679,6 +679,98 @@ void dialogue_destroy(struct dialogue_block *dialogue)
 
 
 /**
+ * Save a dialogue's settings to an open disc file.
+ *
+ * \param *dialogue		The dialogue to be saved.
+ * \param *out			The handle of the file to save to.
+ */
+
+void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *out)
+{
+	if (dialogue == NULL || out == NULL)
+		return;
+
+	discfile_start_section(out, DISCFILE_SECTION_DIALOGUE);
+
+	/* Write out the dialogue options. */
+
+	discfile_start_chunk(out, DISCFILE_CHUNK_OPTIONS);
+	discfile_write_option_unsigned(out, "PAN", dialogue->pane);
+
+	/* The Search Path. */
+
+	discfile_write_option_string(out, "PAT", dialogue->path);
+
+	/* The Filename. */
+
+	discfile_write_option_string(out, "FNM", dialogue->filename);
+	discfile_write_option_boolean(out, "FIC", dialogue->ignore_case);
+
+	/* The File Size. */
+
+	discfile_write_option_unsigned(out, "SMD", dialogue->size_mode);
+	discfile_write_option_unsigned(out, "SMN", dialogue->size_min);
+	discfile_write_option_unsigned(out, "SUM", dialogue->size_min_unit);
+	discfile_write_option_unsigned(out, "SMX", dialogue->size_max);
+	discfile_write_option_unsigned(out, "SUX", dialogue->size_max_unit);
+
+	/* The File Date/Age. */
+
+	discfile_write_option_unsigned(out, "AGE", dialogue->use_age);
+
+	discfile_write_option_unsigned(out, "DMD", dialogue->date_mode);
+	discfile_write_option_date(out, "DMN", dialogue->date_min);
+	discfile_write_option_unsigned(out, "DSM", dialogue->date_min_status);
+	discfile_write_option_date(out, "DMX", dialogue->date_max);
+	discfile_write_option_unsigned(out, "DSX", dialogue->date_max_status);
+
+	discfile_write_option_unsigned(out, "AMD", dialogue->age_mode);
+	discfile_write_option_unsigned(out, "AMN", dialogue->age_min);
+	discfile_write_option_unsigned(out, "AUM", dialogue->age_min_unit);
+	discfile_write_option_unsigned(out, "AMX", dialogue->age_max);
+	discfile_write_option_unsigned(out, "AUX", dialogue->age_max_unit);
+
+	/* The File Type. */
+
+	discfile_write_option_boolean(out, "TFI", dialogue->type_files);
+	discfile_write_option_boolean(out, "TDR", dialogue->type_directories);
+	discfile_write_option_boolean(out, "TAP", dialogue->type_applications);
+	discfile_write_option_unsigned(out, "TMD", dialogue->type_mode);
+	//unsigned			*type_types;				/**< 0xffffffffu terminated list of file types.		*/
+
+	/* The File Attributes. */
+
+	discfile_write_option_boolean(out, "PLK", dialogue->attributes_locked);
+	discfile_write_option_boolean(out, "PLY", dialogue->attributes_locked_yes);
+	discfile_write_option_boolean(out, "Prd", dialogue->attributes_owner_read);
+	discfile_write_option_boolean(out, "PrY", dialogue->attributes_owner_read_yes);
+	discfile_write_option_boolean(out, "Pwr", dialogue->attributes_owner_write);
+	discfile_write_option_boolean(out, "PwY", dialogue->attributes_owner_write_yes);
+	discfile_write_option_boolean(out, "PRD", dialogue->attributes_public_read);
+	discfile_write_option_boolean(out, "PRY", dialogue->attributes_public_read_yes);
+	discfile_write_option_boolean(out, "PWR", dialogue->attributes_public_write);
+	discfile_write_option_boolean(out, "PRY", dialogue->attributes_public_write_yes);
+
+	/* The File Contents. */
+
+	discfile_write_option_unsigned(out, "CMD", dialogue->contents_mode);
+	discfile_write_option_string(out, "CTX", dialogue->contents_text);
+	discfile_write_option_boolean(out, "CIC", dialogue->contents_ignore_case);
+	discfile_write_option_boolean(out, "CCC", dialogue->contents_ctrl_chars);
+
+	/* The Search Options. */
+
+	discfile_write_option_boolean(out, "ALL", dialogue->store_all);
+	discfile_write_option_boolean(out, "IMG", dialogue->ignore_imagefs);
+	discfile_write_option_boolean(out, "ERR", dialogue->suppress_errors);
+	discfile_write_option_boolean(out, "FUL", dialogue->full_info);
+
+	discfile_end_chunk(out);
+	discfile_end_section(out);
+}
+
+
+/**
  * Open the Search Dialogue window at the mouse pointer.
  *
  * \param *dialogue		The dialogue details to use to open the window.

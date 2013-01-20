@@ -40,6 +40,7 @@
 /* OSLib Header files. */
 
 #include "oslib/fileswitch.h"
+#include "oslib/os.h"
 #include "oslib/osargs.h"
 #include "oslib/osfind.h"
 #include "oslib/osgbpb.h"
@@ -54,6 +55,8 @@
 /* Application header files. */
 
 #include "discfile.h"
+
+#include "datetime.h"
 
 
 /**
@@ -72,6 +75,7 @@
 #define DISCFILE_OPTION_INT (0x00000001u)
 #define DISCFILE_OPTION_STRING (0x00000002u)
 #define DISCFILE_OPTION_BOOLEAN (0x00000003u)
+#define DISCFILE_OPTION_DATE (0x00000004u)
 
 /**
  * Generic file structure handling.
@@ -149,7 +153,7 @@ union discfile_option_data {
 	unsigned			data_unsigned;				/**< The option data for unsigned options.			*/
 	int				data_int;				/**< The option data for integer options.			*/
 	osbool				data_osbool;				/**< The option data for boolean options.			*/
-	unsigned			length_string;				/**< The word-aligned string length for string options.		*/
+	unsigned			length;					/**< The word-aligned length for extended options.		*/
 };
 
 struct discfile_option {
@@ -466,7 +470,7 @@ void discfile_write_option_unsigned(struct discfile_block *handle, char *tag, un
 
 
 /**
- * Write an text string to an open chunk in a file. Strings are always padded out
+ * Write a text string to an open chunk in a file. Strings are always padded out
  * to a multiple of four bytes, so that options are always word-alinged inside
  * their chunk.
  *
@@ -488,18 +492,45 @@ void discfile_write_option_string(struct discfile_block *handle, char *tag, char
 	length = strlen(text) + 1;
 
 	option.id = discfile_make_id(DISCFILE_OPTION_STRING, tag);
-	option.data.length_string = WORDALIGN(length);
+	option.data.length = WORDALIGN(length);
 
 	discfile_write_chunk(handle, (byte *) &option, sizeof(struct discfile_option));
 	discfile_write_string(handle, text);
 
 	/* If the data wasn't a multiple of four bytes, pad the option out with zeros. */
 
-	if (option.data.length_string != length) {
-		error = xosgbpb_writew(handle->handle, (byte *) &zero, option.data.length_string - length, &unwritten);
+	if (option.data.length != length) {
+		error = xosgbpb_writew(handle->handle, (byte *) &zero, option.data.length - length, &unwritten);
 		if (error != NULL || unwritten != 0)
 			return;
 	}
+}
+
+
+/**
+ * Write an OS date to an open chunk in a file. The dates are padded out to
+ * 8 bytes, so that options are always word-alinged inside their chunk.
+ *
+ * \param *handle		The handle to be written to.
+ * \param *tag			The tag to give to the text.
+ * \param *text			Pointer to the text to be written.
+ */
+
+void discfile_write_option_date(struct discfile_block *handle, char *tag, os_date_and_time date)
+{
+	unsigned			words[2];
+	struct discfile_option		option;
+
+	if (tag == NULL)
+		return;
+
+	datetime_get_date(date, &words[1], &words[0]);
+
+	option.id = discfile_make_id(DISCFILE_OPTION_DATE, tag);
+	option.data.length = 2 * sizeof(unsigned);
+
+	discfile_write_chunk(handle, (byte *) &option, sizeof(struct discfile_option));
+	discfile_write_chunk(handle, (byte *) &words, 2 * sizeof(unsigned));
 }
 
 
@@ -1068,7 +1099,7 @@ osbool discfile_read_option_string(struct discfile_block *handle, char *tag, cha
 		return FALSE;
 	}
 
-	if (option.data.length_string > length) {
+	if (option.data.length > length) {
 		value[0] = '\0';
 		return FALSE;
 	}
@@ -1117,7 +1148,7 @@ static int discfile_find_option_data(struct discfile_block *handle, unsigned id)
 		} else {
 			switch (option.id & 0xffu) {
 			case DISCFILE_OPTION_STRING:
-				ptr += sizeof(struct discfile_option) + option.data.length_string;
+				ptr += sizeof(struct discfile_option) + option.data.length;
 				break;
 
 			default:
