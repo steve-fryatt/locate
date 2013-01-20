@@ -716,7 +716,7 @@ void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *
 
 	/* The File Date/Age. */
 
-	discfile_write_option_unsigned(out, "AGE", dialogue->use_age);
+	discfile_write_option_boolean(out, "AGE", dialogue->use_age);
 
 	discfile_write_option_unsigned(out, "DMD", dialogue->date_mode);
 	discfile_write_option_date(out, "DMN", dialogue->date_min);
@@ -767,6 +767,110 @@ void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *
 
 	discfile_end_chunk(out);
 	discfile_end_section(out);
+}
+
+
+/**
+ * Load a dialogue's settings from an open disc file and create a new
+ * dialogue structure from them.
+ *
+ * \param *file			The file to which the dialogue will belong.
+ * \param *load			The handle of the file to load from.
+ * \return			The handle of the new dialogue, or NULL.
+ */
+
+struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfile_block *load)
+{
+	struct dialogue_block	*dialogue;
+
+	if (file == NULL || load == NULL)
+		return NULL;
+
+	dialogue = dialogue_create(file, NULL, NULL);
+	if (dialogue == NULL)
+		return NULL;
+
+	if (!discfile_open_section(load, DISCFILE_SECTION_DIALOGUE) || !discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
+		dialogue_destroy(dialogue);
+		return NULL;
+	}
+
+	/* Read in the dialogue options. */
+
+	discfile_read_option_unsigned(load, "PAN", &dialogue->pane);
+
+	/* The Search Path. */
+
+	discfile_read_option_flex_string(load, "PAT", (flex_ptr) &dialogue->path);
+
+	/* The Filename. */
+
+	discfile_read_option_flex_string(load, "FNM", (flex_ptr) &dialogue->filename);
+	discfile_read_option_boolean(load, "FIC", &dialogue->ignore_case);
+
+	/* The File Size. */
+
+	discfile_read_option_unsigned(load, "SMD", &dialogue->size_mode);
+	discfile_read_option_unsigned(load, "SMN", &dialogue->size_min);
+	discfile_read_option_unsigned(load, "SUM", &dialogue->size_min_unit);
+	discfile_read_option_unsigned(load, "SMX", &dialogue->size_max);
+	discfile_read_option_unsigned(load, "SUX", &dialogue->size_max_unit);
+
+	/* The File Date/Age. */
+
+	discfile_read_option_boolean(load, "AGE", &dialogue->use_age);
+
+	discfile_read_option_unsigned(load, "DMD", &dialogue->date_mode);
+	discfile_read_option_date(load, "DMN", dialogue->date_min);
+	discfile_read_option_unsigned(load, "DSM", &dialogue->date_min_status);
+	discfile_read_option_date(load, "DMX", dialogue->date_max);
+	discfile_read_option_unsigned(load, "DSX", &dialogue->date_max_status);
+
+	discfile_read_option_unsigned(load, "AMD", &dialogue->age_mode);
+	discfile_read_option_unsigned(load, "AMN", &dialogue->age_min);
+	discfile_read_option_unsigned(load, "AUM", &dialogue->age_min_unit);
+	discfile_read_option_unsigned(load, "AMX", &dialogue->age_max);
+	discfile_read_option_unsigned(load, "AUX", &dialogue->age_max_unit);
+
+	/* The File Type. */
+
+	discfile_read_option_boolean(load, "TFI", &dialogue->type_files);
+	discfile_read_option_boolean(load, "TDR", &dialogue->type_directories);
+	discfile_read_option_boolean(load, "TAP", &dialogue->type_applications);
+	discfile_read_option_unsigned(load, "TMD", &dialogue->type_mode);
+	discfile_read_option_unsigned_array(load, "TTL", (flex_ptr) &dialogue->type_types, 0xffffffffu);
+
+	/* The File Attributes. */
+
+	discfile_read_option_boolean(load, "PLK", &dialogue->attributes_locked);
+	discfile_read_option_boolean(load, "PLY", &dialogue->attributes_locked_yes);
+	discfile_read_option_boolean(load, "Prd", &dialogue->attributes_owner_read);
+	discfile_read_option_boolean(load, "PrY", &dialogue->attributes_owner_read_yes);
+	discfile_read_option_boolean(load, "Pwr", &dialogue->attributes_owner_write);
+	discfile_read_option_boolean(load, "PwY", &dialogue->attributes_owner_write_yes);
+	discfile_read_option_boolean(load, "PRD", &dialogue->attributes_public_read);
+	discfile_read_option_boolean(load, "PRY", &dialogue->attributes_public_read_yes);
+	discfile_read_option_boolean(load, "PWR", &dialogue->attributes_public_write);
+	discfile_read_option_boolean(load, "PRY", &dialogue->attributes_public_write_yes);
+
+	/* The File Contents. */
+
+	discfile_read_option_unsigned(load, "CMD", &dialogue->contents_mode);
+	discfile_read_option_flex_string(load, "CTX", (flex_ptr) &dialogue->contents_text);
+	discfile_read_option_boolean(load, "CIC", &dialogue->contents_ignore_case);
+	discfile_read_option_boolean(load, "CCC", &dialogue->contents_ctrl_chars);
+
+	/* The Search Options. */
+
+	discfile_read_option_boolean(load, "ALL", &dialogue->store_all);
+	discfile_read_option_boolean(load, "IMG", &dialogue->ignore_imagefs);
+	discfile_read_option_boolean(load, "ERR", &dialogue->suppress_errors);
+	discfile_read_option_boolean(load, "FUL", &dialogue->full_info);
+
+	discfile_close_chunk(load);
+	discfile_close_section(load);
+
+	return dialogue;
 }
 
 

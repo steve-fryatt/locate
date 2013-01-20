@@ -227,14 +227,18 @@ void file_create_from_saved(char *filename)
 		file_destroy(new);
 		discfile_close(load);
 		hourglass_off();
+		return;
 	}
 
 	/* Load the search settings, if present. */
 
-	if (discfile_open_section(load, DISCFILE_SECTION_DIALOGUE)) {
-		debug_printf("File contains a Search section.");
+	new->dialogue = dialogue_load_file(new, load);
 
-		discfile_close_section(load);
+	if (new->dialogue == NULL) {
+		file_destroy(new);
+		discfile_close(load);
+		hourglass_off();
+		return;
 	}
 
 	discfile_close(load);

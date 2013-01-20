@@ -1088,7 +1088,7 @@ osbool discfile_read_option_unsigned(struct discfile_block *handle, char *tag, u
 
 
 /**
- * Read an string option from an open chunk in a discfile.
+ * Read a string option from an open chunk in a discfile.
  *
  * \param *handle		The discfile handle to be read from.
  * \param *tag			The tag of the option to be read.
@@ -1137,6 +1137,189 @@ osbool discfile_read_option_string(struct discfile_block *handle, char *tag, cha
 
 
 /**
+ * Read a string option from an open chunk in a discfile, storing it in a
+ * string within a flex block.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *tag			The tag of the option to be read.
+ * \param *value		Pointer to an string buffer to take the text.
+ * \return			TRUE if a value was found; else FALSE.
+ */
+
+osbool discfile_read_option_flex_string(struct discfile_block *handle, char *tag, flex_ptr string_ptr)
+{
+	unsigned			id, length;
+	int				ptr, unread;
+	os_error			*error;
+	struct discfile_option		option;
+
+	if (handle == NULL || tag == NULL || string_ptr == NULL)
+		return FALSE;
+
+	debug_printf("Looking for option %s", tag);
+
+	id = discfile_make_id(DISCFILE_OPTION_STRING, tag);
+	ptr = discfile_find_option_data(handle, id);
+
+	debug_printf("Found at ptr=%d", ptr);
+
+	if (ptr == 0)
+		return FALSE;
+
+	/* If the incloming flex block has space, terminate the string now so
+	 * that there's something valid in there if an error occurs.
+	 */
+
+	if (flex_size(string_ptr) > 0)
+		((char *) *string_ptr)[0] = '\0';
+
+	error = xosgbpb_read_atw(handle->handle, (byte *) &option, sizeof(struct discfile_option), ptr, &unread);
+	if (error != NULL || unread != 0) {
+		discfile_set_error(handle, "FileError");
+		return FALSE;
+	}
+
+	debug_printf("Allocate %u bytes of memory.", option.data.length);
+
+	/* Allocate enough memory to store the string. */
+
+	if (flex_extend(string_ptr, option.data.length) == 0) {
+		discfile_set_error(handle, "FileMem");
+		return FALSE;
+	}
+
+	discfile_read_string(handle, *string_ptr, option.data.length);
+	length = strlen(*string_ptr) + 1;
+
+	if (length < option.data.length) {
+		flex_extend(string_ptr, length);
+		debug_printf("Shrunk allocation to %u bytes.", length);
+	} else {
+		debug_printf("Memory exactly right!");
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * Read a date option from an open chunk in a discfile.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *tag			The tag of the option to be read.
+ * \param date			A date structure to take the date.
+ * \return			TRUE if a value was found; else FALSE.
+ */
+
+osbool discfile_read_option_date(struct discfile_block *handle, char *tag, os_date_and_time date)
+{
+	unsigned			id, words[2];
+	int				ptr, unread;
+	os_error			*error;
+	struct discfile_option		option;
+
+	if (handle == NULL || tag == NULL)
+		return FALSE;
+
+	debug_printf("Looking for option %s", tag);
+
+	id = discfile_make_id(DISCFILE_OPTION_DATE, tag);
+	ptr = discfile_find_option_data(handle, id);
+
+	debug_printf("Found at ptr=%d", ptr);
+
+	if (ptr == 0)
+		return FALSE;
+
+	error = xosgbpb_read_atw(handle->handle, (byte *) &option, sizeof(struct discfile_option), ptr, &unread);
+	if (error != NULL || unread != 0) {
+		discfile_set_error(handle, "FileError");
+		return FALSE;
+	}
+
+	if (option.data.length != 2 * sizeof(unsigned)) {
+		discfile_set_error(handle, "FileUnrec");
+		return FALSE;
+	}
+
+	error = xosgbpb_readw(handle->handle, (byte *) words, 2 * sizeof(unsigned), &unread);
+	if (error != NULL || unread != 0) {
+		discfile_set_error(handle, "FileError");
+		return FALSE;
+	}
+
+	datetime_set_date(date, words[1], words[0]);
+
+	return TRUE;
+}
+
+
+/**
+ * Read an unsigned array option from an open chunk in a discfile.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *tag			The tag of the option to be read.
+ * \param array_ptr		A flex pointer to use for the array.
+ * \param terminator		The terminator to place at the end of the array.
+ * \return			TRUE if a value was found; else FALSE.
+ */
+
+osbool discfile_read_option_unsigned_array(struct discfile_block *handle, char *tag, flex_ptr array_ptr, unsigned terminator)
+{
+	unsigned			id, *array, length;
+	int				ptr, unread;
+	os_error			*error;
+	struct discfile_option		option;
+
+	if (handle == NULL || tag == NULL || array_ptr == NULL)
+		return FALSE;
+
+	debug_printf("Looking for option %s", tag);
+
+	id = discfile_make_id(DISCFILE_OPTION_UNSIGNED_ARRAY, tag);
+	ptr = discfile_find_option_data(handle, id);
+
+	debug_printf("Found at ptr=%d", ptr);
+
+	if (ptr == 0)
+		return FALSE;
+
+	error = xosgbpb_read_atw(handle->handle, (byte *) &option, sizeof(struct discfile_option), ptr, &unread);
+	if (error != NULL || unread != 0) {
+		discfile_set_error(handle, "FileError");
+		return FALSE;
+	}
+
+	if (option.data.length % sizeof(unsigned) != 0) {
+		discfile_set_error(handle, "FileUnrec");
+		return FALSE;
+	}
+
+	length = option.data.length / sizeof(unsigned);
+
+	/* Allocate enough memory to store all the entries, plus a terminator. */
+
+	if (flex_extend(array_ptr, sizeof(unsigned) * (length + 1)) == 0) {
+		discfile_set_error(handle, "FileMem");
+		return FALSE;
+	}
+
+	array = (unsigned *) *array_ptr;
+
+	error = xosgbpb_readw(handle->handle, (byte *) array, option.data.length, &unread);
+	if (error != NULL || unread != 0) {
+		discfile_set_error(handle, "FileError");
+		array[0] = terminator;
+		return FALSE;
+	}
+
+	array[length] = terminator;
+
+	return TRUE;
+}
+
+
+/**
  * Locate an option with the given ID word in the currently open chunk, returning
  * a pointer to its option block.
  *
@@ -1175,6 +1358,8 @@ static int discfile_find_option_data(struct discfile_block *handle, unsigned id)
 		} else {
 			switch (option.id & 0xffu) {
 			case DISCFILE_OPTION_STRING:
+			case DISCFILE_OPTION_DATE:
+			case DISCFILE_OPTION_UNSIGNED_ARRAY:
 				ptr += sizeof(struct discfile_option) + option.data.length;
 				break;
 
@@ -1317,6 +1502,8 @@ void discfile_set_error(struct discfile_block *handle, char *token)
 {
 	if (handle == NULL || token == NULL)
 		return;
+
+	debug_printf("\\RDiscfile set error: %s", token);
 
 	if (handle->error_token == NULL)
 		handle->error_token = token;

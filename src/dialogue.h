@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt
+/* Copyright 2012-2013, Stephen Fryatt
  *
  * This file is part of Locate:
  *
@@ -72,6 +72,18 @@ void dialogue_destroy(struct dialogue_block *dialogue);
  */
 
 void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *out);
+
+
+/**
+ * Load a dialogue's settings from an open disc file and create a new
+ * dialogue structure from them.
+ *
+ * \param *file			The file to which the dialogue will belong.
+ * \param *load			The handle of the file to load from.
+ * \return			The handle of the new dialogue, or NULL.
+ */
+
+struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfile_block *load);
 
 
 /**

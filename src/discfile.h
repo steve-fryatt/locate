@@ -32,6 +32,8 @@
 
 #include "oslib/os.h"
 
+#include "flex.h"
+
 #define DISCFILE_LOCATE_FILETYPE (0x1a1)
 
 /**
@@ -286,6 +288,44 @@ osbool discfile_read_option_unsigned(struct discfile_block *handle, char *tag, u
  */
 
 osbool discfile_read_option_string(struct discfile_block *handle, char *tag, char *value, size_t length);
+
+
+/**
+ * Read a string option from an open chunk in a discfile, storing it in a
+ * string within a flex block.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *tag			The tag of the option to be read.
+ * \param *value		Pointer to an string buffer to take the text.
+ * \return			TRUE if a value was found; else FALSE.
+ */
+
+osbool discfile_read_option_flex_string(struct discfile_block *handle, char *tag, flex_ptr string_ptr);
+
+
+/**
+ * Read a date option from an open chunk in a discfile.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *tag			The tag of the option to be read.
+ * \param date			A date structure to take the date.
+ * \return			TRUE if a value was found; else FALSE.
+ */
+
+osbool discfile_read_option_date(struct discfile_block *handle, char *tag, os_date_and_time date);
+
+
+/**
+ * Read an unsigned array option from an open chunk in a discfile.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *tag			The tag of the option to be read.
+ * \param array_ptr		A flex pointer to use for the array.
+ * \param terminator		The terminator to place at the end of the array.
+ * \return			TRUE if a value was found; else FALSE.
+ */
+
+osbool discfile_read_option_unsigned_array(struct discfile_block *handle, char *tag, flex_ptr array_ptr, unsigned terminator);
 
 
 /**
