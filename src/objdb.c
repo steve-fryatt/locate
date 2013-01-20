@@ -434,10 +434,8 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 
 	/* Open the object database section of the file. */
 
-	if (!discfile_open_section(load, DISCFILE_SECTION_OBJECTDB)) {
-		discfile_set_error(load, "FileUnrec");
+	if (!discfile_open_section(load, DISCFILE_SECTION_OBJECTDB))
 		return NULL;
-	}
 
 	/* Create a new object database. */
 

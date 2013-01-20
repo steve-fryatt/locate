@@ -613,10 +613,8 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 
 	/* Open the results window section of the file. */
 
-	if (!discfile_open_section(load, DISCFILE_SECTION_RESULTS)) {
-		discfile_set_error(load, "FileUnrec");
+	if (!discfile_open_section(load, DISCFILE_SECTION_RESULTS))
 		return NULL;
-	}
 
 	/* Create a new results window. */
 

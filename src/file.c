@@ -197,6 +197,7 @@ void file_create_from_saved(char *filename)
 {
 	struct file_block	*new;
 	struct discfile_block	*load;
+	wimp_pointer		pointer;
 
 	debug_printf("Load file %s", filename);
 
@@ -212,38 +213,40 @@ void file_create_from_saved(char *filename)
 
 	new->objects = objdb_load_file(new, load);
 
-	if (new->objects == NULL) {
-		file_destroy(new);
-		discfile_close(load);
-		hourglass_off();
-		return;
-	}
 
 	/* Load the results window if one is present. */
 
-	new->results = results_load_file(new, new->objects, load);
-
-	if (new->results == NULL) {
-		file_destroy(new);
-		discfile_close(load);
-		hourglass_off();
-		return;
-	}
+	if (new->objects != NULL)
+		new->results = results_load_file(new, new->objects, load);
 
 	/* Load the search settings, if present. */
 
 	new->dialogue = dialogue_load_file(new, load);
 
-	if (new->dialogue == NULL) {
-		file_destroy(new);
-		discfile_close(load);
-		hourglass_off();
-		return;
-	}
-
 	discfile_close(load);
 
 	hourglass_off();
+
+	/* If none of the items loaded, give up. */
+
+	if (new->dialogue == NULL && new->objects == NULL && new->results == NULL) {
+		file_destroy(new);
+		return;
+	}
+
+	/* If there were no results to display, then open a search dialogue. */
+
+	if (new->results == NULL) {
+		wimp_get_pointer_info(&pointer);
+
+		if (new->dialogue == NULL)
+			new->dialogue = dialogue_create(new, NULL, NULL);
+
+		if (new->dialogue != NULL)
+			dialogue_open_window(new->dialogue, &pointer);
+		else
+			file_destroy(new);
+	}
 }
 
 
