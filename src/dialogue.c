@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt
+/* Copyright 2012-2013, Stephen Fryatt
  *
  * This file is part of Locate:
  *
