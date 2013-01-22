@@ -345,6 +345,7 @@ static wimp_menu		*dialogue_contents_mode_menu = NULL;		/**< The Contents Mode p
 static struct saveas_block	*dialogue_save_search = NULL;			/**< The Save Search savebox data handle.		*/
 
 
+static struct	dialogue_block *dialogue_load_legacy_file(struct file_block *file, struct discfile_block *load);
 static void	dialogue_close_window(void);
 static void	dialogue_change_pane(unsigned pane);
 static void	dialogue_toggle_size(bool expand);
@@ -787,7 +788,7 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 		return NULL;
 
 	if (discfile_read_format(load) != DISCFILE_LOCATE2)
-		return NULL;
+		return dialogue_load_legacy_file(file, load);
 
 	dialogue = dialogue_create(file, NULL, NULL);
 	if (dialogue == NULL)
@@ -874,6 +875,58 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 	discfile_close_section(load);
 
 	return dialogue;
+}
+
+
+/**
+ * Load a dialogue's settings from an open legacy disc file and create a new
+ * dialogue structure from them.
+ *
+ * \param *file			The file to which the dialogue will belong.
+ * \param *load			The handle of the file to load from.
+ * \return			The handle of the new dialogue, or NULL.
+ */
+
+static struct dialogue_block *dialogue_load_legacy_file(struct file_block *file, struct discfile_block *load)
+{
+	struct dialogue_block	*dialogue;
+	char			buffer[4095];
+
+	if (file == NULL || load == NULL)
+		return NULL;
+
+	if (discfile_read_format(load) != DISCFILE_LOCATE0 && discfile_read_format(load) != DISCFILE_LOCATE1)
+		return NULL;
+
+	debug_printf("Loading legacy dialogue settings...");
+/*
+	dialogue = dialogue_create(file, NULL, NULL);
+	if (dialogue == NULL)
+		return NULL;
+*/
+	if (!discfile_legacy_open_section(load, DISCFILE_LEGACY_SECTION_DIALOGUE)) {
+		//dialogue_destroy(dialogue);
+		return NULL;
+	}
+
+	debug_printf("Section opened");
+	debug_printf("Section size = %d", discfile_legacy_section_size(load));
+
+	debug_printf("Flag Word = %d", discfile_legacy_read_word(load));
+
+	debug_printf("Block Length = %d", discfile_legacy_read_word(load));
+
+	debug_printf("Pane code = %d", discfile_legacy_read_word(load));
+
+	discfile_legacy_read_string(load, buffer, 4096);
+	debug_printf("Search Path = %s", buffer);
+
+	discfile_legacy_read_string(load, buffer, 4096);
+	debug_printf("File Name = %s", buffer);
+
+	discfile_legacy_close_section(load);
+
+	return NULL;
 }
 
 

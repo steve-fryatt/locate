@@ -62,6 +62,13 @@ enum discfile_chunk_type {
 	DISCFILE_CHUNK_OPTIONS = 4						/**< The chunk contains a series of option values.	*/
 };
 
+enum discfile_legacy_section_type {
+	DISCFILE_LEGACY_SECTION_UNKNOWN = 0,					/**< The section type is unknown.			*/
+	DISCFILE_LEGACY_SECTION_RESULTS = 1,					/**< The section contains results window data.		*/
+	DISCFILE_LEGACY_SECTION_TITLE = 2,					/**< The section contains a results window title.	*/
+	DISCFILE_LEGACY_SECTION_DIALOGUE = 3					/**< The section contains dialogue settings.		*/
+};
+
 
 struct discfile_block;
 
@@ -211,6 +218,59 @@ struct discfile_block *discfile_open_read(char *filename);
  */
 
 enum discfile_format discfile_read_format(struct discfile_block *handle);
+
+
+/**
+ * Open a section from a legacy disc file, ready for data to be read from
+ * it.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param type			The type of the section to be opened.
+ * \return			TRUE if the section was opened; else FALSE.
+ */
+
+osbool discfile_legacy_open_section(struct discfile_block *handle, enum discfile_legacy_section_type type);
+
+
+/**
+ * Close a section from a legacy disc file after reading from it.
+ *
+ * \param *handle		The discfile handle to be read from.
+ */
+
+void discfile_legacy_close_section(struct discfile_block *handle);
+
+
+/**
+ * Return the size of the currently open section from a legacy disc file.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \return			The number of bytes of data in the section.
+ */
+
+int discfile_legacy_section_size(struct discfile_block *handle);
+
+
+/**
+ * Read an integer from the currently open section of a legacy disc file.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \return			The integer that was read, or 0.
+ */
+
+int discfile_legacy_read_word(struct discfile_block *handle);
+
+
+/**
+ * Read a string from the currently open section of a legacy disc file.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *text			Pointer to a buffer to contain the string.
+ * \param size			The number of bytes available in the buffer.
+ * \return			Pointer to the next free byte in the buffer.
+ */
+
+char *discfile_legacy_read_string(struct discfile_block *handle, char *text, size_t size);
 
 
 /**

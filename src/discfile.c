@@ -95,7 +95,7 @@ struct discfile_block {
 	enum discfile_format		format;					/**< The format of the file.					*/
 	int				section;				/**< File ptr to the current section, or 0 for none.		*/
 	int				chunk;					/**< File ptr to the current chunk, or 0 for none.		*/
-	int				chunk_size;				/**< The size of the current chunk, or 0 for none.		*/
+	int				data_size;				/**< The size of the current chunk, or 0 for none.		*/
 	char				*error_token;				/**< Pointer to a MessageTrans token for an error, or NULL.	*/
 };
 
@@ -196,7 +196,7 @@ struct discfile_block *discfile_open_write(char *filename)
 
 	new->section = 0;
 	new->chunk = 0;
-	new->chunk_size = 0;
+	new->data_size = 0;
 	new->mode = DISCFILE_WRITE;
 	new->format = DISCFILE_UNKNOWN_FORMAT;
 	new->error_token = NULL;
@@ -635,7 +635,7 @@ struct discfile_block *discfile_open_read(char *filename)
 
 	new->section = 0;
 	new->chunk = 0;
-	new->chunk_size = 0;
+	new->data_size = 0;
 	new->mode = DISCFILE_READ;
 	new->format = DISCFILE_UNKNOWN_FORMAT;
 	new->error_token = NULL;
@@ -794,6 +794,231 @@ static void discfile_legacy_validate_structure(struct discfile_block *handle)
 }
 
 
+/**
+ * Open a section from a legacy disc file, ready for data to be read from
+ * it.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param type			The type of the section to be opened.
+ * \return			TRUE if the section was opened; else FALSE.
+ */
+
+osbool discfile_legacy_open_section(struct discfile_block *handle, enum discfile_legacy_section_type type)
+{
+	int				ptr, extent, section_size, unread;
+	os_error			*error;
+	unsigned			section;
+
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			(handle->format != DISCFILE_LOCATE0 && handle->format != DISCFILE_LOCATE1) ||
+			handle->section != 0) {
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
+		return FALSE;
+	}
+
+	/* The first section starts immediately following the file header. */
+
+	ptr = sizeof(struct discfile_header);
+
+	/* Get the file extent. */
+
+	error = xosargs_read_extw(handle->handle, &extent);
+	if (error != NULL) {
+		discfile_set_error(handle, "FileError");
+		return FALSE;
+	}
+
+	section = 0;
+
+	while (ptr < extent && handle->section == 0) {
+		error = xosgbpb_read_atw(handle->handle, (byte *) &section_size, sizeof(int), ptr, &unread);
+		if (error != NULL || unread != 0) {
+			discfile_set_error(handle, "FileError");
+			return FALSE;
+		}
+
+		if (section_size < 0) {
+			discfile_set_error(handle, "FileUnrec");
+			return FALSE;
+		}
+
+		if (++section == type) {
+			handle->section = ptr;
+			handle->data_size = section_size;
+		} else {
+			ptr += section_size + sizeof(int);
+		}
+	}
+
+	return (handle->section == 0) ? FALSE : TRUE;
+}
+
+
+/**
+ * Close a section from a legacy disc file after reading from it.
+ *
+ * \param *handle		The discfile handle to be read from.
+ */
+
+void discfile_legacy_close_section(struct discfile_block *handle)
+{
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			(handle->format != DISCFILE_LOCATE0 && handle->format != DISCFILE_LOCATE1) ||
+			handle->section == 0) {
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
+		return;
+	}
+
+	handle->section = 0;
+	handle->data_size = 0;
+}
+
+
+/**
+ * Return the size of the currently open section from a legacy disc file.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \return			The number of bytes of data in the section.
+ */
+
+int discfile_legacy_section_size(struct discfile_block *handle)
+{
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			(handle->format != DISCFILE_LOCATE0 && handle->format != DISCFILE_LOCATE1) ||
+			handle->section == 0) {
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
+		return 0;
+	}
+
+	return handle->data_size;
+}
+
+
+/**
+ * Read an integer from the currently open section of a legacy disc file.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \return			The integer that was read, or 0.
+ */
+
+int discfile_legacy_read_word(struct discfile_block *handle)
+{
+	int		data, ptr, unread;
+	os_error	*error;
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			(handle->format != DISCFILE_LOCATE0 && handle->format != DISCFILE_LOCATE1) ||
+			handle->section == 0) {
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
+		return 0;
+	}
+
+	/* Get the curent file position. */
+
+	error = xosargs_read_ptrw(handle->handle, &ptr);
+	if (error != NULL) {
+		discfile_set_error(handle, "FileError");
+		return 0;
+	}
+
+	/* Check that there are enough bytes left in the section. */
+
+	if (sizeof(int) > (handle->section + handle->data_size + sizeof(int) - ptr)) {
+		discfile_set_error(handle, "FileUnrec");
+		return 0;
+	}
+
+	/* Read the contents. */
+
+	error = xosgbpb_readw(handle->handle, (byte *) &data, sizeof(int), &unread);
+	if (error != NULL) {
+		discfile_set_error(handle, "FileError");
+		return 0;
+	}
+
+	if (unread != 0) {
+		discfile_set_error(handle, "FileUnrec");
+		return 0;
+	}
+
+	return data;
+}
+
+
+/**
+ * Read a string from the currently open section of a legacy disc file.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *text			Pointer to a buffer to contain the string.
+ * \param size			The number of bytes available in the buffer.
+ * \return			Pointer to the next free byte in the buffer.
+ */
+
+char *discfile_legacy_read_string(struct discfile_block *handle, char *text, size_t size)
+{
+	int		ptr;
+	unsigned	max_bytes, read;
+	bits		flags;
+	os_error	*error;
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			(handle->format != DISCFILE_LOCATE0 && handle->format != DISCFILE_LOCATE1) ||
+			handle->section == 0) {
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
+		return text;
+	}
+
+	/* Get the curent file position. */
+
+	error = xosargs_read_ptrw(handle->handle, &ptr);
+	if (error != NULL) {
+		discfile_set_error(handle, "FileError");
+		return text;
+	}
+
+
+	/* Work out how many bytes can be read, based on the size of the
+	 * supplied buffer and the number of bytes left in the chunk.
+	 */
+
+	max_bytes = handle->section + handle->data_size + sizeof(int) - ptr;
+
+	if (max_bytes > size)
+		max_bytes = size;
+
+	/* Read the bytes in from disc. */
+
+	read = 0;
+
+	while (flags != 2 && read < max_bytes && error == NULL && (read == 0 || text[read - 1] != '\r')) {
+		error = xos_bgetw(handle->handle, text + read, &flags);
+
+		if (error == NULL && text[read] != '\0' && text[read] != '\n')
+			read++;
+	}
+
+	if (error != NULL || read == 0) {
+		text[0] = '\0';
+		discfile_set_error(handle, "FileError");
+		return text + 1;
+	}
+
+	if (text[read - 1] != '\r') {
+		text[read - 1] = '\0';
+		discfile_set_error(handle, "FileUnrec");
+		return text + read;
+	}
+
+	text[read - 1] = '\0';
+
+	return text + read;
+}
 
 /**
  * Walk through a Locate 2 file, checking that all of the sections and chunks
@@ -921,6 +1146,7 @@ osbool discfile_open_section(struct discfile_block *handle, enum discfile_sectio
 
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->format != DISCFILE_LOCATE2 ||
 			handle->section != 0 || handle->chunk != 0) {
 		if (handle != NULL)
 			discfile_set_error(handle, "FileError");
@@ -970,6 +1196,7 @@ osbool discfile_open_section(struct discfile_block *handle, enum discfile_sectio
 void discfile_close_section(struct discfile_block *handle)
 {
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->format != DISCFILE_LOCATE2 ||
 			handle->section == 0 || handle->chunk != 0) {
 		if (handle != NULL)
 			discfile_set_error(handle, "FileError");
@@ -997,6 +1224,7 @@ osbool discfile_open_chunk(struct discfile_block *handle, enum discfile_chunk_ty
 
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->format != DISCFILE_LOCATE2 ||
 			handle->section == 0 || handle->chunk != 0) {
 		if (handle != NULL)
 			discfile_set_error(handle, "FileError");
@@ -1036,7 +1264,7 @@ osbool discfile_open_chunk(struct discfile_block *handle, enum discfile_chunk_ty
 
 		if (chunk.type == type) {
 			handle->chunk = ptr;
-			handle->chunk_size = chunk.size;
+			handle->data_size = chunk.size;
 		} else {
 			ptr += WORDALIGN(chunk.size);
 		}
@@ -1055,6 +1283,7 @@ osbool discfile_open_chunk(struct discfile_block *handle, enum discfile_chunk_ty
 void discfile_close_chunk(struct discfile_block *handle)
 {
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->format != DISCFILE_LOCATE2 ||
 			handle->section == 0 || handle->chunk == 0) {
 		if (handle != NULL)
 			discfile_set_error(handle, "FileError");
@@ -1062,7 +1291,7 @@ void discfile_close_chunk(struct discfile_block *handle)
 	}
 
 	handle->chunk = 0;
-	handle->chunk_size = 0;
+	handle->data_size = 0;
 }
 
 
@@ -1076,13 +1305,14 @@ void discfile_close_chunk(struct discfile_block *handle)
 int discfile_chunk_size(struct discfile_block *handle)
 {
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->format != DISCFILE_LOCATE2 ||
 			handle->section == 0 || handle->chunk == 0) {
 		if (handle != NULL)
 			discfile_set_error(handle, "FileError");
 		return 0;
 	}
 
-	return handle->chunk_size - sizeof(struct discfile_chunk);
+	return handle->data_size - sizeof(struct discfile_chunk);
 }
 
 
@@ -1386,6 +1616,7 @@ static int discfile_find_option_data(struct discfile_block *handle, unsigned id)
 	os_error			*error;
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->format != DISCFILE_LOCATE2 ||
 			handle->section == 0 || handle->chunk == 0) {
 		if (handle != NULL)
 			discfile_set_error(handle, "FileError");
@@ -1395,7 +1626,7 @@ static int discfile_find_option_data(struct discfile_block *handle, unsigned id)
 	ptr = handle->chunk + sizeof(struct discfile_chunk);
 	location = 0;
 
-	while (ptr < handle->chunk + handle->chunk_size && location == 0) {
+	while (ptr < handle->chunk + handle->data_size && location == 0) {
 		error = xosgbpb_read_atw(handle->handle, (byte *) &option, sizeof(struct discfile_option), ptr, &unread);
 		if (error != NULL || unread != 0) {
 			discfile_set_error(handle, "FileError");
@@ -1439,6 +1670,7 @@ char *discfile_read_string(struct discfile_block *handle, char *text, size_t siz
 
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->format != DISCFILE_LOCATE2 ||
 			handle->section == 0 || handle->chunk == 0 || text == NULL) {
 		if (handle != NULL) {
 			if (text != NULL)
@@ -1461,7 +1693,7 @@ char *discfile_read_string(struct discfile_block *handle, char *text, size_t siz
 	 * supplied buffer and the number of bytes left in the chunk.
 	 */
 
-	max_bytes = handle->chunk + handle->chunk_size - ptr;
+	max_bytes = handle->chunk + handle->data_size - ptr;
 
 	if (max_bytes > size)
 		max_bytes = size;
@@ -1504,6 +1736,7 @@ void discfile_read_chunk(struct discfile_block *handle, byte *data, unsigned siz
 
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			handle->format != DISCFILE_LOCATE2 ||
 			handle->section == 0 || handle->chunk == 0 || data == NULL) {
 		if (handle != NULL)
 			discfile_set_error(handle, "FileError");
@@ -1520,7 +1753,7 @@ void discfile_read_chunk(struct discfile_block *handle, byte *data, unsigned siz
 
 	/* Check that there are enough bytes left in the chunk. */
 
-	if (size > (handle->chunk + handle->chunk_size - ptr)) {
+	if (size > (handle->chunk + handle->data_size - ptr)) {
 		discfile_set_error(handle, "FileUnrec");
 		return;
 	}
@@ -1558,7 +1791,7 @@ void discfile_set_error(struct discfile_block *handle, char *token)
 
 	handle->section = 0;
 	handle->chunk = 0;
-	handle->chunk_size = 0;
+	handle->data_size = 0;
 }
 
 
