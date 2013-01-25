@@ -980,6 +980,9 @@ char *discfile_legacy_read_string(struct discfile_block *handle, char *text, siz
 		return text;
 	}
 
+	if (text == NULL)
+		return NULL;
+
 	/* Get the curent file position. */
 
 	error = xosargs_read_ptrw(handle->handle, &ptr);
@@ -1052,6 +1055,9 @@ char *discfile_legacy_read_flex_string(struct discfile_block *handle, flex_ptr s
 			discfile_set_error(handle, "FileError");
 		return text;
 	}
+
+	if (string_ptr == NULL || *string_ptr == NULL)
+		return;
 
 	/* Get the curent file position. */
 
@@ -1555,7 +1561,7 @@ osbool discfile_read_option_flex_string(struct discfile_block *handle, char *tag
 	os_error			*error;
 	struct discfile_option		option;
 
-	if (handle == NULL || tag == NULL || string_ptr == NULL)
+	if (handle == NULL || tag == NULL || string_ptr == NULL || *string_ptr == NULL)
 		return FALSE;
 
 	id = discfile_make_id(DISCFILE_OPTION_STRING, tag);
