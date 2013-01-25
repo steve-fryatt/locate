@@ -274,6 +274,19 @@ char *discfile_legacy_read_string(struct discfile_block *handle, char *text, siz
 
 
 /**
+ * Read a string from the currently open section of a legacy disc file, storing
+ * it in a flex block.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *text			Pointer to a buffer to contain the string.
+ * \param string_ptr		Pointer to a flex block to take the text.
+ * \return			Pointer to the next free byte in the buffer.
+ */
+
+char *discfile_legacy_read_flex_string(struct discfile_block *handle, flex_ptr string_ptr);
+
+
+/**
  * Open a section from a disc file, ready for chunks of data to be read from
  * it.
  *
@@ -367,7 +380,7 @@ osbool discfile_read_option_string(struct discfile_block *handle, char *tag, cha
  *
  * \param *handle		The discfile handle to be read from.
  * \param *tag			The tag of the option to be read.
- * \param *value		Pointer to an string buffer to take the text.
+ * \param string_ptr		Pointer to a flex block to take the text.
  * \return			TRUE if a value was found; else FALSE.
  */
 

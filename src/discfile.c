@@ -79,6 +79,12 @@
 #define DISCFILE_OPTION_UNSIGNED_ARRAY (0x00000005u)
 
 /**
+ * Memory alloacation.
+ */
+
+#define DISCFILE_FLEX_ALLOCATION 256
+
+/**
  * Generic file structure handling.
  */
 
@@ -1020,6 +1026,103 @@ char *discfile_legacy_read_string(struct discfile_block *handle, char *text, siz
 	return text + read;
 }
 
+
+/**
+ * Read a string from the currently open section of a legacy disc file, storing
+ * it in a flex block.
+ *
+ * \param *handle		The discfile handle to be read from.
+ * \param *text			Pointer to a buffer to contain the string.
+ * \param string_ptr		Pointer to a flex block to take the text.
+ * \return			Pointer to the next free byte in the buffer.
+ */
+
+char *discfile_legacy_read_flex_string(struct discfile_block *handle, flex_ptr string_ptr)
+{
+	char		*text = NULL;
+	int		ptr;
+	unsigned	size, read;
+	bits		flags;
+	os_error	*error;
+
+	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
+			(handle->format != DISCFILE_LOCATE0 && handle->format != DISCFILE_LOCATE1) ||
+			handle->section == 0) {
+		if (handle != NULL)
+			discfile_set_error(handle, "FileError");
+		return text;
+	}
+
+	/* Get the curent file position. */
+
+	error = xosargs_read_ptrw(handle->handle, &ptr);
+	if (error != NULL) {
+		discfile_set_error(handle, "FileError");
+		return text;
+	}
+
+	/* Find the current flex memory allocation, and extend it to the
+	 * minimum block size if necessary.
+	 */
+
+	size = flex_size(string_ptr);
+
+	if (size < DISCFILE_FLEX_ALLOCATION) {
+		if (flex_extend(string_ptr, DISCFILE_FLEX_ALLOCATION) == 0) {
+			discfile_set_error(handle, "FileMem");
+			return FALSE;
+		}
+
+		size = DISCFILE_FLEX_ALLOCATION;
+	}
+
+	text = (char *) *string_ptr;
+
+	/* Read the bytes in from disc, extending the block as we go. */
+
+	read = 0;
+
+	while (flags != 2 && read < size && error == NULL && (read == 0 || text[read - 1] != '\r')) {
+		error = xos_bgetw(handle->handle, text + read, &flags);
+
+		if (error == NULL && text[read] != '\0' && text[read] != '\n')
+			read++;
+
+		if (read >= size) {
+			if (flex_extend(string_ptr, size + DISCFILE_FLEX_ALLOCATION) == 0) {
+				discfile_set_error(handle, "FileMem");
+				return FALSE;
+			}
+
+			size += DISCFILE_FLEX_ALLOCATION;
+
+			text = (char *) *string_ptr;
+		}
+	}
+
+	if (error != NULL || read == 0) {
+		text[0] = '\0';
+		discfile_set_error(handle, "FileError");
+		return text + 1;
+	}
+
+	if (text[read - 1] != '\r') {
+		text[read - 1] = '\0';
+		discfile_set_error(handle, "FileUnrec");
+		return text + read;
+	}
+
+	/* Terminate the string, and free any extra memory. */
+
+	text[read - 1] = '\0';
+
+	if (read < size)
+		flex_extend(string_ptr, read);
+
+	return text + read;
+}
+
+
 /**
  * Walk through a Locate 2 file, checking that all of the sections and chunks
  * add up and are consistant in size.
@@ -1441,7 +1544,7 @@ osbool discfile_read_option_string(struct discfile_block *handle, char *tag, cha
  *
  * \param *handle		The discfile handle to be read from.
  * \param *tag			The tag of the option to be read.
- * \param *value		Pointer to an string buffer to take the text.
+ * \param string_ptr		Pointer to a flex block to take the text.
  * \return			TRUE if a value was found; else FALSE.
  */
 
