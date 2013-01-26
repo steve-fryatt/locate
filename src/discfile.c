@@ -962,7 +962,7 @@ int discfile_legacy_read_word(struct discfile_block *handle)
  * \param *handle		The discfile handle to be read from.
  * \param *text			Pointer to a buffer to contain the string.
  * \param size			The number of bytes available in the buffer.
- * \return			Pointer to the next free byte in the buffer.
+ * \return			Pointer to the start of the buffer.
  */
 
 char *discfile_legacy_read_string(struct discfile_block *handle, char *text, size_t size)
@@ -1019,18 +1019,18 @@ char *discfile_legacy_read_string(struct discfile_block *handle, char *text, siz
 	if (error != NULL || read == 0) {
 		text[0] = '\0';
 		discfile_set_error(handle, "FileError");
-		return text + 1;
+		return text;
 	}
 
 	if (text[read - 1] != '\r') {
 		text[read - 1] = '\0';
 		discfile_set_error(handle, "FileUnrec");
-		return text + read;
+		return text;
 	}
 
 	text[read - 1] = '\0';
 
-	return text + read;
+	return text;
 }
 
 

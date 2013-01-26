@@ -280,7 +280,7 @@ char *discfile_legacy_read_string(struct discfile_block *handle, char *text, siz
  * \param *handle		The discfile handle to be read from.
  * \param *text			Pointer to a buffer to contain the string.
  * \param string_ptr		Pointer to a flex block to take the text.
- * \return			Pointer to the next free byte in the buffer.
+ * \return			Pointer to the start of the buffer.
  */
 
 char *discfile_legacy_read_flex_string(struct discfile_block *handle, flex_ptr string_ptr);

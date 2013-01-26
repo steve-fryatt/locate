@@ -890,6 +890,7 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 static struct dialogue_block *dialogue_load_legacy_file(struct file_block *file, struct discfile_block *load)
 {
 	struct dialogue_block	*dialogue;
+	unsigned		flags;
 	char			buffer[4095];
 
 	if (file == NULL || load == NULL)
@@ -898,35 +899,107 @@ static struct dialogue_block *dialogue_load_legacy_file(struct file_block *file,
 	if (discfile_read_format(load) != DISCFILE_LOCATE0 && discfile_read_format(load) != DISCFILE_LOCATE1)
 		return NULL;
 
-	debug_printf("Loading legacy dialogue settings...");
-/*
 	dialogue = dialogue_create(file, NULL, NULL);
 	if (dialogue == NULL)
 		return NULL;
-*/
+
 	if (!discfile_legacy_open_section(load, DISCFILE_LEGACY_SECTION_DIALOGUE)) {
-		//dialogue_destroy(dialogue);
+		dialogue_destroy(dialogue);
 		return NULL;
 	}
 
-	debug_printf("Section opened");
-	debug_printf("Section size = %d", discfile_legacy_section_size(load));
+	/* Discard two unused words */
 
-	debug_printf("Flag Word = %d", discfile_legacy_read_word(load));
+	discfile_legacy_read_word(load); /* Section size */
+	discfile_legacy_read_word(load); /* Flag word */
 
-	debug_printf("Block Length = %d", discfile_legacy_read_word(load));
+	/* Selected pane, search path and filename options. */
 
-	debug_printf("Pane code = %d", discfile_legacy_read_word(load));
+	dialogue->pane = discfile_legacy_read_word(load);
+	discfile_legacy_read_flex_string(load, (flex_ptr) &dialogue->path);
+	discfile_legacy_read_flex_string(load, (flex_ptr) &dialogue->filename);
+	dialogue->ignore_case = discfile_legacy_read_word(load);
 
-	discfile_legacy_read_string(load, buffer, 4096);
-	debug_printf("Search Path = %s", buffer);
+	/* Search options flag word. */
 
-	discfile_legacy_read_string(load, buffer, 4096);
-	debug_printf("File Name = %s", buffer);
+	flags = discfile_legacy_read_word(load);
+
+	dialogue->ignore_imagefs = (flags & 0x2u) ? TRUE : FALSE;
+	dialogue->suppress_errors = (flags & 0x4u) ? TRUE : FALSE;
+	dialogue->full_info = (flags & 0x8u) ? TRUE : FALSE;
+
+	/* Two unused words. */
+
+	discfile_legacy_read_word(load);
+	discfile_legacy_read_word(load);
+
+	/* Sizes. */
+
+	dialogue->size_mode = discfile_legacy_read_word(load);
+	dialogue->size_min = atoi(discfile_legacy_read_string(load, buffer, sizeof(buffer)));
+	dialogue->size_min_unit = discfile_legacy_read_word(load);
+	dialogue->size_max = atoi(discfile_legacy_read_string(load, buffer, sizeof(buffer)));
+	dialogue->size_max_unit = discfile_legacy_read_word(load);
+
+	/* Date or Age mode */
+
+	dialogue->use_age = (discfile_legacy_read_word(load) == 0) ? FALSE : TRUE;
+
+	/* Dates */
+
+	dialogue->date_mode = discfile_legacy_read_word(load);
+	dialogue->date_min_status = datetime_read_date(discfile_legacy_read_string(load, buffer, sizeof(buffer)), dialogue->date_min);
+	dialogue->date_max_status = datetime_read_date(discfile_legacy_read_string(load, buffer, sizeof(buffer)), dialogue->date_max);
+
+	/* Ages */
+
+	dialogue->age_mode = discfile_legacy_read_word(load);
+	dialogue->age_min = atoi(discfile_legacy_read_string(load, buffer, sizeof(buffer)));
+	dialogue->age_min_unit = discfile_legacy_read_word(load);
+	dialogue->age_max = atoi(discfile_legacy_read_string(load, buffer, sizeof(buffer)));
+	dialogue->age_max_unit = discfile_legacy_read_word(load);
+
+	/* Types */
+
+	flags = discfile_legacy_read_word(load);
+
+	dialogue->type_files = (flags & 0x1u) ? TRUE : FALSE;
+	dialogue->type_directories = (flags & 0x2u) ? TRUE : FALSE;
+	dialogue->type_applications = (flags & 0x4u) ? TRUE : FALSE;
+	dialogue->type_mode = discfile_legacy_read_word(load);
+	dialogue_read_filetype_list((flex_ptr) &(dialogue->type_types), discfile_legacy_read_string(load, buffer, sizeof(buffer)));
+
+	/* Attributes */
+
+	flags = discfile_legacy_read_word(load);
+
+	dialogue->attributes_locked = (flags & 0x01u) ? TRUE : FALSE;
+	dialogue->attributes_owner_read = (flags & 0x02u) ? TRUE : FALSE;
+	dialogue->attributes_owner_write = (flags & 0x04u) ? TRUE : FALSE;
+	dialogue->attributes_public_read = (flags & 0x08u) ? TRUE : FALSE;
+	dialogue->attributes_public_write = (flags & 0x10u) ? TRUE : FALSE;
+
+	flags = discfile_legacy_read_word(load);
+
+	dialogue->attributes_locked_yes = (flags & 0x01u) ? TRUE : FALSE;
+	dialogue->attributes_owner_read_yes = (flags & 0x02u) ? TRUE : FALSE;
+	dialogue->attributes_owner_write_yes = (flags & 0x04u) ? TRUE : FALSE;
+	dialogue->attributes_public_read_yes = (flags & 0x08u) ? TRUE : FALSE;
+	dialogue->attributes_public_write_yes = (flags & 0x10u) ? TRUE : FALSE;
+
+	/* Contents */
+
+	dialogue->contents_mode = discfile_legacy_read_word(load);
+	discfile_legacy_read_flex_string(load, (flex_ptr) &dialogue->contents_text);
+
+	flags = discfile_legacy_read_word(load);
+
+	dialogue->contents_ignore_case = (flags & 0x1u) ? TRUE : FALSE;
+	dialogue->contents_ctrl_chars = (flags & 0x2u) ? TRUE : FALSE;
 
 	discfile_legacy_close_section(load);
 
-	return NULL;
+	return dialogue;
 }
 
 
