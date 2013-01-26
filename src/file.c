@@ -229,6 +229,11 @@ void file_create_from_saved(char *filename)
 	/* If there were no results to display, then open a search dialogue. */
 
 	if (new->results == NULL) {
+		if (dialogue_window_is_open()) {
+			file_destroy(new);
+			return;
+		}
+
 		wimp_get_pointer_info(&pointer);
 
 		if (new->dialogue == NULL)
