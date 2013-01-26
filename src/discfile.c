@@ -991,12 +991,16 @@ char *discfile_legacy_read_string(struct discfile_block *handle, char *text, siz
 		return text;
 	}
 
-
 	/* Work out how many bytes can be read, based on the size of the
 	 * supplied buffer and the number of bytes left in the chunk.
 	 */
 
 	max_bytes = handle->section + handle->data_size + sizeof(int) - ptr;
+
+	if (max_bytes <= 0) {
+		discfile_set_error(handle, "FileUnrec");
+		return text;
+	}
 
 	if (max_bytes > size)
 		max_bytes = size;
@@ -1044,7 +1048,7 @@ char *discfile_legacy_read_flex_string(struct discfile_block *handle, flex_ptr s
 {
 	char		*text = NULL;
 	int		ptr;
-	unsigned	size, read;
+	unsigned	max_bytes, size, read;
 	bits		flags;
 	os_error	*error;
 
@@ -1053,17 +1057,24 @@ char *discfile_legacy_read_flex_string(struct discfile_block *handle, flex_ptr s
 			handle->section == 0) {
 		if (handle != NULL)
 			discfile_set_error(handle, "FileError");
-		return text;
+		return NULL;
 	}
 
 	if (string_ptr == NULL || *string_ptr == NULL)
-		return;
+		return NULL;
 
 	/* Get the curent file position. */
 
 	error = xosargs_read_ptrw(handle->handle, &ptr);
 	if (error != NULL) {
 		discfile_set_error(handle, "FileError");
+		return text;
+	}
+
+	max_bytes = handle->section + handle->data_size + sizeof(int) - ptr;
+
+	if (max_bytes <= 0) {
+		discfile_set_error(handle, "FileUnrec");
 		return text;
 	}
 
@@ -1088,7 +1099,7 @@ char *discfile_legacy_read_flex_string(struct discfile_block *handle, flex_ptr s
 
 	read = 0;
 
-	while (flags != 2 && read < size && error == NULL && (read == 0 || text[read - 1] != '\r')) {
+	while (flags != 2 && read < size && max_bytes > 0 && error == NULL && (read == 0 || text[read - 1] != '\r')) {
 		error = xos_bgetw(handle->handle, text + read, &flags);
 
 		if (error == NULL && text[read] != '\0' && text[read] != '\n')
@@ -1104,6 +1115,8 @@ char *discfile_legacy_read_flex_string(struct discfile_block *handle, flex_ptr s
 
 			text = (char *) *string_ptr;
 		}
+
+		max_bytes--;
 	}
 
 	if (error != NULL || read == 0) {
