@@ -1723,6 +1723,7 @@ static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointe
 		dialogue_type_list_menu = typemenu_build();
 		event_set_menu_block(dialogue_type_list_menu);
 		templates_set_menu(TEMPLATES_MENU_TYPES, dialogue_type_list_menu);
+		templates_set_menu_token("FileTypeMenu");
 		return;
 	}
 }

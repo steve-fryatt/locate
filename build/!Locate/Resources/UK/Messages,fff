@@ -237,23 +237,23 @@ Help.Contents.Text:Enter the text to check for here.
 Help.Contents.Case:\Stoggle whether case is ignored or checked in the file contents search.
 Help.Contents.Ctrl:\Stoggle whether control chars can be entered into the text field.
 
-HelpTM0:\Sclose the date and time \w and forget any changes made.|M\Aforget the changes made since the window was opened.
-HelpTM1:\Sclose the date and time \w and insert the date into the search \w.|M\A insert the date without closing the \w.
-HelpTM2:\Sset the month.
-HelpTM3:\Tmonth.
-HelpTM4:Enter the day of the month.
-HelpTM5:\Sdecrease the day by one.|M\Aincrease it instead.
-HelpTM6:\Sincrease the day by one.|M\Adecrease it instead.
-HelpTM7:Enter the year in full (four digits).
-HelpTM8:\Sdecrease the year by one.|M\Aincrease it instead.
-HelpTM9:\Sincrease the year by one.|M\Adecrease it instead.
-HelpTM10:\Stoggle if the time is to be specified as well.|MIf not, the date will be given accurate to one day.
-HelpTM11:Enter the hour, using the 24-hour clock.
-HelpTM12:Enter the minute.
-HelpTM13:\Sdecrease the hour by one.|M\Aincrease it instead.
-HelpTM14:\Sincrease the hour by one.|M\Adecrease it instead.
-HelpTM15:\Sdecrease the minute by one.|M\Aincrease it instead.
-HelpTM16:\Sincrease the minute by one.|M\Adecrease it instead.
+Help.SetTime.Cancel:\Sclose the date and time \w and forget any changes made.|M\Aforget the changes made since the window was opened.
+Help.SetTime.Set:\Sclose the date and time \w and insert the date into the search \w.|M\A insert the date without closing the \w.
+Help.SetTime.MonthM:\Sset the month.
+Help.SetTime.Month:\Tmonth.
+Help.SetTime.Day:Enter the day of the month.
+Help.SetTime.DayDown:\Sdecrease the day by one.|M\Aincrease it instead.
+Help.SetTime.DayUp:\Sincrease the day by one.|M\Adecrease it instead.
+Help.SetTime.Year:Enter the year in full (four digits).
+Help.SetTime.YearDown:\Sdecrease the year by one.|M\Aincrease it instead.
+Help.SetTime.YearUp:\Sincrease the year by one.|M\Adecrease it instead.
+Help.SetTime.SetTime:\Stoggle if the time is to be specified as well.|MIf not, the date will be given accurate to one day.
+Help.SetTime.Hour:Enter the hour, using the 24-hour clock.
+Help.SetTime.Minute:Enter the minute.
+Help.SetTime.HourDown:\Sdecrease the hour by one.|M\Aincrease it instead.
+Help.SetTime.HourUp:\Sincrease the hour by one.|M\Adecrease it instead.
+Help.SetTime.MinuteDown:\Sdecrease the minute by one.|M\Aincrease it instead.
+Help.SetTime.MinuteUp:\Sincrease the minute by one.|M\Adecrease it instead.
 
 Help.Choices:\Tchoices window for Locate.
 Help.Choices.Apply:\Sclose the choices \w and use the changes|M\Ause the changes.
@@ -313,11 +313,61 @@ MenuSM0:\Rsave the results as a file that can be re-loaded into Locate.
 MenuSM1:\Rsave the filenames (all or those currently selected) as a text file.
 MenuSM2:\Rsave the search options so they can be re-loaded into Locate.
 
-MenuFT:\Sselect a filetype to match.
-Help.SizeModeMenu.??:\Schoose how the file size is used to match objects.
-Help.SizeUnitMenu.??:\Schoose a unit for the file size.
-Help.DateModeMenu.??:\Schoose how the modification date is used to match objects.
-Help.AgeModeMenu.??:\Schoose how the file age is used to match objects.
-Help.AgeUnitMenu.??:\Schoose a unit for the file age.
-Help.ContentModeMenu.??:\Schoose how the file contents is used to match objects.
-MenuMN:\Schoose a month.
+Help.SizeModeMenu.00:\Signore size when matching objects.
+Help.SizeModeMenu.01:\Smatch objects which are exactly a given size.
+Help.SizeModeMenu.02:\Smatch objects which are anything but a given size.
+Help.SizeModeMenu.03:\Smatch objects which are larger than a given size.
+Help.SizeModeMenu.04:\Smatch objects which are smaller than a given size.
+Help.SizeModeMenu.05:\Smatch objects whose size falls between two values.
+Help.SizeModeMenu.06:\Smatch objects whose size is anything but between two values.
+
+Help.SizeUnitMenu.00:\Sspecify file size in terms of bytes.
+Help.SizeUnitMenu.01:\Sspecify file size in terms of kilobytes (multiples of 1024 bytes).
+Help.SizeUnitMenu.02:\Sspecify file size in terms of megabytes (multiples of 1024 kilobytes).
+
+Help.DateModeMenu.00:\Signore date when matching objects.
+Help.DateModeMenu.01:\Smatch objects which were last modified at a specific date and time.
+Help.DateModeMenu.02:\Smatch objects which were last modified at any time but a specific date and time.
+Help.DateModeMenu.03:\Smatch objects which were last modified after a specific date and time.
+Help.DateModeMenu.04:\Smatch objects which were last modified before a specific date and time.
+Help.DateModeMenu.05:\Smatch objects which were last modified between two specific dates and times.
+Help.DateModeMenu.06:\Smatch objects which were last modified at any time but between two specific dates and times.
+
+Help.MonthMenu.00:\Sset the month to January.
+Help.MonthMenu.01:\Sset the month to February.
+Help.MonthMenu.02:\Sset the month to March.
+Help.MonthMenu.03:\Sset the month to April.
+Help.MonthMenu.04:\Sset the month to May.
+Help.MonthMenu.05:\Sset the month to June.
+Help.MonthMenu.06:\Sset the month to July.
+Help.MonthMenu.07:\Sset the month to August.
+Help.MonthMenu.08:\Sset the month to September.
+Help.MonthMenu.09:\Sset the month to October.
+Help.MonthMenu.0a:\Sset the month to November.
+Help.MonthMenu.0b:\Sset the month to December.
+
+Help.AgeModeMenu.00:\Signore age when matching objects.
+Help.AgeModeMenu.01:\Smatch objects which are exactly a given age.
+Help.AgeModeMenu.02:\Smatch objects which are any age but a given age.
+Help.AgeModeMenu.03:\Smatch objects which are younger than a given age.
+Help.AgeModeMenu.04:\Smatch objects which are older than a given age.
+Help.AgeModeMenu.05:\Smatch objects whose age falls into a given range.
+Help.AgeModeMenu.06:\Smatch objects whose age does not fall into a given range.
+
+Help.AgeUnitMenu.00:\Sspecify the age in terms of minutes.
+Help.AgeUnitMenu.01:\Sspecify the age in terms of hours.
+Help.AgeUnitMenu.02:\Sspecify the age in terms of days.
+Help.AgeUnitMenu.03:\Sspecify the age in terms of weeks.
+Help.AgeUnitMenu.04:\Sspecify the age in terms of months.
+Help.AgeUnitMenu.05:\Sspecify the age in terms of years.
+
+Help.TypeModeMenu.00:\Signore the filetype when matching files.
+Help.TypeModeMenu.01:\Smatch files which have one of the listed filetypes.
+Help.TypeModeMenu.02:\Smatch files which do not have one of the listed filetypes.
+
+Help.FileTypeMenu.00:\Sadd untyped files (those with a load and execution address set) to the list.
+Help.FileTypeMenu.??:\Sadd this filetype to the list.
+
+Help.ContentModeMenu.00:\Signore file contents when matching objects.
+Help.ContentModeMenu.01:\Smatch files which contain a given piece of text.|MDirectories and Applications will always be matched.
+Help.ContentModeMenu.02:\Smatch files which do not contain a given piece of text.|MDirectories and Applications will always be matched.
