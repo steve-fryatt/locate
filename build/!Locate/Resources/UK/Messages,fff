@@ -167,10 +167,9 @@ HistoryMenu:History
 # Interactive help information.
 
 Help.IconBar:\TLocate application.|M\Ssearch for a file, application or directory.|M\A to re-use the last search parameters.|MDrag a file, directory or application here to search in that location.
+
 Help.ProgInfo:This \w displays information about Locate.
 Help.ProgInfo.Website:\Sopen the Locate home page in your web browser, if one has been seen.
-
-HelpF1:\Tlist of files that were located.|MDouble click \s to load a file, run an application or open a directory.|MDouble click \a to open an object's parent directory.|M\Sselect an object, or \a to add or remove objects from a selection.
 
 Help.Search.Cancel:\Sclose the search window without carrying out a search.|M\Areset all the fields to their default values.
 Help.Search.Search:\Sclose the search window and look for the matching files.
@@ -271,20 +270,28 @@ Help.Choices.PlugOpen:\Stoggle if a search window is opened when a Filer Action 
 Help.Choices.Scroll:\Stoggle whether the results window is scrolled to the end when new matches are added.
 Help.Choices.FileIcons:\Stoggle whether file icons are shown in the filetypes menu.
 
-HelpSV00:\Ssave the results in a file with the name entered above.
-HelpSV01:\Ssave the filenames in a text file with the name entered above.
-HelpSV02:\Ssave the search parameters from this search in a file with the name entered above.
-HelpSV03:\Ssave the search parameters from the window in a file with the name entered above.
-HelpSV1?:\Scancel the save and close the window.
-HelpSV2?:Enter the name to give the file here.
-HelpSV30:Drag this icon to a directory window to save the results.
-HelpSV31:Drag this icon to a directory window to save the filenames.|MDrag it to another application to copy the names there directly.
-HelpSV32:Drag this icon to a directory window to save the search parameters used in this search.
-HelpSV33:Drag this icon to a directory window to save the current search parameters.
-HelpSV40/HelpSV41:\Stoggle whether to save all the results or just the selected entries.
-HelpSV42/HelpSV43:\This icon is not used as there can never be a selection of the search parameters.
+Help.Results:\Tlist of files that were located.|MDouble click \s to load a file, run an application or open a directory.|MDouble click \a to open an object's parent directory.|M\Sselect an object, or \a to add or remove objects from a selection.
 
-HelpOI1:This \w displays information about the currently selected object.
+Help.ObjectInfo:This \w displays information about the currently selected object.
+
+Help.SaveAs.Save:\Ssave the file with the name entered above.
+Help.SaveAs.Cancel:\Scancel the save and close the window.
+Help.SaveAs.Name:Enter the name to give the file here.
+Help.SaveAs.Icon3:Drag this icon to a directory window to save the file.
+Help.SaveAs.Selection:\Stoggle whether to save all the items, or just the selected entries.
+
+# HelpSV00:\Ssave the results in a file with the name entered above.
+# HelpSV01:\Ssave the filenames in a text file with the name entered above.
+# HelpSV02:\Ssave the search parameters from this search in a file with the name entered above.
+# HelpSV03:\Ssave the search parameters from the window in a file with the name entered above.
+# HelpSV1?:\Scancel the save and close the window.
+# HelpSV2?:Enter the name to give the file here.
+# HelpSV30:Drag this icon to a directory window to save the results.
+# HelpSV31:Drag this icon to a directory window to save the filenames.|MDrag it to another application to copy the names there directly.
+# HelpSV32:Drag this icon to a directory window to save the search parameters used in this search.
+# HelpSV33:Drag this icon to a directory window to save the current search parameters.
+# HelpSV40/HelpSV41:\Stoggle whether to save all the results or just the selected entries.
+# HelpSV42/HelpSV43:\This icon is not used as there can never be a selection of the search parameters.
 
 Help.IconBarMenu.00:\Rsee information about Locate.
 Help.IconBarMenu.01:\Sread the online help.
@@ -296,22 +303,20 @@ Help.IconBarMenu.04:\Squit Locate.
 
 Help.SearchMenu.00:\Rsave the current search options so they can be re-loaded into Locate.
 
-MenuRS0:\Rchange the display options.
-MenuRS1:\Rsave the results, path names or search parameters.
-MenuRS2:\Sselect all the objects in the window.
-MenuRS3:\Sclear the selected objects in the window.
-MenuRS4:\Rto see information about the selected object.
-MenuRS5:\Sopen the parent of the selected object.|MThis can also be done by an \a double-click on the object itself.
-MenuRS6:\Scopy the filenames (all or those currently selected) to the global clipboard.
-MenuRS7:\Sopen a new search window with the same search options.
-MenuRS8:\Sstop the current search, while keeping those results that have already been found.
-
-MenuDY0:\Sdisplay only the object paths.
-MenuDY1:\Sdisplay the object paths and file information.
-
-MenuSM0:\Rsave the results as a file that can be re-loaded into Locate.
-MenuSM1:\Rsave the filenames (all or those currently selected) as a text file.
-MenuSM2:\Rsave the search options so they can be re-loaded into Locate.
+Help.ResultsMenu.00:\Rchange the display options.
+Help.ResultsMenu.0000:\Sdisplay only the object paths.
+Help.ResultsMenu.0001:\Sdisplay the object paths and file information.
+Help.ResultsMenu.01:\Rsave the results, path names or search parameters.
+Help.ResultsMenu.0100:\Rsave the results as a file that can be re-loaded into Locate.
+Help.ResultsMenu.0101:\Rsave the filenames (all or those currently selected) as a text file.
+Help.ResultsMenu.0102:\Rsave the search options so they can be re-loaded into Locate.
+Help.ResultsMenu.02:\Sselect all the objects in the window.
+Help.ResultsMenu.03:\Sclear the selected objects in the window.
+Help.ResultsMenu.04:\Rto see information about the selected object.
+Help.ResultsMenu.05:\Sopen the parent of the selected object.|MThis can also be done by an \a double-click on the object itself.
+Help.ResultsMenu.06:\Scopy the filenames (all or those currently selected) to the global clipboard.
+Help.ResultsMenu.07:\Sopen a new search window with the same search options.
+Help.ResultsMenu.08:\Sstop the current search, while keeping those results that have already been found.
 
 Help.SizeModeMenu.00:\Signore size when matching objects.
 Help.SizeModeMenu.01:\Smatch objects which are exactly a given size.
