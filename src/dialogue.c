@@ -461,7 +461,7 @@ void dialogue_initialise(void)
 	/* Initialise the type pane. */
 
 	dialogue_panes[DIALOGUE_PANE_TYPE] = templates_create_window("TypePane");
-	ihelp_add_window(dialogue_panes[DIALOGUE_PANE_TYPE], "Search.Type", NULL);
+	ihelp_add_window(dialogue_panes[DIALOGUE_PANE_TYPE], "Type", NULL);
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_TYPE], dialogue_keypress_handler);
@@ -477,7 +477,7 @@ void dialogue_initialise(void)
 	/* Initialise the attributes pane. */
 
 	dialogue_panes[DIALOGUE_PANE_ATTRIBUTES] = templates_create_window("AttribPane");
-	ihelp_add_window(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], "Search.Attributes", NULL);
+	ihelp_add_window(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], "Attributes", NULL);
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_ATTRIBUTES], dialogue_keypress_handler);
@@ -498,7 +498,7 @@ void dialogue_initialise(void)
 	/* Initialise the content pane. */
 
 	dialogue_panes[DIALOGUE_PANE_CONTENTS] = templates_create_window("ContentPane");
-	ihelp_add_window(dialogue_panes[DIALOGUE_PANE_CONTENTS], "Search.Contents", NULL);
+	ihelp_add_window(dialogue_panes[DIALOGUE_PANE_CONTENTS], "Contents", NULL);
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_CONTENTS], dialogue_keypress_handler);

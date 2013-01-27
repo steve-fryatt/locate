@@ -207,35 +207,35 @@ Help.Age.Age?:Enter an age here, depending on the type of match selected above.|
 Help.Age.UnitM?:\Sset the units used for the age on the left.
 Help.Age.Unit?:\Tunit that is used for the age on the left.
 
-HelpS20:\Stoggle whether files will be matched.|MIf they are to be matched, the types of files to be included or ignored can be set on the right.
-HelpS21:\Stoggle whether directories will be matched.
-HelpS22:\Stoggle whether applications will be matched.
-HelpS23:\Ttype of match to be used for the filetype.
-HelpS24:\Sset the type of match to be used for the filetype.
-HelpS25:Enter the filetypes required for matched or ignored files here.|MTypes can be entered as names (such as 'Text') or as a numbers (such as 'FFF') or as a mixture of the two.|MUse commas to separate multiple filetypes.
-HelpS26:\Sselect a filetype from those currently recognised and add it to the list.|M\Asee the list in filetype order, not alphabetical.
+Help.Type.Files:\Stoggle whether files will be matched.|MIf they are to be matched, the types of files to be included or ignored can be set on the right.
+Help.Type.Dirs:\Stoggle whether directories will be matched.
+Help.Type.Apps:\Stoggle whether applications will be matched.
+Help.Type.Mode:\Ttype of match to be used for the filetype.
+Help.Type.ModeM:\Sset the type of match to be used for the filetype.
+Help.Type.Types:Enter the filetypes required for matched or ignored files here.|MTypes can be entered as names (such as 'Text') or as a numbers (such as 'FFF') or as a mixture of the two.|MUse commas to separate multiple filetypes.
+Help.Type.TypesM:\Sselect a filetype from those currently recognised and add it to the list.|M\Asee the list in filetype order, not alphabetical.
 
-HelpS30:\Stoggle whether the 'locked' attribute is matched.|MThis attribute determines if an object can be deleted or not.
-HelpS31:\Smatch files that are protected from deletion.
-HelpS32:\Smatch files that can be deleted.
-HelpS33:\Stoggle whether the 'owner read' attribute is matched.|MThis attribute determines if an object can be loaded or run by the user who created it.
-HelpS34:\Smatch files that can be opened or run by the user who created them.
-HelpS35:\Smatch files that can not be opened or run by the user who created them.
-HelpS36:\Stoggle whether the 'owner write' attribute is matched.|MThis attribute determines if an object can be changed by the user who created it.
-HelpS37:\Smatch files that can be changed by the user who created them.
-HelpS38:\Smatch files that can not be changed by the user who created them.
-HelpS39:\Stoggle whether the 'public read' attribute is matched.|MThis attribute determines if an object can be loaded or run by any user on a network.
-HelpS310:\Smatch files that can be opened or run by anyone on a network.
-HelpS311:\Smatch files that can not be opened or run by anyone on a network.
-HelpS312:\Stoggle whether the 'public write' attribute is matched.|MThis attribute determines if an object can be changed by any user on a network.
-HelpS313:\Smatch files that can be changed by anyone on a network.
-HelpS314:\Smatch files that can not be changed by anyone on a network.
+Help.Attributes.Lock:\Stoggle whether the 'locked' attribute is matched.|MThis attribute determines if an object can be deleted or not.
+Help.Attributes.LockYes:\Smatch files that are protected from deletion.
+Help.Attributes.LockNo:\Smatch files that can be deleted.
+Help.Attributes.ReadO:\Stoggle whether the 'owner read' attribute is matched.|MThis attribute determines if an object can be loaded or run by the user who created it.
+Help.Attributes.ReadOYes:\Smatch files that can be opened or run by the user who created them.
+Help.Attributes.ReadONo:\Smatch files that can not be opened or run by the user who created them.
+Help.Attributes.WriteO:\Stoggle whether the 'owner write' attribute is matched.|MThis attribute determines if an object can be changed by the user who created it.
+Help.Attributes.WriteOYes:\Smatch files that can be changed by the user who created them.
+Help.Attributes.WriteONo:\Smatch files that can not be changed by the user who created them.
+Help.Attributes.ReadP:\Stoggle whether the 'public read' attribute is matched.|MThis attribute determines if an object can be loaded or run by any user on a network.
+Help.Attributes.ReadPYes:\Smatch files that can be opened or run by anyone on a network.
+Help.Attributes.ReadPNo:\Smatch files that can not be opened or run by anyone on a network.
+Help.Attributes.WriteP:\Stoggle whether the 'public write' attribute is matched.|MThis attribute determines if an object can be changed by any user on a network.
+Help.Attributes.WritePYes:\Smatch files that can be changed by anyone on a network.
+Help.Attributes.WritePNo:\Smatch files that can not be changed by anyone on a network.
 
-HelpS40:\Ttype of match to be used for the file contents.
-HelpS41:\Sset the type of match to be used for the file contents.
-HelpS42:Enter the text to check for here.
-HelpS43:\Stoggle whether case is ignored or checked in the file contents search.
-HelpS44:\Stoggle whether control chars can be entered into the text field.
+Help.Contents.Mode:\Ttype of match to be used for the file contents.
+Help.Contents.ModeM:\Sset the type of match to be used for the file contents.
+Help.Contents.Text:Enter the text to check for here.
+Help.Contents.Case:\Stoggle whether case is ignored or checked in the file contents search.
+Help.Contents.Ctrl:\Stoggle whether control chars can be entered into the text field.
 
 HelpTM0:\Sclose the date and time \w and forget any changes made.|M\Aforget the changes made since the window was opened.
 HelpTM1:\Sclose the date and time \w and insert the date into the search \w.|M\A insert the date without closing the \w.
@@ -292,9 +292,9 @@ Help.IconBarMenu.02:\Rto re-use a previous search from the history list.
 Help.IconBarMenu.03:\Schange the Locate options.
 Help.IconBarMenu.04:\Squit Locate.
 
-MenuHIS:\Sopen a search window based on this previous search.
+# Help.SearchMenu.00:\Sopen a search window based on this previous search.
 
-MenuSH0:\Rsave the current search options so they can be re-loaded into Locate.
+Help.SearchMenu.00:\Rsave the current search options so they can be re-loaded into Locate.
 
 MenuRS0:\Rchange the display options.
 MenuRS1:\Rsave the results, path names or search parameters.
@@ -314,9 +314,10 @@ MenuSM1:\Rsave the filenames (all or those currently selected) as a text file.
 MenuSM2:\Rsave the search options so they can be re-loaded into Locate.
 
 MenuFT:\Sselect a filetype to match.
-MenuSL:\Schoose how the file size is used to match objects.
-MenuSU:\Schoose a unit for the file size.
-MenuDL:\Schoose how the modification date is used to match objects.
-MenuAL:\Schoose how the file age is used to match objects.
-MenuAU:\Schoose a unit for the file age.
+Help.SizeModeMenu.??:\Schoose how the file size is used to match objects.
+Help.SizeUnitMenu.??:\Schoose a unit for the file size.
+Help.DateModeMenu.??:\Schoose how the modification date is used to match objects.
+Help.AgeModeMenu.??:\Schoose how the file age is used to match objects.
+Help.AgeUnitMenu.??:\Schoose a unit for the file age.
+Help.ContentModeMenu.??:\Schoose how the file contents is used to match objects.
 MenuMN:\Schoose a month.
