@@ -969,7 +969,7 @@ char *discfile_legacy_read_string(struct discfile_block *handle, char *text, siz
 {
 	int		ptr;
 	unsigned	max_bytes, read;
-	bits		flags;
+	bits		psr = 0;
 	os_error	*error;
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
@@ -1009,8 +1009,8 @@ char *discfile_legacy_read_string(struct discfile_block *handle, char *text, siz
 
 	read = 0;
 
-	while (flags != 2 && read < max_bytes && error == NULL && (read == 0 || text[read - 1] != '\r')) {
-		error = xos_bgetw(handle->handle, text + read, &flags);
+	while ((psr & 0x20000000) == 0 && read < max_bytes && error == NULL && (read == 0 || text[read - 1] != '\r')) {
+		error = xos_bgetw(handle->handle, text + read, &psr);
 
 		if (error == NULL && text[read] != '\0' && text[read] != '\n')
 			read++;
@@ -1049,7 +1049,7 @@ char *discfile_legacy_read_flex_string(struct discfile_block *handle, flex_ptr s
 	char		*text = NULL;
 	int		ptr;
 	unsigned	max_bytes, size, read;
-	bits		flags;
+	bits		psr = 0;
 	os_error	*error;
 
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
@@ -1099,8 +1099,8 @@ char *discfile_legacy_read_flex_string(struct discfile_block *handle, flex_ptr s
 
 	read = 0;
 
-	while (flags != 2 && read < size && max_bytes > 0 && error == NULL && (read == 0 || text[read - 1] != '\r')) {
-		error = xos_bgetw(handle->handle, text + read, &flags);
+	while ((psr & 0x20000000) == 0 && read < size && max_bytes > 0 && error == NULL && (read == 0 || text[read - 1] != '\r')) {
+		error = xos_bgetw(handle->handle, text + read, &psr);
 
 		if (error == NULL && text[read] != '\0' && text[read] != '\n')
 			read++;
@@ -1787,7 +1787,7 @@ static int discfile_find_option_data(struct discfile_block *handle, unsigned id)
 char *discfile_read_string(struct discfile_block *handle, char *text, size_t size)
 {
 	int		read, max_bytes, ptr;
-	bits		flags;
+	bits		psr = 0;
 	os_error	*error;
 
 
@@ -1824,8 +1824,8 @@ char *discfile_read_string(struct discfile_block *handle, char *text, size_t siz
 
 	read = 0;
 
-	while (flags != 2 && read < max_bytes && error == NULL && (read == 0 || text[read - 1] != '\0'))
-		error = xos_bgetw(handle->handle, text + (read++), &flags);
+	while ((psr & 0x20000000) == 0 && read < max_bytes && error == NULL && (read == 0 || text[read - 1] != '\0'))
+		error = xos_bgetw(handle->handle, text + (read++), &psr);
 
 	if (error != NULL || read == 0) {
 		text[0] = '\0';
