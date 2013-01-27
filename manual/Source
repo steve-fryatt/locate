@@ -40,8 +40,8 @@ If you have any comments about Locate, or would like to report any bugs that you
 Updates to Locate and more programs for RISC OS computers can be found on my website at <http://www.stevefryatt.org.uk/software/=>#url>.
 
 #Align Centre
-© Stephen Fryatt, 2001-2012 (<steve@stevefryatt.org.uk=>#url mailto:steve@stevefryatt.org.uk>)
-Filetype Menu code provided by Harriet Bazley
+© Stephen Fryatt, 2001-2013 (<steve@stevefryatt.org.uk=>#url mailto:steve@stevefryatt.org.uk>)
+Filetype Menu code based on a concept by Harriet Bazley
 
 A plain text version of this manual is available <here=>*Filer_Run <Locate$HelpText\>>.
 #Align Left
@@ -54,7 +54,7 @@ A plain text version of this manual is available <here=>*Filer_Run <Locate$HelpT
 =============================================================================
 Locate - Flexible file search for RISC OS                        Version $$version$$
 
-(C) Stephen Fryatt, 2001-2012                  $$date$$
+(C) Stephen Fryatt, 2001-2013                  $$date$$
 =============================================================================
 </literal>
 
@@ -70,7 +70,7 @@ Locate - Flexible file search for RISC OS                        Version $$versi
 
 <body>
 <h1 align="center">Locate</h1>
-<p align="center"><b>Flexible file search for RISC OS</b> - &copy; Stephen Fryatt, 2001<br>
+<p align="center"><b>Flexible file search for RISC OS</b> - &copy; Stephen Fryatt, 2001-2013<br>
 Version $$version$$ ($$date$$)</p>
 
 </literal>
@@ -111,7 +111,7 @@ The necessary libraries and build tools can be found at <link ref="#url http://w
 
 <chapter title="Installing Locate" file="Installation">
 
-<cite>Locate</cite> requires RISC OS 3.1 or later.  It can be run off a hard disc or floppy disc.
+<cite>Locate</cite> requires RISC OS 4 or later; it might work with earlier versions, but requires the Nested Wimp and is unsupported.  It can be run off a hard disc or floppy disc.
 
 To install <cite>Locate</cite> on a hard disc, copy the <file>!Locate</file> application to a suitable directory.
 
@@ -245,7 +245,7 @@ Note that if you don't care what filename is found, it is quicker to leave the <
 
 There are also various options that can be set to control how the search is carried out (and not what files are matched); these can be seen by clicking on <icon>Show search options</icon>.  The default settings can be changed from the <link ref="Configuration">choices window</link>.
 
-It is possible to speed up a search by de-selecting <icon>Search in background</icon> before starting the search.  In this case, <cite>Locate</cite> will take over the machine until it has finished; it does make the search faster.  Searches carried out like this can be aborted by pressing <key>escape</key> while the hourglass in on the screen.
+By default, <cite>Locate</cite> will only record details of the files that match a search. By selecting <icon>Store all file details</icon>, it will record details of all the files that it scans in the search folder.
 
 If an image filing system is causing errors to be generated when <cite>Locate</cite> tries to read the files within one of its image directories, select <icon>Ignore Image FS's contents</icon>.  This will cause <cite>Locate</cite> to check the name and attributes of the image file itself (for example a <cite>Spark</cite> archive) but not of the objects within it.  This is useful, for example, in the situation where you have <cite>ArcFS</cite> loaded and attempt to search a path containing Zip files; without this option on, <cite>ArcFS</cite> will halt the search with errors each time a Zip archive is encountered.
 
@@ -355,7 +355,7 @@ Since searching file contents takes time, this check will only occur if all the 
 
 Selecting <menu>Choices...</menu> from the icon-bar menu allows the default behaviour of <cite>Locate</cite> to be changed.
 
-The <icon>Default search options</icon> section controls how the search options are set for new searches (these are remembered along with the other parameters for recalled searches).  The <icon>Search directory</icon> field contains the default directory to be searched: either type a path in or drag an object into the field.  <icon>Search in background</icon>, <icon>Ignore Image FSs' contents</icon>, <icon>Suppress FS errors</icon> and <icon>Full info display</icon> are the same as those in the search window.
+The <icon>Default search options</icon> section controls how the search options are set for new searches (these are remembered along with the other parameters for recalled searches).  The <icon>Search directory</icon> field contains the default directory to be searched: either type a path in or drag an object into the field.  <icon>Store all file fetails</icon>, <icon>Ignore Image FSs' contents</icon>, <icon>Suppress FS errors</icon> and <icon>Full info display</icon> are the same as those in the search window.
 
 The <icon>History list</icon> section contains options relating to the history.  The <icon>History contains the last X searches</icon> field sets the length of the history list on the icon-bar menu.  If set to zero, the history feature will be disabled (this also affects <mouse>adjust</mouse> clicks on the icon bar).  <icon>Confirm new additions</icon> controls how new entries are added to the history.  When on, a window is opened each time a search is carried out, allowing the name of the entry to be changed or the whole entry to be discarded.  When off, new entries are simply added to the history with a default name.
 
@@ -683,6 +683,16 @@ Public Alpha release.
 
 <list>
 <li>Fixed bug causing filetype searches to fail for typed files when used in conjunction with date or age restrictions.
+</list>
+
+<subhead title="Test Builds">
+
+Public Alpha release.
+
+The current test builds are for <cite>Locate&nbsp;2</cite>, which is a complete re-write of the original <cite>Locate</cite>. At present this documentation is still catching up, and some features of the original remain unimplemented.
+
+<list>
+<li>Complete re-implementation in C.
 </list>
 
 
