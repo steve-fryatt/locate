@@ -180,7 +180,7 @@ Help.Search.Date:\Ssee the search options concerning the date files were last mo
 Help.Search.Type:\Ssee the search options concerning the type of object (file, directory, or application).
 Help.Search.Attributes:\Ssee the search options concerning the object attributes (read and write access, locked).
 Help.Search.Contents:\Ssee the search options concerning the file contents.
-Help.Search.11:Drag \s to set the search directory.|MDouble click \s to open the search directory.
+Help.Search.Icon11:Drag \s to set the search directory.|MDouble click \s to open the search directory.
 Help.Search.Case:\Stoggle whether the case of filenames is ignored.
 Help.Search.Options:\Stoggle the display of the search options.
 Help.Search.StoreAll:\Stoggle whether the full details of the search directory are recorded to allow future off-line searches.
@@ -195,17 +195,17 @@ Help.Size.Size?:Enter a size here, depending on the type of match selected above
 Help.Size.UnitM?:\Sset the units used for the size on the left.
 Help.Size.Unit?:\Tunit that is used for the size on the left.
 
-HelpS10:\Sset the modification date in terms of calendar dates.
-HelpS11:\Sset the modification date in terms of the age of the objects.
-HelpS12:\Ttype of match to be used for the modification date.
-HelpS13:\Sset the type of match to be used for the modification date.
-HelpS14/HelpS16:Enter a date here, depending on the type of match selected above.|MTo specify to the nearest day, enter in the form DD/MM/YYYY.|MTo specify to the nearest minute, enter in the form DD/MM/YYYY.HH:MM.
-HelpS15/HelpS17:\Sset the date on the left, using a dialogue box to enter the various components easily.
-HelpS18:\Ttype of match to be used for the object age.
-HelpS19:\Sset the type of match to be used for the object age.
-HelpS110/HelpS113:Enter an age here, depending on the type of match selected above.|MThe units are set on the right.
-HelpS111/HelpS114:\Tunit that is used for the age on the left.
-HelpS112/HelpS115:\Sset the units used for the age on the left.
+Help.Date.Date:\Sset the modification date in terms of calendar dates.
+Help.Date.Age:\Sset the modification date in terms of the age of the objects.
+Help.Date.DModeM:\Sset the type of match to be used for the modification date.
+Help.Date.DMode:\Ttype of match to be used for the modification date.
+Help.Date.Date?:Enter a date here, depending on the type of match selected above.|MTo specify to the nearest day, enter in the form DD/MM/YYYY.|MTo specify to the nearest minute, enter in the form DD/MM/YYYY.HH:MM.
+Help.Date.Set?:\Sset the date on the left, using a dialogue box to enter the various components easily.
+Help.Date.AModeM:\Sset the type of match to be used for the object age.
+Help.Date.AMode:\Ttype of match to be used for the object age.
+Help.Age.Age?:Enter an age here, depending on the type of match selected above.|MThe units are set on the right.
+Help.Age.UnitM?:\Sset the units used for the age on the left.
+Help.Age.Unit?:\Tunit that is used for the age on the left.
 
 HelpS20:\Stoggle whether files will be matched.|MIf they are to be matched, the types of files to be included or ignored can be set on the right.
 HelpS21:\Stoggle whether directories will be matched.

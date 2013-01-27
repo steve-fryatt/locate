@@ -423,7 +423,7 @@ void dialogue_initialise(void)
 	/* Initialise the size pane. */
 
 	dialogue_panes[DIALOGUE_PANE_SIZE] = templates_create_window("SizePane");
-	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_SIZE], "Search.Size", NULL);
+	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_SIZE], "Size", NULL);
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_SIZE], dialogue_keypress_handler);
@@ -440,7 +440,7 @@ void dialogue_initialise(void)
 	/* Initialise the date pane. */
 
 	dialogue_panes[DIALOGUE_PANE_DATE] = templates_create_window("DatePane");
-	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_DATE], "Search.Date", NULL);
+	ihelp_add_window (dialogue_panes[DIALOGUE_PANE_DATE], "Date", NULL);
 	event_add_window_menu(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_menu);
 	event_add_window_mouse_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_click_handler);
 	event_add_window_key_event(dialogue_panes[DIALOGUE_PANE_DATE], dialogue_keypress_handler);
