@@ -65,6 +65,7 @@
 #include "results.h"
 
 #include "clipboard.h"
+#include "dataxfer.h"
 #include "datetime.h"
 #include "dialogue.h"
 #include "discfile.h"
@@ -275,6 +276,8 @@ static void	results_add_raw(struct results_window *handle, enum results_line_typ
 static unsigned	results_add_line(struct results_window *handle, osbool show);
 static osbool	results_extend(struct results_window *handle, unsigned lines);
 static unsigned	results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state);
+static void	results_drag_select(struct results_window *handle, unsigned row, wimp_pointer *pointer, wimp_window_state *state);
+static void	results_drag_end_handler(wimp_pointer *pointer, void *data);
 static void	results_select_click_select(struct results_window *handle, unsigned row);
 static void	results_select_click_adjust(struct results_window *handle, unsigned row);
 static void	results_select_all(struct results_window *handle);
@@ -751,6 +754,10 @@ static void results_click_handler(wimp_pointer *pointer)
 	case wimp_DOUBLE_ADJUST:
 		results_select_click_adjust(handle, row);
 		results_open_parent(handle, row);
+		break;
+
+	case wimp_DRAG_SELECT:
+		results_drag_select(handle, row, pointer, &state);
 		break;
 	}
 }
@@ -1609,6 +1616,70 @@ static unsigned results_calculate_window_click_row(struct results_window *handle
 		row = RESULTS_ROW_NONE;
 
 	return row;
+}
+
+
+/**
+ * Process drags in a results window. Depending on whether the drag began on a
+ * selectable row or not, the drag will either start a file transfer or start
+ * a selection dragbox.
+ *
+ * \param *handle		The handle of the results window.
+ * \param row			The row under the click, or RESULTS_ROW_NONE.
+ * \param *pointer
+ */
+
+static void results_drag_select(struct results_window *handle, unsigned row, wimp_pointer *pointer, wimp_window_state *state)
+{
+	int			x, y;
+	os_box			extent;
+	unsigned		filetype;
+	struct fileicon_info	icon;
+	char			*sprite = NULL;
+
+	if (handle == NULL || pointer == NULL || state == NULL)
+		return;
+
+	x = pointer->pos.x - state->visible.x0 + state->xscroll;
+	y = pointer->pos.y - state->visible.y1 + state->yscroll;
+
+	if (row != RESULTS_ROW_NONE && (row < handle->display_lines) &&
+			(handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTABLE)) {
+		extent.x0 = state->xscroll + RESULTS_WINDOW_MARGIN;
+		extent.x1 = state->xscroll + (state->visible.x1 - state->visible.x0) - RESULTS_WINDOW_MARGIN;
+		extent.y0 = LINE_Y0(row);
+		extent.y1 = LINE_Y1(row);
+
+		if (handle->selection_count == 1 && handle->selection_row == row) {
+			filetype = objdb_get_filetype(handle->objects, handle->redraw[handle->redraw[row].index].file);
+			fileicon_get_type_icon(filetype, "", &icon);
+
+			if (icon.large != TEXTDUMP_NULL)
+				sprite = fileicon_get_base() + icon.large;
+			else
+				sprite = "file_xxx";
+		} else {
+			sprite = "package";
+		}
+
+		debug_printf("Dragging selection from %d,%d", x, y);
+
+		dataxfer_work_area_drag(handle->window, pointer, &extent, sprite, results_drag_end_handler, handle);
+	} else {
+	}
+}
+
+
+/**
+ * Process the termination of drags from a results window.
+ *
+ * \param *pointer		The pointer location at the end of the drag.
+ * \param *data			The results_window data for the drag.
+ */
+
+static void results_drag_end_handler(wimp_pointer *pointer, void *data)
+{
+	debug_printf("Drag terminated...");
 }
 
 

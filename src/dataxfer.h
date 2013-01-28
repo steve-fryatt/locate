@@ -42,6 +42,21 @@ void dataxfer_initialise(void);
 
 
 /**
+ * Start dragging from a window work area, creating a sprite to drag and starting
+ * a drag action.  When the action completes, a callback will be made to the
+ * supplied function.
+ *
+ * \param w		The window where the drag is starting.
+ * \param *pointer	The current pointer state.
+ * \param *extent	The extent of the drag box, relative to the window work area.
+ * \param *sprite	Pointer to the name of the sprite to use for the drag, or NULL.
+ * \param callback	A callback function
+ */
+
+void dataxfer_work_area_drag(wimp_w w, wimp_pointer *pointer, os_box *extent, char *sprite, void (* drag_end_callback)(wimp_pointer *pointer, void *data), void *drag_end_data);
+
+
+/**
  * Start dragging an icon from a dialogue, creating a sprite to drag and starting
  * a drag action.  When the action completes, a callback will be made to the
  * supplied function.

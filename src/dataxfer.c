@@ -159,6 +159,92 @@ void dataxfer_initialise(void)
 
 
 /**
+ * Start dragging from a window work area, creating a sprite to drag and starting
+ * a drag action.  When the action completes, a callback will be made to the
+ * supplied function.
+ *
+ * \param w		The window where the drag is starting.
+ * \param *pointer	The current pointer state.
+ * \param *extent	The extent of the drag box, relative to the window work area.
+ * \param *sprite	Pointer to the name of the sprite to use for the drag, or NULL.
+ * \param callback	A callback function
+ */
+
+void dataxfer_work_area_drag(wimp_w w, wimp_pointer *pointer, os_box *extent, char *sprite, void (* drag_end_callback)(wimp_pointer *pointer, void *data), void *drag_end_data)
+{
+	wimp_window_state	window;
+	wimp_drag		drag;
+	int			ox, oy, width, height;
+
+	/* If there's no callback, there's no point bothering. */
+
+	if (drag_end_callback == NULL)
+		return;
+
+	/* Get the basic information about the window and icon. */
+
+	window.w = w;
+	wimp_get_window_state(&window);
+
+	ox = window.visible.x0 - window.xscroll;
+	oy = window.visible.y1 - window.yscroll;
+
+	/* Read CMOS RAM to see if solid drags are required; this can only
+	 * happen if a sprite name is supplied.
+	 */
+
+	dataxfer_dragging_sprite = ((sprite != NULL) && ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
+			osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0)) ? TRUE : FALSE;
+
+	/* Set up the drag parameters. */
+
+	drag.w = window.w;
+	drag.type = wimp_DRAG_USER_FIXED;
+
+	/* If the drag is a sprite, it is centred on the pointer; if a drag box,
+	 * the supplied box extent is used relative to the window work area.
+	 */
+
+	if (dataxfer_dragging_sprite) {
+		if (xwimpspriteop_read_sprite_size(sprite, &width, &height, NULL, NULL) != NULL) {
+			width = 32;
+			height = 32;
+		}
+
+		// \TODO -- This assumes a square pixel mode!
+
+		drag.initial.x0 = pointer->pos.x - width;
+		drag.initial.y0 = pointer->pos.y - height;
+		drag.initial.x1 = pointer->pos.x + width;
+		drag.initial.y1 = pointer->pos.y + height;
+	} else {
+		drag.initial.x0 = ox + extent->x0;
+		drag.initial.y0 = oy + extent->y0;
+		drag.initial.x1 = ox + extent->x1;
+		drag.initial.y1 = oy + extent->y1;
+	}
+
+	drag.bbox.x0 = 0x80000000;
+	drag.bbox.y0 = 0x80000000;
+	drag.bbox.x1 = 0x7fffffff;
+	drag.bbox.y1 = 0x7fffffff;
+
+	dataxfer_drag_end_callback = drag_end_callback;
+
+	/* Start the drag and set an eventlib callback. */
+
+	if (dataxfer_dragging_sprite)
+		dragasprite_start(dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE |
+			dragasprite_NO_BOUND | dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW,
+			wimpspriteop_AREA, sprite, &(drag.initial), &(drag.bbox));
+	else
+		wimp_drag_box(&drag);
+
+	event_set_drag_handler(dataxfer_terminate_user_drag, NULL, drag_end_data);
+}
+
+
+/**
  * Start dragging an icon from a dialogue, creating a sprite to drag and starting
  * a drag action.  When the action completes, a callback will be made to the
  * supplied function.
@@ -211,7 +297,7 @@ void dataxfer_save_window_drag(wimp_w w, wimp_i i, void (* drag_end_callback)(wi
 	/* Read CMOS RAM to see if solid drags are required. */
 
 	dataxfer_dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
-			osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0);
+			osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0) ? TRUE : FALSE;
 
 	dataxfer_drag_end_callback = drag_end_callback;
 
