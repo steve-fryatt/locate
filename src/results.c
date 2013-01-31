@@ -277,7 +277,8 @@ static unsigned	results_add_line(struct results_window *handle, osbool show);
 static osbool	results_extend(struct results_window *handle, unsigned lines);
 static unsigned	results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state);
 static void	results_drag_select(struct results_window *handle, unsigned row, wimp_pointer *pointer, wimp_window_state *state);
-static void	results_drag_end_handler(wimp_pointer *pointer, void *data);
+static void	results_xfer_drag_end_handler(wimp_pointer *pointer, void *data);
+static void	results_select_drag_end_handler(wimp_dragged *drag, void *data);
 static void	results_select_click_select(struct results_window *handle, unsigned row);
 static void	results_select_click_adjust(struct results_window *handle, unsigned row);
 static void	results_select_all(struct results_window *handle);
@@ -1635,6 +1636,7 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 	os_box			extent;
 	unsigned		filetype;
 	struct fileicon_info	icon;
+	wimp_drag		drag;
 	char			*sprite = NULL;
 
 	if (handle == NULL || pointer == NULL || state == NULL)
@@ -1664,22 +1666,68 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 
 		debug_printf("Dragging selection from %d,%d", x, y);
 
-		dataxfer_work_area_drag(handle->window, pointer, &extent, sprite, results_drag_end_handler, handle);
+		dataxfer_work_area_drag(handle->window, pointer, &extent, sprite, results_xfer_drag_end_handler, handle);
 	} else {
+		debug_printf("Starting to create drag...");
+		drag.w = handle->window;
+		drag.type = wimp_DRAG_USER_RUBBER;
+
+		drag.initial.x0 = pointer->pos.x;
+		drag.initial.y0 = pointer->pos.y;
+		drag.initial.x1 = pointer->pos.x;
+		drag.initial.y1 = pointer->pos.y;
+
+		drag.bbox.x0 = state->visible.x0;
+		drag.bbox.y0 = 0x80000000;
+		drag.bbox.x1 = state->visible.x1;
+		drag.bbox.y1 = 0x7fffffff;
+
+		debug_printf("Calling dragbox with block 0x%x", &drag);
+
+		//wimp_drag_box_with_flags(&drag, wimp_DRAG_BOX_KEEP_IN_LINE | wimp_DRAG_BOX_CLIP);
+
+		debug_printf("Dragbox called...");
+
+		//event_set_drag_handler(results_select_drag_end_handler, NULL, handle);
 	}
 }
 
 
 /**
- * Process the termination of drags from a results window.
+ * Process the termination of transfer drags from a results window.
  *
  * \param *pointer		The pointer location at the end of the drag.
  * \param *data			The results_window data for the drag.
  */
 
-static void results_drag_end_handler(wimp_pointer *pointer, void *data)
+static void results_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 {
-	debug_printf("Drag terminated...");
+	debug_printf("Transfer drag terminated...");
+}
+
+
+/**
+ * Process the termination of selection drags from a results window.
+ *
+ * \param  *drag		The Wimp poll block from termination.
+ * \param  *data		NULL (unused).
+ */
+
+static void results_select_drag_end_handler(wimp_dragged *drag, void *data)
+{
+	//wimp_pointer		pointer;
+
+	//if (dataxfer_dragging_sprite)
+	//	dragasprite_stop();
+
+	//wimp_get_pointer_info(&pointer);
+
+	//if (dataxfer_drag_end_callback != NULL)
+	//	dataxfer_drag_end_callback(&pointer, data);
+
+	//dataxfer_drag_end_callback = NULL;
+
+	debug_printf("Selection drag terminated...");
 }
 
 
