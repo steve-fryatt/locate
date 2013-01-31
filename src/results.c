@@ -245,21 +245,25 @@ struct results_file_block {
 
 /* Global variables. */
 
-static wimp_window			*results_window_def = NULL;		/**< Definition for the main results window.				*/
-static wimp_window			*results_status_def = NULL;		/**< Definition for the results status pane.				*/
+static wimp_window		*results_window_def = NULL;			/**< Definition for the main results window.				*/
+static wimp_window		*results_status_def = NULL;			/**< Definition for the results status pane.				*/
 
-static wimp_w				results_object_window = NULL;		/**< Handle of the object info window.					*/
+static wimp_w			results_object_window = NULL;			/**< Handle of the object info window.					*/
 
-static wimp_menu			*results_window_menu = NULL;		/**< The results window menu.						*/
-static wimp_menu			*results_window_menu_display = NULL;	/**< The results window display submenu.				*/
+static wimp_menu		*results_window_menu = NULL;			/**< The results window menu.						*/
+static wimp_menu		*results_window_menu_display = NULL;		/**< The results window display submenu.				*/
 
-static osspriteop_area			*results_sprite_area = NULL;		/**< The application sprite area.					*/
+static osspriteop_area		*results_sprite_area = NULL;			/**< The application sprite area.					*/
 
-static struct saveas_block		*results_save_results = NULL;		/**< The Save Results savebox data handle.				*/
-static struct saveas_block		*results_save_paths = NULL;		/**< The Save Paths savebox data handle.				*/
-static struct saveas_block		*results_save_options = NULL;		/**< The Save Options savebox data handle.				*/
+static struct saveas_block	*results_save_results = NULL;			/**< The Save Results savebox data handle.				*/
+static struct saveas_block	*results_save_paths = NULL;			/**< The Save Paths savebox data handle.				*/
+static struct saveas_block	*results_save_options = NULL;			/**< The Save Options savebox data handle.				*/
 
-static struct textdump_block		*results_clipboard = NULL;		/**< Text Dump for the clipboard contents.				*/
+static struct textdump_block	*results_clipboard = NULL;			/**< Text Dump for the clipboard contents.				*/
+
+static unsigned			results_select_drag_row = RESULTS_ROW_NONE;	/**< The row in which the selection drag started.			*/
+static unsigned			results_select_drag_pos = 0;			/**< The position within the row where the selection drag started.	*/
+static osbool			results_select_drag_adjust = FALSE;		/**< TRUE if the selection drag is with Adjust; FALSE for Select.	*/
 
 
 /* Local function prototypes. */
@@ -1678,7 +1682,10 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 
 		dataxfer_work_area_drag(handle->window, pointer, &extent, sprite, results_xfer_drag_end_handler, handle);
 	} else {
-		debug_printf("Starting to create drag from row %d", ROW(y));
+		results_select_drag_row = ROW(y);
+		results_select_drag_pos = ROW_Y_POS(y);
+		results_select_drag_adjust = FALSE;
+
 		drag.w = handle->window;
 		drag.type = wimp_DRAG_USER_RUBBER;
 
@@ -1732,19 +1739,11 @@ static void results_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 
 static void results_select_drag_end_handler(wimp_dragged *drag, void *data)
 {
-	//wimp_pointer		pointer;
-
-	//if (dataxfer_dragging_sprite)
-	//	dragasprite_stop();
-
-	//wimp_get_pointer_info(&pointer);
-
-	//if (dataxfer_drag_end_callback != NULL)
-	//	dataxfer_drag_end_callback(&pointer, data);
-
-	//dataxfer_drag_end_callback = NULL;
+	wimp_pointer		pointer;
 
 	wimp_auto_scroll(NONE, NULL);
+
+	wimp_get_pointer_info(&pointer);
 
 	debug_printf("Selection drag terminated...");
 }
