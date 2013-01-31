@@ -311,6 +311,13 @@ static void	results_clipboard_release(void *data);
 #define LINE_Y0(x) (LINE_BASE(x) + RESULTS_LINE_OFFSET)
 #define LINE_Y1(x) (LINE_BASE(x) + RESULTS_LINE_OFFSET + RESULTS_ICON_HEIGHT)
 
+/* Row calculations: taking a positive offset from the top of the window, return
+ * the raw row number and the position within a row.
+ */
+
+#define ROW(y) (((-(y)) - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) / RESULTS_LINE_HEIGHT)
+#define ROW_Y_POS(y) (((-(y)) - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) % RESULTS_LINE_HEIGHT)
+
 
 /**
  * Initialise the Results module.
@@ -1608,10 +1615,10 @@ static unsigned results_calculate_window_click_row(struct results_window *handle
 	if (handle == NULL || state == NULL)
 		return -1;
 
-	y = state->visible.y1 - pos->y - state->yscroll;
+	y = pos->y - state->visible.y1 + state->yscroll;
 
-	row = (unsigned) (y - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) / RESULTS_LINE_HEIGHT;
-	row_y_pos = ((y - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) % RESULTS_LINE_HEIGHT);
+	row = (unsigned) ROW(y);
+	row_y_pos = ROW_Y_POS(y);
 
 	if (row >= handle->display_lines ||
 			row_y_pos < (RESULTS_LINE_HEIGHT - (RESULTS_LINE_OFFSET + RESULTS_ICON_HEIGHT)) ||
@@ -1648,6 +1655,8 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 	x = pointer->pos.x - state->visible.x0 + state->xscroll;
 	y = pointer->pos.y - state->visible.y1 + state->yscroll;
 
+	debug_printf("Click in row %d", row);
+
 	if (row != RESULTS_ROW_NONE && (row < handle->display_lines) &&
 			(handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTABLE)) {
 		extent.x0 = state->xscroll + RESULTS_WINDOW_MARGIN;
@@ -1669,7 +1678,7 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 
 		dataxfer_work_area_drag(handle->window, pointer, &extent, sprite, results_xfer_drag_end_handler, handle);
 	} else {
-		debug_printf("Starting to create drag...");
+		debug_printf("Starting to create drag from row %d", ROW(y));
 		drag.w = handle->window;
 		drag.type = wimp_DRAG_USER_RUBBER;
 
