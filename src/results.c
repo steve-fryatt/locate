@@ -1613,7 +1613,7 @@ static unsigned results_calculate_window_click_row(struct results_window *handle
 	unsigned	row;
 
 	if (handle == NULL || state == NULL)
-		return -1;
+		return RESULTS_ROW_NONE;
 
 	y = pos->y - state->visible.y1 + state->yscroll;
 
