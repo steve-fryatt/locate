@@ -91,6 +91,8 @@
 
 #define RESULTS_MIN_LINES 10							/**< The minimum number of lines to show in the results window.		*/
 
+#define RESULTS_AUTOSCROLL_BORDER 80						/**< The autoscroll border for the window, in OS units.			*/
+
 #define RESULTS_ALLOC_REDRAW 50							/**< Number of window redraw blocks to allocate at a time.		*/
 #define RESULTS_ALLOC_FILES 50							/**< Number of file blocks to allocate at a time.			*/
 #define RESULTS_ALLOC_TEXT 1024							/**< Number of bytes of text storage to allocate at a time.		*/
@@ -1637,6 +1639,7 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 	unsigned		filetype;
 	struct fileicon_info	icon;
 	wimp_drag		drag;
+	wimp_auto_scroll_info	scroll;
 	char			*sprite = NULL;
 
 	if (handle == NULL || pointer == NULL || state == NULL)
@@ -1664,8 +1667,6 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 			sprite = "package";
 		}
 
-		debug_printf("Dragging selection from %d,%d", x, y);
-
 		dataxfer_work_area_drag(handle->window, pointer, &extent, sprite, results_xfer_drag_end_handler, handle);
 	} else {
 		debug_printf("Starting to create drag...");
@@ -1678,17 +1679,24 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 		drag.initial.y1 = pointer->pos.y;
 
 		drag.bbox.x0 = state->visible.x0;
-		drag.bbox.y0 = 0x80000000;
+		drag.bbox.y0 = state->visible.y0 + RESULTS_STATUS_HEIGHT;
 		drag.bbox.x1 = state->visible.x1;
-		drag.bbox.y1 = 0x7fffffff;
+		drag.bbox.y1 = state->visible.y1 - RESULTS_TOOLBAR_HEIGHT;
 
-		debug_printf("Calling dragbox with block 0x%x", &drag);
+		scroll.w = handle->window;
 
-		//wimp_drag_box_with_flags(&drag, wimp_DRAG_BOX_KEEP_IN_LINE | wimp_DRAG_BOX_CLIP);
+		scroll.pause_zone_sizes.x0 = RESULTS_AUTOSCROLL_BORDER;
+		scroll.pause_zone_sizes.y0 = RESULTS_AUTOSCROLL_BORDER + RESULTS_STATUS_HEIGHT;
+		scroll.pause_zone_sizes.x1 = RESULTS_AUTOSCROLL_BORDER;
+		scroll.pause_zone_sizes.y1 = RESULTS_AUTOSCROLL_BORDER + RESULTS_TOOLBAR_HEIGHT;
 
-		debug_printf("Dragbox called...");
+		scroll.pause_duration = 0;
+		scroll.state_change = wimp_AUTO_SCROLL_DEFAULT_HANDLER;
 
-		//event_set_drag_handler(results_select_drag_end_handler, NULL, handle);
+		wimp_drag_box_with_flags(&drag, wimp_DRAG_BOX_KEEP_IN_LINE | wimp_DRAG_BOX_CLIP);
+		wimp_auto_scroll(wimp_AUTO_SCROLL_ENABLE_VERTICAL, &scroll);
+
+		event_set_drag_handler(results_select_drag_end_handler, NULL, handle);
 	}
 }
 
@@ -1726,6 +1734,8 @@ static void results_select_drag_end_handler(wimp_dragged *drag, void *data)
 	//	dataxfer_drag_end_callback(&pointer, data);
 
 	//dataxfer_drag_end_callback = NULL;
+
+	wimp_auto_scroll(NONE, NULL);
 
 	debug_printf("Selection drag terminated...");
 }
