@@ -188,7 +188,7 @@ If errors were suppressed during the search, any that occurred will be shown in 
 
 Double-clicking <mouse>select</mouse> on an object will Filer_Run it: files will be loaded, applications run and directories opened.  Holding down <key>shift</key> will have the expected effects: all files will be loaded into a text editor and application directories will be opened.  Double-clicking <mouse>adjust</mouse> will open the parent directory of the object (to 'view' it); this can also be done for the selected item from the menu.  Finally, objects and selections can be dragged out of the window to load them into applications; currently this will not work for Filer windows.
 
-Selections can be made by clicking on items with <mouse>select</mouse> or <mouse>adjust</mouse> in the usual way; multiple objects can be altered at once by dragging a box around them with <mouse>select</mouse> or <mouse>adjust</mouse> (this supports auto-scrolling under RISC OS 4).
+Selections can be made by clicking on items with <mouse>select</mouse> or <mouse>adjust</mouse> in the usual way; multiple objects can be altered at once by dragging a box around them with <mouse>select</mouse> or <mouse>adjust</mouse> (this supports auto-scrolling under RISC OS 4). The box can be started over an area of the window that does not contain a selectable item, or by holding down <key>ctrl</key> while starting the drag.
 
 If an entry in the window is greyed out, the object referred to has been moved since the results were generated.  This is most likely to occur if a set of results is saved and re-loaded, as all the file info details are re-scanned at this point; otherwise it will only occur if an attempt is made to double-click on an object that has moved.
 

@@ -1661,8 +1661,9 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 
 	debug_printf("Click in row %d", row);
 
-	if (row != RESULTS_ROW_NONE && (row < handle->display_lines) &&
-			(handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTABLE)) {
+	if ((row != RESULTS_ROW_NONE) && (row < handle->display_lines) &&
+			(handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTABLE) &&
+			(osbyte1(osbyte_IN_KEY, 0xf0, 0xff) == 0x00) && (osbyte1(osbyte_IN_KEY, 0xfb, 0xff) == 0x00)) {
 		extent.x0 = state->xscroll + RESULTS_WINDOW_MARGIN;
 		extent.x1 = state->xscroll + (state->visible.x1 - state->visible.x0) - RESULTS_WINDOW_MARGIN;
 		extent.y0 = LINE_Y0(row);
