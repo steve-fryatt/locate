@@ -261,6 +261,7 @@ static struct saveas_block	*results_save_options = NULL;			/**< The Save Options
 
 static struct textdump_block	*results_clipboard = NULL;			/**< Text Dump for the clipboard contents.				*/
 
+static struct results_window	*results_select_drag_handle = NULL;		/**< The handle of the results window contining the selection drag.	*/
 static unsigned			results_select_drag_row = RESULTS_ROW_NONE;	/**< The row in which the selection drag started.			*/
 static unsigned			results_select_drag_pos = 0;			/**< The position within the row where the selection drag started.	*/
 static osbool			results_select_drag_adjust = FALSE;		/**< TRUE if the selection drag is with Adjust; FALSE for Select.	*/
@@ -282,7 +283,7 @@ static void	results_add_raw(struct results_window *handle, enum results_line_typ
 static unsigned	results_add_line(struct results_window *handle, osbool show);
 static osbool	results_extend(struct results_window *handle, unsigned lines);
 static unsigned	results_calculate_window_click_row(struct results_window *handle, os_coord *pos, wimp_window_state *state);
-static void	results_drag_select(struct results_window *handle, unsigned row, wimp_pointer *pointer, wimp_window_state *state);
+static void	results_drag_select(struct results_window *handle, unsigned row, wimp_pointer *pointer, wimp_window_state *state, osbool ctrl_pressed);
 static void	results_xfer_drag_end_handler(wimp_pointer *pointer, void *data);
 static void	results_select_drag_end_handler(wimp_dragged *drag, void *data);
 static void	results_select_click_select(struct results_window *handle, unsigned row);
@@ -741,9 +742,12 @@ static void results_click_handler(wimp_pointer *pointer)
 	struct results_window	*handle = event_get_window_user_data(pointer->w);
 	wimp_window_state	state;
 	unsigned		row;
+	osbool			ctrl_pressed;
 
 	if (handle == NULL || pointer== NULL)
 		return;
+
+	ctrl_pressed = ((osbyte1(osbyte_IN_KEY, 0xf0, 0xff) == 0xff) || (osbyte1(osbyte_IN_KEY, 0xfb, 0xff) == 0xff)) ? TRUE : FALSE;
 
 	state.w = pointer->w;
 	if (xwimp_get_window_state(&state) != NULL)
@@ -753,25 +757,31 @@ static void results_click_handler(wimp_pointer *pointer)
 
 	switch(pointer->buttons) {
 	case wimp_SINGLE_SELECT:
-		results_select_click_select(handle, row);
+		if (!ctrl_pressed)
+			results_select_click_select(handle, row);
 		break;
 
 	case wimp_SINGLE_ADJUST:
-		results_select_click_adjust(handle, row);
+		if (!ctrl_pressed)
+			results_select_click_adjust(handle, row);
 		break;
 
 	case wimp_DOUBLE_SELECT:
-		results_select_none(handle);
-		results_run_object(handle, row);
+		if (!ctrl_pressed) {
+			results_select_none(handle);
+			results_run_object(handle, row);
+		}
 		break;
 
 	case wimp_DOUBLE_ADJUST:
-		results_select_click_adjust(handle, row);
-		results_open_parent(handle, row);
+		if (!ctrl_pressed) {
+			results_select_click_adjust(handle, row);
+			results_open_parent(handle, row);
+		}
 		break;
 
 	case wimp_DRAG_SELECT:
-		results_drag_select(handle, row, pointer, &state);
+		results_drag_select(handle, row, pointer, &state, ctrl_pressed);
 		break;
 	}
 }
@@ -1640,10 +1650,12 @@ static unsigned results_calculate_window_click_row(struct results_window *handle
  *
  * \param *handle		The handle of the results window.
  * \param row			The row under the click, or RESULTS_ROW_NONE.
- * \param *pointer
+ * \param *pointer		Pointer to the current mouse info.
+ * \param *state		Pointer to the current window state.
+ * \param ctrl_pressed		TRUE if a Ctrl key is down; else FALSE.
  */
 
-static void results_drag_select(struct results_window *handle, unsigned row, wimp_pointer *pointer, wimp_window_state *state)
+static void results_drag_select(struct results_window *handle, unsigned row, wimp_pointer *pointer, wimp_window_state *state, osbool ctrl_pressed)
 {
 	int			x, y;
 	os_box			extent;
@@ -1662,8 +1674,7 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 	debug_printf("Click in row %d", row);
 
 	if ((row != RESULTS_ROW_NONE) && (row < handle->display_lines) &&
-			(handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTABLE) &&
-			(osbyte1(osbyte_IN_KEY, 0xf0, 0xff) == 0x00) && (osbyte1(osbyte_IN_KEY, 0xfb, 0xff) == 0x00)) {
+			(handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTABLE) && !ctrl_pressed) {
 		extent.x0 = state->xscroll + RESULTS_WINDOW_MARGIN;
 		extent.x1 = state->xscroll + (state->visible.x1 - state->visible.x0) - RESULTS_WINDOW_MARGIN;
 		extent.y0 = LINE_Y0(row);
@@ -1683,6 +1694,7 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 
 		dataxfer_work_area_drag(handle->window, pointer, &extent, sprite, results_xfer_drag_end_handler, handle);
 	} else {
+		results_select_drag_handle = handle;
 		results_select_drag_row = ROW(y);
 		results_select_drag_pos = ROW_Y_POS(y);
 		results_select_drag_adjust = FALSE;
@@ -1740,13 +1752,28 @@ static void results_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 
 static void results_select_drag_end_handler(wimp_dragged *drag, void *data)
 {
+	int			x, y;
 	wimp_pointer		pointer;
+	wimp_window_state	state;
+	os_error		*error;
 
-	wimp_auto_scroll(NONE, NULL);
+	error = xwimp_auto_scroll(NONE, NULL, NULL);
+	if (error != NULL)
+		return;
 
-	wimp_get_pointer_info(&pointer);
+	error = xwimp_get_pointer_info(&pointer);
+	if (error != NULL)
+		return;
 
-	debug_printf("Selection drag terminated...");
+	state.w = results_select_drag_handle->window;
+	error = xwimp_get_window_state(&state);
+	if (error != NULL)
+		return;
+
+	x = pointer.pos.x - state.visible.x0 + state.xscroll;
+	y = pointer.pos.y - state.visible.y1 + state.yscroll;
+
+	debug_printf("Selection drag terminated... dragging from row %d to row %d", results_select_drag_row, ROW(y));
 }
 
 
