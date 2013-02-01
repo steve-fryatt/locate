@@ -323,6 +323,14 @@ static void	results_clipboard_release(void *data);
 #define ROW(y) (((-(y)) - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) / RESULTS_LINE_HEIGHT)
 #define ROW_Y_POS(y) (((-(y)) - RESULTS_TOOLBAR_HEIGHT - RESULTS_WINDOW_MARGIN) % RESULTS_LINE_HEIGHT)
 
+/* Return true or false if a ROW_Y_POS() value is above or below the icon
+ * area of the row.
+ */
+
+#define ROW_ABOVE(y) ((y) < (RESULTS_LINE_HEIGHT - (RESULTS_LINE_OFFSET + RESULTS_ICON_HEIGHT)))
+#define ROW_BELOW(y) ((y) > (RESULTS_LINE_HEIGHT - RESULTS_LINE_OFFSET))
+
+
 
 /**
  * Initialise the Results module.
@@ -1634,9 +1642,7 @@ static unsigned results_calculate_window_click_row(struct results_window *handle
 	row = (unsigned) ROW(y);
 	row_y_pos = ROW_Y_POS(y);
 
-	if (row >= handle->display_lines ||
-			row_y_pos < (RESULTS_LINE_HEIGHT - (RESULTS_LINE_OFFSET + RESULTS_ICON_HEIGHT)) ||
-			row_y_pos > (RESULTS_LINE_HEIGHT - RESULTS_LINE_OFFSET))
+	if (row >= handle->display_lines || ROW_ABOVE(row_y_pos) || ROW_BELOW(row_y_pos))
 		row = RESULTS_ROW_NONE;
 
 	return row;
