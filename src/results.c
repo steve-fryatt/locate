@@ -789,6 +789,7 @@ static void results_click_handler(wimp_pointer *pointer)
 		break;
 
 	case wimp_DRAG_SELECT:
+	case wimp_DRAG_ADJUST:
 		results_drag_select(handle, row, pointer, &state, ctrl_pressed);
 		break;
 	}
@@ -1679,7 +1680,7 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 
 	debug_printf("Click in row %d", row);
 
-	if ((row != RESULTS_ROW_NONE) && (row < handle->display_lines) &&
+	if ((row != RESULTS_ROW_NONE) && (row < handle->display_lines) && (pointer->buttons == wimp_DRAG_SELECT) &&
 			(handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTABLE) && !ctrl_pressed) {
 		extent.x0 = state->xscroll + RESULTS_WINDOW_MARGIN;
 		extent.x1 = state->xscroll + (state->visible.x1 - state->visible.x0) - RESULTS_WINDOW_MARGIN;
@@ -1703,7 +1704,7 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 		results_select_drag_handle = handle;
 		results_select_drag_row = ROW(y);
 		results_select_drag_pos = ROW_Y_POS(y);
-		results_select_drag_adjust = FALSE;
+		results_select_drag_adjust = (pointer->buttons == wimp_DRAG_ADJUST) ? TRUE : FALSE;
 
 		drag.w = handle->window;
 		drag.type = wimp_DRAG_USER_RUBBER;
@@ -1822,7 +1823,33 @@ static void results_select_drag_end_handler(wimp_dragged *drag, void *data)
 	if (start == RESULTS_ROW_NONE || end == RESULTS_ROW_NONE || end < start)
 		return;
 
-	debug_printf("Selection drag terminated... dragging from row %d to row %d", start, end);
+	if (!results_select_drag_adjust)
+		results_select_none(results_select_drag_handle);
+
+	for (row = start; row <= end && row < results_select_drag_handle->display_lines; row++) {
+		if (!(results_select_drag_handle->redraw[results_select_drag_handle->redraw[row].index].flags & RESULTS_FLAG_SELECTABLE))
+			continue;
+
+		if (results_select_drag_handle->redraw[results_select_drag_handle->redraw[row].index].flags & RESULTS_FLAG_SELECTED) {
+			results_select_drag_handle->redraw[results_select_drag_handle->redraw[row].index].flags &= ~RESULTS_FLAG_SELECTED;
+			results_select_drag_handle->selection_count--;
+		} else {
+			results_select_drag_handle->redraw[results_select_drag_handle->redraw[row].index].flags |= RESULTS_FLAG_SELECTED;
+			results_select_drag_handle->selection_count++;
+		}
+
+		wimp_force_redraw(state.w, state.xscroll, LINE_BASE(row),
+			state.xscroll + (state.visible.x1 - state.visible.x0), LINE_Y1(row));
+	}
+
+	if (results_select_drag_handle->selection_count == 1) {
+		for (row = 0; row < results_select_drag_handle->display_lines; row++) {
+			if (results_select_drag_handle->redraw[results_select_drag_handle->redraw[row].index].flags & RESULTS_FLAG_SELECTED) {
+				results_select_drag_handle->selection_row = row;
+				break;
+			}
+		}
+	}
 }
 
 
