@@ -90,6 +90,13 @@ struct objdb_block
 	osbool			full_scan;					/**< TRUE if the database contains a full scan; FALSE if not.	*/
 };
 
+enum objdb_object_flags
+{
+	OBJDB_OBJECT_FLAGS_NONE = 0,						/**< There are no flags set.					*/
+	OBJDB_OBJECT_FLAGS_LOST = 1,						/**< Set if the object is no longer in its original location.	*/
+	OBJDB_OBJECT_FLAGS_CHANGED = 2						/**< Set if the object is on disc, but has changed somehow.	*/
+};
+
 /**
  * Data structure for a filing system object.
  */
@@ -99,6 +106,8 @@ struct object
 	unsigned		key;						/**< Primary key to index database entries.			*/
 
 	unsigned		parent;						/**< The key of the parent object, or OBJDB_NULL_KEY.		*/
+
+	enum objdb_object_flags	flags;						/**< The object flags for the object in question.		*/
 
 	bits			load_addr;					/**< The load address of the object.				*/
 	bits			exec_addr;					/**< The execution address of the object.			*/
@@ -220,6 +229,8 @@ unsigned objdb_add_root(struct objdb_block *handle, char *path)
 	handle->list[index].parent = OBJDB_NULL_KEY;
 	handle->list[index].name = textdump_store(handle->text, path);
 
+	handle->list[index].flags = OBJDB_OBJECT_FLAGS_NONE;
+
 	if ((length = strlen(path)) > handle->longest_name)
 		handle->longest_name = length;
 
@@ -247,6 +258,8 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 		return OBJDB_NULL_KEY;
 
 	handle->list[index].parent = parent;
+
+	handle->list[index].flags = OBJDB_OBJECT_FLAGS_NONE;
 
 	handle->list[index].load_addr = file->load_addr;
 	handle->list[index].exec_addr = file->exec_addr;
