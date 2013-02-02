@@ -231,8 +231,6 @@ unsigned objdb_add_root(struct objdb_block *handle, char *path)
 	handle->list[index].parent = OBJDB_NULL_KEY;
 	handle->list[index].name = textdump_store(handle->text, path);
 
-	handle->list[index].flags = OBJDB_OBJECT_FLAGS_NONE;
-
 	if ((length = strlen(path)) > handle->longest_name)
 		handle->longest_name = length;
 
@@ -263,8 +261,6 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 		return OBJDB_NULL_KEY;
 
 	handle->list[index].parent = parent;
-
-	handle->list[index].flags = OBJDB_OBJECT_FLAGS_NONE;
 
 	handle->list[index].load_addr = file->load_addr;
 	handle->list[index].exec_addr = file->exec_addr;
@@ -781,6 +777,7 @@ static unsigned objdb_new(struct objdb_block *handle)
 	handle->list[handle->objects].attributes = 0;
 	handle->list[handle->objects].type = 0;
 	handle->list[handle->objects].name = 0;
+	handle->list[handle->objects].flags = OBJDB_OBJECT_FLAGS_NONE;
 
 	return handle->objects++;
 }
