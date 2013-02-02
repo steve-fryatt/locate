@@ -83,8 +83,8 @@
 
 #define RESULTS_TOOLBAR_HEIGHT 0						/**< The height of the toolbar in OS units.				*/
 #define RESULTS_LINE_HEIGHT 56							/**< The height of a results line, in OS units.				*/
-#define RESULTS_WINDOW_MARGIN 4
-#define RESULTS_LINE_OFFSET 4
+#define RESULTS_WINDOW_MARGIN 4							/**< The margin around the edge of the window, in OS units.		*/
+#define RESULTS_LINE_OFFSET 4							/**< The offset from the base of a line to the base of the icon.	*/
 #define RESULTS_ICON_HEIGHT 52							/**< The height of an icon in the results window, in OS units.		*/
 #define RESULTS_STATUS_HEIGHT 60						/**< The height of the status bar in OS units.				*/
 #define RESULTS_ICON_WIDTH 50							/**< The width of a small file icon in OS units.			*/
@@ -1758,14 +1758,20 @@ static void results_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 
 static void results_select_drag_end_handler(wimp_dragged *drag, void *data)
 {
-	int			x, y;
+	int			y, row_y_pos;
+	unsigned		row, start, end;
 	wimp_pointer		pointer;
 	wimp_window_state	state;
 	os_error		*error;
 
+
+	/* Terminate the scroll process. */
+
 	error = xwimp_auto_scroll(NONE, NULL, NULL);
 	if (error != NULL)
 		return;
+
+	/* Get details of the position of the drag end. */
 
 	error = xwimp_get_pointer_info(&pointer);
 	if (error != NULL)
@@ -1776,10 +1782,47 @@ static void results_select_drag_end_handler(wimp_dragged *drag, void *data)
 	if (error != NULL)
 		return;
 
-	x = pointer.pos.x - state.visible.x0 + state.xscroll;
+	/* Calculate the row stats for the drag end. */
+
 	y = pointer.pos.y - state.visible.y1 + state.yscroll;
 
-	debug_printf("Selection drag terminated... dragging from row %d to row %d", results_select_drag_row, ROW(y));
+	row = ROW(y);
+	row_y_pos = ROW_Y_POS(y);
+
+	/* Work out the range of rows to be affected. */
+
+	if (row > results_select_drag_row) {
+		start = results_select_drag_row;
+		if (ROW_BELOW(results_select_drag_pos))
+			start++;
+
+		end = row;
+		if (ROW_ABOVE(row_y_pos))
+			end --;
+	} else if (row < results_select_drag_row) {
+		start = row;
+		if (ROW_BELOW(row_y_pos))
+			start++;
+
+		end = results_select_drag_row;
+		if (ROW_ABOVE(results_select_drag_pos))
+			end --;
+	} else if (!((ROW_ABOVE(row_y_pos) && ROW_ABOVE(results_select_drag_pos)) || (ROW_BELOW(row_y_pos) && ROW_BELOW(results_select_drag_pos)))) {
+		start = row;
+		end = row;
+	} else {
+		start = RESULTS_ROW_NONE;
+		end = RESULTS_ROW_NONE;
+	}
+
+	/* Get out if the range isn't valid. The (end < start) state implies
+	 * adjacent ABOVE/BELOW bands, which means no icons have been included.
+	 */
+
+	if (start == RESULTS_ROW_NONE || end == RESULTS_ROW_NONE || end < start)
+		return;
+
+	debug_printf("Selection drag terminated... dragging from row %d to row %d", start, end);
 }
 
 
