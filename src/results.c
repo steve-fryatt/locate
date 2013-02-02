@@ -1678,8 +1678,6 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 	x = pointer->pos.x - state->visible.x0 + state->xscroll;
 	y = pointer->pos.y - state->visible.y1 + state->yscroll;
 
-	debug_printf("Click in row %d", row);
-
 	if ((row != RESULTS_ROW_NONE) && (row < handle->display_lines) && (pointer->buttons == wimp_DRAG_SELECT) &&
 			(handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTABLE) && !ctrl_pressed) {
 		extent.x0 = state->xscroll + RESULTS_WINDOW_MARGIN;
