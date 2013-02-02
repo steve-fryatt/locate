@@ -376,7 +376,7 @@ size_t objdb_get_name_length(struct objdb_block *handle, unsigned key)
 	char		*base;
 
 	if (handle == NULL)
-		return FALSE;
+		return 0;
 
 	if (key == OBJDB_NULL_KEY)
 		return handle->longest_path * sizeof(char);
