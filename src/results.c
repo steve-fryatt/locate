@@ -1736,7 +1736,8 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 
 
 /**
- * Process the termination of transfer drags from a results window.
+ * Process the termination of transfer drags from a results window by sending
+ * Message_DataLoad for each selected file to the potential recipient.
  *
  * \param *pointer		The pointer location at the end of the drag.
  * \param *data			The results_window data for the drag.
@@ -1744,7 +1745,31 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 
 static void results_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 {
-	debug_printf("Transfer drag terminated...");
+	struct results_window	*handle = (struct results_window *) data;
+	osgbpb_info		*info;
+	unsigned		row, type;
+	char			pathname[1024]; // \TODO -- Allocate this properly!
+
+
+	if (handle == NULL)
+		return;
+
+	info = malloc(objdb_get_info(handle->objects, OBJDB_NULL_KEY, NULL, NULL));
+	if (info == NULL)
+		return;
+
+	for (row = 0; row < handle->display_lines; row++) {
+		if (handle->redraw[handle->redraw[row].index].type != RESULTS_LINE_FILENAME ||
+				!(handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTED))
+			continue;
+
+		objdb_get_name(handle->objects, handle->redraw[handle->redraw[row].index].file, pathname, sizeof(pathname));
+		objdb_get_info(handle->objects, handle->redraw[handle->redraw[row].index].file, info, &type);
+
+		dataxfer_start_load(pointer, pathname, info->size, type, 0);
+	}
+
+	free(info);
 }
 
 

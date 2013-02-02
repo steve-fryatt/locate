@@ -89,6 +89,21 @@ osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits typ
 
 
 /**
+ * Start a data load action for another task by sending it a message containing
+ * the name of the file that it should take.
+ *
+ * \param *pointer		The Wimp pointer details of the save target.
+ * \param *name			The full pathname of the file.
+ * \param size			The estimated file size.
+ * \param type			The proposed file type.
+ * \param your_ref		The "your ref" to use for the opening message, or 0.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits type, int your_ref);
+
+
+/**
  * Specify a handler for files which are double-clicked or dragged into a window.
  * Files which match on type, target window and target icon are passed to the
  * appropriate handler for attention.

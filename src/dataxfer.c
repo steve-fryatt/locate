@@ -407,6 +407,66 @@ osbool dataxfer_start_save(wimp_pointer *pointer, char *name, int size, bits typ
 
 
 /**
+ * Start a data load action for another task by sending it a message containing
+ * the name of the file that it should take.
+ *
+ * \param *pointer		The Wimp pointer details of the save target.
+ * \param *name			The full pathname of the file.
+ * \param size			The estimated file size.
+ * \param type			The proposed file type.
+ * \param your_ref		The "your ref" to use for the opening message, or 0.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool dataxfer_start_load(wimp_pointer *pointer, char *name, int size, bits type, int your_ref)
+{
+	struct dataxfer_descriptor	*descriptor;
+	wimp_full_message_data_xfer	message;
+	os_error			*error;
+
+
+	/* Allocate a block to store details of the message. */
+
+	descriptor = dataxfer_new_descriptor();
+	if (descriptor == NULL)
+		return FALSE;
+
+	descriptor->callback = NULL;
+	descriptor->callback_data = NULL;
+
+	/* Set up and send the datasave message. If it fails, give an error
+	 * and delete the message details as we won't need them again.
+	 */
+
+	message.size = WORDALIGN(45 + strlen(name));
+	message.your_ref = your_ref;
+	message.action = message_DATA_LOAD;
+	message.w = pointer->w;
+	message.i = pointer->i;
+	message.pos = pointer->pos;
+	message.est_size = size;
+	message.file_type = type;
+
+	strncpy(message.file_name, name, 212);
+	message.file_name[211] = '\0';
+
+	error = xwimp_send_message_to_window(wimp_USER_MESSAGE_RECORDED, (wimp_message *) &message, pointer->w, pointer->i, &(descriptor->task));
+	if (error != NULL) {
+		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
+		dataxfer_delete_descriptor(descriptor);
+		return FALSE;
+	}
+
+	/* Complete the message descriptor information. */
+
+	descriptor->type = DATAXFER_MESSAGE_SAVE;
+	descriptor->my_ref = message.my_ref;
+
+	return TRUE;
+}
+
+
+/**
  * Handle the receipt of a Message_DataSaveAck in response our starting a
  * save action.
  *
