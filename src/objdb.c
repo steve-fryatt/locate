@@ -84,6 +84,7 @@ struct objdb_block
 	unsigned		allocation;					/**< The number of objects for which space is allocated.	*/
 
 	unsigned		longest_name;					/**< The length of the longest filename string in the database.	*/
+	unsigned		longest_path;					/**< The length of the longest pathname string in the database.	*/
 
 	unsigned		key;						/**< Track new unique primary keys.				*/
 
@@ -151,6 +152,7 @@ struct objdb_block *objdb_create(struct file_block *file)
 	new->allocation = 0;
 	new->key = 0;
 	new->longest_name = 0;
+	new->longest_path = 0;
 	new->full_scan = FALSE;
 
 	/* Claim the database flex block and a text dump for the names. */
@@ -234,6 +236,9 @@ unsigned objdb_add_root(struct objdb_block *handle, char *path)
 	if ((length = strlen(path)) > handle->longest_name)
 		handle->longest_name = length;
 
+	if ((length = objdb_get_name_length(handle, handle->list[index].key)) > handle->longest_path)
+		handle->longest_path = length;
+
 	debug_printf("\\YAdding root details for %s with key %u", path, handle->list[index].key);
 
 	return handle->list[index].key;
@@ -270,6 +275,9 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 
 	if ((length = strlen(file->name)) > handle->longest_name)
 		handle->longest_name = length;
+
+	if ((length = objdb_get_name_length(handle, handle->list[index].key)) > handle->longest_path)
+		handle->longest_path = length;
 
 	debug_printf("\\YAdding file details for %s to %u with key %u", file->name, parent, handle->list[index].key);
 
@@ -348,6 +356,51 @@ osbool objdb_get_name(struct objdb_block *handle, unsigned key, char *buffer, si
 	*to = '\0';
 
 	return TRUE;
+}
+
+
+/**
+ * Return the size of the buffer required to store the pathname of an object
+ * in the database, including terminator. If key is OBJDB_NULL_KEY then the
+ * size required for the longest path is returned.
+ *
+ * \param *handle		The database to look in.
+ * \param key			The key of the object of interest, or
+ *				OBJDB_NULL_KEY for the longest.
+ * \return			The required buffer size including terminator.
+ */
+
+size_t objdb_get_name_length(struct objdb_block *handle, unsigned key)
+{
+	unsigned	index, i, length;
+	char		*base;
+
+	if (handle == NULL)
+		return FALSE;
+
+	if (key == OBJDB_NULL_KEY)
+		return handle->longest_path * sizeof(char);
+
+	i = 0;
+	length = 0;
+
+	base = textdump_get_base(handle->text);
+
+	/* The length calculation is the length of each name plus one for the
+	 * RISC OS '.' separator. This is added to every entry, so the extra
+	 * one will provide space for the '\0' terminator.
+	 */
+
+	do {
+		index = (key != OBJDB_NULL_KEY) ? objdb_find(handle, key) : OBJDB_NULL_INDEX;
+
+		if (index != OBJDB_NULL_INDEX) {
+			length += strlen(base + handle->list[index].name) + 1;
+			key = handle->list[index].parent;
+		}
+	} while (index != OBJDB_NULL_INDEX);
+
+	return length * sizeof(char);
 }
 
 
@@ -464,6 +517,7 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 		if (!discfile_read_option_unsigned(load, "OBJ", &handle->objects) ||
 				!discfile_read_option_unsigned(load, "KEY", &handle->key) ||
 				!discfile_read_option_unsigned(load, "LEN", &handle->longest_name) ||
+				!discfile_read_option_unsigned(load, "PTH", &handle->longest_path) ||
 				!discfile_read_option_boolean(load, "FUL", &handle->full_scan)) {
 			discfile_set_error(load, "FileUnrec");
 			objdb_destroy(handle);
@@ -544,6 +598,7 @@ osbool objdb_save_file(struct objdb_block *handle, struct discfile_block *file)
 	discfile_start_chunk(file, DISCFILE_CHUNK_OPTIONS);
 	discfile_write_option_unsigned(file, "OBJ", handle->objects);
 	discfile_write_option_unsigned(file, "LEN", handle->longest_name);
+	discfile_write_option_unsigned(file, "PTH", handle->longest_path);
 	discfile_write_option_unsigned(file, "KEY", handle->key);
 	discfile_write_option_boolean(file, "FUL", handle->full_scan);
 	discfile_end_chunk(file);

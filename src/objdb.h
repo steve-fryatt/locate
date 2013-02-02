@@ -114,6 +114,20 @@ osbool objdb_get_name(struct objdb_block *handle, unsigned key, char *buffer, si
 
 
 /**
+ * Return the size of the buffer required to store the pathname of an object
+ * in the database, including terminator. If key is OBJDB_NULL_KEY then the
+ * size required for the longest path is returned.
+ *
+ * \param *handle		The database to look in.
+ * \param key			The key of the object of interest, or
+ *				OBJDB_NULL_KEY for the longest.
+ * \return			The required buffer size including terminator.
+ */
+
+size_t objdb_get_name_length(struct objdb_block *handle, unsigned key);
+
+
+/**
  * Return the filetype of an object in the database.
  *
  * \param *handle		The database to look in.
