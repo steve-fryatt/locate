@@ -491,7 +491,7 @@ struct objdb_block *objdb_load_file(struct file_block *file, struct discfile_blo
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_OBJECTS)) {
 		size = discfile_chunk_size(load);
 
-		if ((size <= handle->allocation * sizeof(struct object)) || (size != handle->objects * sizeof(struct object))){
+		if ((size <= handle->allocation * sizeof(struct object)) && (size == handle->objects * sizeof(struct object))){
 			discfile_read_chunk(load, (byte *) handle->list, size);
 		} else {
 			discfile_set_error(load, "FileUnrec");
