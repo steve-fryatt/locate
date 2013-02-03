@@ -102,6 +102,10 @@
 
 #define RESULTS_ROW_NONE ((unsigned) 0xffffffff)				/**< Row selection value to indicate "No Row".				*/
 
+#define RESULTS_REDRAW_SIZE_LEN 32						/**< Space allocated for building textual file size strings.		*/
+#define RESULTS_REDRAW_ATTRIBUTES_LEN 32					/**< Space allocated for building textual attribute strings.		*/
+#define RESULTS_REDRAW_DATE_LEN 64						/**< Space allocated for building textual dates.			*/
+
 /* Results window icons. */
 
 #define RESULTS_ICON_FILE 0
@@ -204,6 +208,8 @@ struct results_window {
 	unsigned		display_lines;					/**< The number of lines currently indexed into the window.		*/
 
 	osbool			full_info;					/**< TRUE if full info mode is on; else FALSE.				*/
+
+	unsigned		longest_line;					/**< The length of the longest text to be redrawn directly.		*/
 
 	/* Selection handling */
 
@@ -454,6 +460,8 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 
 	new->full_info = FALSE;
 
+	new->longest_line = 0;
+
 	new->selection_count = 0;
 	new->selection_row = 0;
 	new->selection_from_menu = FALSE;
@@ -572,6 +580,7 @@ osbool results_save_file(struct results_window *handle, struct discfile_block *o
 	discfile_start_chunk(out, DISCFILE_CHUNK_OPTIONS);
 	discfile_write_option_unsigned(out, "LIN", handle->redraw_lines);
 	discfile_write_option_boolean(out, "FUL", handle->full_info);
+	discfile_write_option_unsigned(out, "LEN", handle->longest_line);
 	discfile_write_option_string(out, "TIT", title);
 	discfile_end_chunk(out);
 
@@ -659,7 +668,8 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
 		if (!discfile_read_option_unsigned(load, "LIN", &lines) ||
 				!discfile_read_option_string(load, "TIT", title, TITLE_LENGTH) ||
-				!discfile_read_option_boolean(load, "FUL", &new->full_info)) {
+				!discfile_read_option_boolean(load, "FUL", &new->full_info) ||
+				!discfile_read_option_unsigned(load, "LEN", &new->longest_line)) {
 			discfile_set_error(load, "FileUnrec");
 			results_destroy(new);
 			return NULL;
@@ -1023,8 +1033,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 	wimp_icon		*icon;
 	char			*text, *fileicon;
 	char			validation[255];
-	char			truncation[1024]; // \TODO -- Allocate properly.
-	char			*size = truncation, *attributes = truncation + 32, *date = truncation + 64;
+	char			*truncation, *size, *attributes, *date;
+	size_t			truncation_len;
 
 	handle = (struct results_window *) event_get_window_user_data(redraw->w);
 
@@ -1033,7 +1043,28 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 	file = malloc(objdb_get_info(handle->objects, OBJDB_NULL_KEY, NULL, NULL));
 
-	/* If file == NULL the redraw must go on, but some bits won't work. */
+	/* Identify the amount of buffer space required, by finding the largest of
+	 * all of the uses it will be put to.
+	 */
+
+	truncation_len = objdb_get_name_length(handle->objects, OBJDB_NULL_KEY) + 3;
+	if (truncation_len < handle->longest_line + 4)
+		truncation_len = handle->longest_line + 4;
+	if (truncation_len < (RESULTS_REDRAW_SIZE_LEN + RESULTS_REDRAW_ATTRIBUTES_LEN + RESULTS_REDRAW_DATE_LEN))
+		truncation_len = RESULTS_REDRAW_SIZE_LEN + RESULTS_REDRAW_ATTRIBUTES_LEN + RESULTS_REDRAW_DATE_LEN;
+	truncation = malloc(truncation_len);
+
+	/* If file == NULL or truncation == NULL the redraw must go on, but some bits won't work. */
+
+	if (truncation != NULL) {
+		size = truncation;
+		attributes = truncation + RESULTS_REDRAW_SIZE_LEN;
+		date = attributes + RESULTS_REDRAW_ATTRIBUTES_LEN;
+	} else {
+		size = NULL;
+		attributes = NULL;
+		date = NULL;
+	}
 
 	icon = results_window_def->icons;
 
@@ -1044,7 +1075,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 	/* Set up the truncation line. */
 
-	strcpy(truncation, "...");
+	if (truncation != NULL)
+		strcpy(truncation, "...");
 
 	/* Redraw the window. */
 
@@ -1087,8 +1119,12 @@ static void results_redraw_handler(wimp_draw *redraw)
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 				}
 
-				objdb_get_name(handle->objects, line->file, truncation + 3, sizeof(truncation) - 3);
-				if (line->truncate > 0) {
+				if (truncation != NULL)
+					objdb_get_name(handle->objects, line->file, truncation + 3, truncation_len - 3);
+
+				if (truncation == NULL) {
+					icon[RESULTS_ICON_FILE].data.indirected_text.text = "Redraw Error";
+				} else if (line->truncate > 0) {
 					truncation[line->truncate] = '.';
 					truncation[line->truncate + 1] = '.';
 					truncation[line->truncate + 2] = '.';
@@ -1136,16 +1172,18 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_DATE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_DATE].extent.y1 = LINE_Y1(y);
 
-				if (xos_convert_file_size(file->size, size, 32, NULL) != NULL)
+				if (size != NULL && xos_convert_file_size(file->size, size, 32, NULL) != NULL)
 					*size = '\0';
 
-				results_create_attributes_string(file->attr, attributes, 32);
+				if (attributes != NULL)
+					results_create_attributes_string(file->attr, attributes, 32);
 
-				results_create_address_string(file->load_addr, file->exec_addr, date, 100);
+				if (date != NULL)
+					results_create_address_string(file->load_addr, file->exec_addr, date, 100);
 
-				icon[RESULTS_ICON_SIZE].data.indirected_text.text = size;
-				icon[RESULTS_ICON_ATTRIBUTES].data.indirected_text.text = attributes;
-				icon[RESULTS_ICON_DATE].data.indirected_text.text = date;
+				icon[RESULTS_ICON_SIZE].data.indirected_text.text = (size != NULL) ? size : "Redraw Error";
+				icon[RESULTS_ICON_ATTRIBUTES].data.indirected_text.text = (attributes != NULL) ? attributes : "Redraw Error";
+				icon[RESULTS_ICON_DATE].data.indirected_text.text = (date != NULL) ? date : "Redraw Error";
 
 				wimp_plot_icon(&(icon[RESULTS_ICON_SIZE]));
 				wimp_plot_icon(&(icon[RESULTS_ICON_TYPE]));
@@ -1171,7 +1209,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 				}
 
-				if (line->truncate > 0) {
+				if (truncation != NULL && line->truncate > 0) {
 					strcpy(truncation + 3, text + line->text + line->truncate);
 					icon[RESULTS_ICON_FILE].data.indirected_text.text = truncation;
 				} else {
@@ -1195,6 +1233,9 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 		more = wimp_get_rectangle(redraw);
 	}
+
+	if (truncation != NULL)
+		free(truncation);
 
 	if (file != NULL)
 		free(file);
@@ -1331,7 +1372,7 @@ static void results_add_raw(struct results_window *handle, enum results_line_typ
 
 void results_add_error(struct results_window *handle, char *message, char *path)
 {
-	unsigned		line, offt;
+	unsigned		line, offt, length;
 
 	if (handle == NULL)
 		return;
@@ -1349,6 +1390,10 @@ void results_add_error(struct results_window *handle, char *message, char *path)
 	handle->redraw[line].text = offt;
 	handle->redraw[line].sprite = FILEICON_ERROR;
 	handle->redraw[line].colour = wimp_COLOUR_RED;
+
+	length = strlen(message) + 1;
+	if (length > handle->longest_line)
+		handle->longest_line = length;
 }
 
 
@@ -1400,10 +1445,18 @@ void results_reformat(struct results_window *handle, osbool all)
 {
 	os_error		*error;
 	int			line, width, length, pos;
-	char			*text;
-	char			truncate[1024]; // \TODO -- Allocate properly.
+	size_t			truncate_len;
+	char			*text, *truncate;
 
 	if (handle == NULL)
+		return;
+
+	truncate_len = objdb_get_name_length(handle->objects, OBJDB_NULL_KEY) + 3;
+	if (truncate_len < handle->longest_line + 4)
+		truncate_len = handle->longest_line + 4;
+	truncate = malloc(truncate_len);
+
+	if (truncate == NULL)
 		return;
 
 	strcpy(truncate, "...");
@@ -1415,7 +1468,7 @@ void results_reformat(struct results_window *handle, osbool all)
 	for (line = (all) ? 0 : handle->formatted_lines; line < handle->redraw_lines; line++) {
 		switch (handle->redraw[line].type) {
 		case RESULTS_LINE_FILENAME:
-			objdb_get_name(handle->objects, handle->redraw[line].file, truncate + 3, sizeof(truncate) - 3);
+			objdb_get_name(handle->objects, handle->redraw[line].file, truncate + 3, truncate_len - 3);
 
 			if (wimptextop_string_width(truncate + 3, 0) <= width)
 				break;
@@ -1455,6 +1508,8 @@ void results_reformat(struct results_window *handle, osbool all)
 			break;
 		}
 	}
+
+	free(truncate);
 
 	error = xwimp_force_redraw(handle->window,
 			0, LINE_Y0(handle->display_lines - 1),
@@ -1748,7 +1803,8 @@ static void results_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 	struct results_window	*handle = (struct results_window *) data;
 	osgbpb_info		*info;
 	unsigned		row, type;
-	char			pathname[1024]; // \TODO -- Allocate this properly!
+	size_t			pathname_len;
+	char			*pathname;
 
 
 	if (handle == NULL)
@@ -1758,17 +1814,25 @@ static void results_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 	if (info == NULL)
 		return;
 
+	pathname_len = objdb_get_name_length(handle->objects, OBJDB_NULL_KEY);
+	pathname = malloc(pathname_len);
+	if (pathname == NULL) {
+		free(info);
+		return;
+	}
+
 	for (row = 0; row < handle->display_lines; row++) {
 		if (handle->redraw[handle->redraw[row].index].type != RESULTS_LINE_FILENAME ||
 				!(handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTED))
 			continue;
 
-		objdb_get_name(handle->objects, handle->redraw[handle->redraw[row].index].file, pathname, sizeof(pathname));
+		objdb_get_name(handle->objects, handle->redraw[handle->redraw[row].index].file, pathname, pathname_len);
 		objdb_get_info(handle->objects, handle->redraw[handle->redraw[row].index].file, info, &type);
 
 		dataxfer_start_load(pointer, pathname, info->size, type, 0);
 	}
 
+	free(pathname);
 	free(info);
 }
 
@@ -2281,10 +2345,17 @@ static osbool results_save_filenames(char *filename, osbool selection, void *dat
 {
 	struct results_window	*handle = (struct results_window *) data;
 	int			i;
-	char			buffer[1024]; // \TODO -- Allocate properly!
+	size_t			pathname_len;
+	char			*pathname;
 	FILE			*out;
 
 	if (handle == NULL)
+		return FALSE;
+
+
+	pathname_len = objdb_get_name_length(handle->objects, OBJDB_NULL_KEY);
+	pathname = malloc(pathname_len);
+	if (pathname == NULL)
 		return FALSE;
 
 	out = fopen(filename, "w");
@@ -2294,14 +2365,16 @@ static osbool results_save_filenames(char *filename, osbool selection, void *dat
 
 	for (i = 0; i < handle->redraw_lines; i++) {
 		if (handle->redraw[i].type == RESULTS_LINE_FILENAME && (!selection || (handle->redraw[i].flags & RESULTS_FLAG_SELECTED))) {
-			objdb_get_name(handle->objects, handle->redraw[i].file, buffer, sizeof(buffer));
-			fprintf(out, "%s\n", buffer);
+			objdb_get_name(handle->objects, handle->redraw[i].file, pathname, pathname_len);
+			fprintf(out, "%s\n", pathname);
 		}
 	}
 
 	fclose(out);
 
 	osfile_set_type(filename, osfile_TYPE_TEXT);
+
+	free(pathname);
 
 	return TRUE;
 }
@@ -2316,21 +2389,29 @@ static osbool results_save_filenames(char *filename, osbool selection, void *dat
 static void results_clipboard_copy_filenames(struct results_window *handle)
 {
 	int		i;
-	char		buffer[1024]; // \TODO -- Allocate properly!
+	char		*pathname;
+	size_t		pathname_len;
 
 	if (handle == NULL || handle->selection_count == 0)
+		return;
+
+	pathname_len = objdb_get_name_length(handle->objects, OBJDB_NULL_KEY);
+	pathname = malloc(pathname_len);
+	if (pathname == NULL)
 		return;
 
 	textdump_clear(results_clipboard);
 
 	for (i = 0; i < handle->redraw_lines; i++) {
 		if (handle->redraw[i].type == RESULTS_LINE_FILENAME && (handle->redraw[i].flags & RESULTS_FLAG_SELECTED)) {
-			objdb_get_name(handle->objects, handle->redraw[i].file, buffer, sizeof(buffer));
-			textdump_store(results_clipboard, buffer);
+			objdb_get_name(handle->objects, handle->redraw[i].file, pathname, pathname_len);
+			textdump_store(results_clipboard, pathname);
 		}
 	}
 
 	clipboard_claim(results_clipboard_find, results_clipboard_size, results_clipboard_release, (void *) handle);
+
+	free(pathname);
 }
 
 
