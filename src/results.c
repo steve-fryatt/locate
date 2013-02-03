@@ -1334,7 +1334,8 @@ void results_set_title(struct results_window *handle, char *title)
 
 
 /**
- * Add a raw line to the results window.
+ * Add a raw line to the results window. This is for use by the file load
+ * routines, and does not update variables such as the maximum line length.
  *
  * \param *handle		The handle of the results window to update.
  * \param type			The type of line to be added.
