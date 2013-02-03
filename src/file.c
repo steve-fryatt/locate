@@ -196,14 +196,13 @@ void file_create_from_saved(char *filename)
 	if (new == NULL)
 		return;
 
-	hourglass_on();
-
 	load = discfile_open_read(filename);
+
+	hourglass_on();
 
 	/* Load an object database if there is one. */
 
 	new->objects = objdb_load_file(new, load);
-
 
 	/* Load the results window if one is present. */
 
