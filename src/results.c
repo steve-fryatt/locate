@@ -2116,7 +2116,8 @@ static void results_select_none(struct results_window *handle)
 
 static void results_run_object(struct results_window *handle, unsigned row)
 {
-	char			filename[256];
+	char			*buffer, *filename, *command = "Filer_Run ";
+	size_t			buffer_length;
 	enum objdb_status	status;
 
 	if (handle == NULL || row >= handle->display_lines)
@@ -2134,12 +2135,20 @@ static void results_run_object(struct results_window *handle, unsigned row)
 		return;
 	}
 
-	strcpy(filename, "Filer_Run ");
-
-	if (!objdb_get_name(handle->objects, handle->redraw[row].file, filename + strlen(filename), sizeof(filename) - strlen(filename)))
+	buffer_length = objdb_get_name_length(handle->objects, handle->redraw[row].file);
+	buffer = malloc(buffer_length + strlen(command));
+	if (buffer == NULL)
 		return;
 
-	xos_cli(filename);
+	strcpy(buffer, command);
+	filename = buffer + strlen(command);
+
+	if (!objdb_get_name(handle->objects, handle->redraw[row].file, filename, buffer_length))
+		return;
+
+	xos_cli(buffer);
+
+	free(buffer);
 }
 
 
@@ -2152,7 +2161,8 @@ static void results_run_object(struct results_window *handle, unsigned row)
 
 static void results_open_parent(struct results_window *handle, unsigned row)
 {
-	char			filename[256];
+	char			*buffer, *filename, *command = "Filer_OpenDir ";
+	size_t			buffer_length;
 	unsigned		key;
 	enum objdb_status	status;
 
@@ -2176,12 +2186,20 @@ static void results_open_parent(struct results_window *handle, unsigned row)
 		return;
 	}
 
-	strcpy(filename, "Filer_OpenDir ");
-
-	if (!objdb_get_name(handle->objects, key, filename + strlen(filename), sizeof(filename) - strlen(filename)))
+	buffer_length = objdb_get_name_length(handle->objects, key);
+	buffer = malloc(buffer_length + strlen(command));
+	if (buffer == NULL)
 		return;
 
-	xos_cli(filename);
+	strcpy(buffer, command);
+	filename = buffer + strlen(command);
+
+	if (!objdb_get_name(handle->objects, key, filename, buffer_length))
+		return;
+
+	xos_cli(buffer);
+
+	free(buffer);
 }
 
 
