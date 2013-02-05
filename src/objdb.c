@@ -66,8 +66,10 @@
 #include "textdump.h"
 
 
-#define OBJDB_ALLOC_CHUNK 100
-#define OBJDB_NULL_INDEX 0xffffffffu
+#define OBJDB_ALLOC_CHUNK 100							/**< The number of objects to allocate from memory at a time.	*/
+#define OBJDB_MAX_DEPTH 255							/**< The maximum directory depth that can be handled.		*/
+
+#define OBJDB_NULL_INDEX 0xffffffffu						/**< An index that does not exist.				*/
 
 /**
  * Data structure for an object database instance.
@@ -282,6 +284,87 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 
 
 /**
+ * Validate an entry in the object database by checking to see if it is still
+ * present on disc in the same location.
+ *
+ * \param *handle		The database to look in.
+ * \param key			The key of the object to be returned.
+ * \param retest		TRUE to check the disc; FALSE to rely on the stored data.
+ * \return			The object's status.
+ */
+
+enum objdb_status objdb_validate_file(struct objdb_block *handle, unsigned key, osbool retest)
+{
+	unsigned		index;
+	size_t			pathname_len;
+	char			*pathname;
+	os_error		*error;
+	fileswitch_object_type	type;
+	fileswitch_attr		attributes;
+	bits			load_addr, exec_addr;
+	int			size;
+
+
+	if (handle == NULL || key == OBJDB_NULL_KEY)
+		return OBJDB_STATUS_ERROR;
+
+	index = objdb_find(handle, key);
+
+	if (index == OBJDB_NULL_INDEX)
+		return OBJDB_STATUS_ERROR;
+
+	/* If we're not retesting, then just return the status based on the
+	 * object flags.
+	 */
+
+	if (!retest) {
+		if (handle->list[index].flags & OBJDB_OBJECT_FLAGS_LOST)
+			return OBJDB_STATUS_MISSING;
+
+		if (handle->list[index].flags & OBJDB_OBJECT_FLAGS_CHANGED)
+			return OBJDB_STATUS_CHANGED;
+
+		return OBJDB_STATUS_UNCHANGED;
+	}
+
+	/* Find the pathname of the object to be tested. */
+
+	pathname_len = objdb_get_name_length(handle, key);
+
+	pathname = malloc(pathname_len);
+	if (pathname == NULL)
+		return OBJDB_STATUS_ERROR;
+
+	objdb_get_name(handle, key, pathname, pathname_len);
+
+	/* Read the object's current details and compare them to those on file. */
+
+	error = xosfile_read_no_path(pathname, &type, &load_addr, &exec_addr, &size, &attributes);
+
+	free(pathname);
+
+	if (error != NULL)
+		return OBJDB_STATUS_ERROR;
+
+	if (type == fileswitch_NOT_FOUND) {
+		handle->list[index].flags |= OBJDB_OBJECT_FLAGS_LOST;
+		return OBJDB_STATUS_MISSING;
+	}
+
+	if (type != handle->list[index].type || load_addr != handle->list[index].load_addr ||
+			exec_addr != handle->list[index].exec_addr || size != handle->list[index].size ||
+			attributes != handle->list[index].attributes) {
+		handle->list[index].flags |= OBJDB_OBJECT_FLAGS_CHANGED;
+		return OBJDB_STATUS_CHANGED;
+	}
+
+	/* If all else fails, the file is the same. */
+
+	return OBJDB_STATUS_UNCHANGED;
+}
+
+
+/**
  * Return the parent of an object in the database.
  *
  * \param *handle		The database to look in.
@@ -317,7 +400,7 @@ unsigned objdb_get_parent(struct objdb_block *handle, unsigned key)
 
 osbool objdb_get_name(struct objdb_block *handle, unsigned key, char *buffer, size_t len)
 {
-	unsigned	index, indexes[256], i;
+	unsigned	index, indexes[OBJDB_MAX_DEPTH], i;
 	char		*base, *from, *to;
 
 	if (handle == NULL || buffer == NULL)
@@ -332,7 +415,7 @@ osbool objdb_get_name(struct objdb_block *handle, unsigned key, char *buffer, si
 			indexes[i++] = index;
 			key = handle->list[index].parent;
 		}
-	} while (index != OBJDB_NULL_INDEX && i < (sizeof(indexes) / sizeof(int)));
+	} while (index != OBJDB_NULL_INDEX && i < OBJDB_MAX_DEPTH);
 
 	base = textdump_get_base(handle->text);
 

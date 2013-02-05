@@ -44,6 +44,12 @@
 
 struct objdb_block;
 
+enum objdb_status {
+	OBJDB_STATUS_ERROR = 0,							/**< There was an error in making the call.			*/
+	OBJDB_STATUS_UNCHANGED,							/**< The object is present and unchanged.			*/
+	OBJDB_STATUS_CHANGED,							/**< The object is present but its catalogue info has changed.	*/
+	OBJDB_STATUS_MISSING							/**< The object is no longer in its recorded location.		*/
+};
 
 /**
  * Create a new object database, returning the handle.
@@ -87,6 +93,19 @@ unsigned objdb_add_root(struct objdb_block *handle, char *path);
  */
 
 unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info *file);
+
+
+/**
+ * Validate an entry in the object database by checking to see if it is still
+ * present on disc in the same location.
+ *
+ * \param *handle		The database to look in.
+ * \param key			The key of the object to be returned.
+ * \param retest		TRUE to check the disc; FALSE to rely on the stored data.
+ * \return			The object's status.
+ */
+
+enum objdb_status objdb_validate_file(struct objdb_block *handle, unsigned key, osbool retest);
 
 
 /**

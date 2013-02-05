@@ -2116,7 +2116,8 @@ static void results_select_none(struct results_window *handle)
 
 static void results_run_object(struct results_window *handle, unsigned row)
 {
-	char		filename[256];
+	char			filename[256];
+	enum objdb_status	status;
 
 	if (handle == NULL || row >= handle->display_lines)
 		return;
@@ -2125,6 +2126,13 @@ static void results_run_object(struct results_window *handle, unsigned row)
 
 	if (row >= handle->redraw_lines || handle->redraw[row].type != RESULTS_LINE_FILENAME || handle->redraw[row].file == OBJDB_NULL_KEY)
 		return;
+
+	status = objdb_validate_file(handle->objects, handle->redraw[row].file, TRUE);
+
+	if (status != OBJDB_STATUS_UNCHANGED && status != OBJDB_STATUS_CHANGED) {
+		error_msgs_report_info("NotThere");
+		return;
+	}
 
 	strcpy(filename, "Filer_Run ");
 
@@ -2144,8 +2152,9 @@ static void results_run_object(struct results_window *handle, unsigned row)
 
 static void results_open_parent(struct results_window *handle, unsigned row)
 {
-	char		filename[256];
-	unsigned	key;
+	char			filename[256];
+	unsigned		key;
+	enum objdb_status	status;
 
 	if (handle == NULL || row >= handle->display_lines)
 		return;
@@ -2159,6 +2168,13 @@ static void results_open_parent(struct results_window *handle, unsigned row)
 
 	if (key == OBJDB_NULL_KEY)
 		return;
+
+	status = objdb_validate_file(handle->objects, key, TRUE);
+
+	if (status != OBJDB_STATUS_UNCHANGED && status != OBJDB_STATUS_CHANGED) {
+		error_msgs_report_info("NotThere");
+		return;
+	}
 
 	strcpy(filename, "Filer_OpenDir ");
 
