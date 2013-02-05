@@ -519,11 +519,11 @@ unsigned objdb_get_filetype(struct objdb_block *handle, unsigned key)
  * \param *handle		The database to look in.
  * \param key			The key of the object to be returned, or OBJDB_NULL_KEY.
  * \param *info			A block to take the information, or NULL to get required size.
- * \param *type			A variable to take the filetype, or NULL to get the required info size.
+ * \param *additional		A block to return addition info, or NULL to get the required info size.
  * \return			The required block size.
  */
 
-size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info, unsigned *type)
+size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info, struct objdb_info *additional)
 {
 	char		*base;
 	unsigned	index;
@@ -534,7 +534,7 @@ size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *inf
 	index = (key != OBJDB_NULL_KEY) ? objdb_find(handle, key) : OBJDB_NULL_INDEX;
 	base = textdump_get_base(handle->text);
 
-	if (info == NULL && type == NULL) {
+	if (info == NULL && additional == NULL) {
 		if (index != OBJDB_NULL_INDEX)
 			return 21 + strlen(base + handle->list[index].name);
 		else
@@ -550,8 +550,16 @@ size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *inf
 		strcpy(info->name, base + handle->list[index].name);
 	}
 
-	if (type != NULL)
-		*type = objdb_get_filetype(handle, key);
+	if (additional != NULL) {
+		additional->filetype = objdb_get_filetype(handle, key);
+
+		if (handle->list[index].flags & OBJDB_OBJECT_FLAGS_LOST)
+			additional->status = OBJDB_STATUS_MISSING;
+		else if (handle->list[index].flags & OBJDB_OBJECT_FLAGS_CHANGED)
+			additional->status = OBJDB_STATUS_CHANGED;
+		else
+			additional->status = OBJDB_STATUS_UNCHANGED;
+	}
 
 	return 0;
 }

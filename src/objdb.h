@@ -44,11 +44,24 @@
 
 struct objdb_block;
 
+/**
+ * Object status values.
+ */
+
 enum objdb_status {
 	OBJDB_STATUS_ERROR = 0,							/**< There was an error in making the call.			*/
 	OBJDB_STATUS_UNCHANGED,							/**< The object is present and unchanged.			*/
 	OBJDB_STATUS_CHANGED,							/**< The object is present but its catalogue info has changed.	*/
 	OBJDB_STATUS_MISSING							/**< The object is no longer in its recorded location.		*/
+};
+
+/**
+ * File information structure.
+ */
+
+struct objdb_info {
+	enum objdb_status	status;						/**< The status of the object in question.			*/
+	unsigned		filetype;					/**< The object's filetype.					*/
 };
 
 /**
@@ -164,11 +177,11 @@ unsigned objdb_get_filetype(struct objdb_block *handle, unsigned key);
  * \param *handle		The database to look in.
  * \param key			The key of the object to be returned, or OBJDB_NULL_KEY.
  * \param *info			A block to take the information, or NULL to get required size.
- * \param *type			A variable to take the filetype, or NULL to get the required info size.
+ * \param *additional		A block to return addition info, or NULL to get the required info size.
  * \return			The required block size.
  */
 
-size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info, unsigned *type);
+size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info, struct objdb_info *additional);
 
 
 /**

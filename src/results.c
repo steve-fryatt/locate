@@ -1028,6 +1028,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 	struct results_window	*handle;
 	struct results_line	*line;
 	struct fileicon_info	typeinfo;
+	struct objdb_info	object;
 	unsigned		filetype;
 	osgbpb_info		*file;
 	wimp_icon		*icon;
@@ -1153,8 +1154,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_TYPE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_TYPE].extent.y1 = LINE_Y1(y);
 
-				objdb_get_info(handle->objects, line->file, file, &filetype);
-				fileicon_get_type_icon(filetype, "", &typeinfo);
+				objdb_get_info(handle->objects, line->file, file, &object);
+				fileicon_get_type_icon(object.filetype, "", &typeinfo);
 
 				if (typeinfo.name != TEXTDUMP_NULL) {
 					icon[RESULTS_ICON_TYPE].data.indirected_text.text = fileicon + typeinfo.name;
@@ -1803,7 +1804,8 @@ static void results_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 {
 	struct results_window	*handle = (struct results_window *) data;
 	osgbpb_info		*info;
-	unsigned		row, type;
+	struct objdb_info	object;
+	unsigned		row;
 	size_t			pathname_len;
 	char			*pathname;
 
@@ -1828,9 +1830,9 @@ static void results_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 			continue;
 
 		objdb_get_name(handle->objects, handle->redraw[handle->redraw[row].index].file, pathname, pathname_len);
-		objdb_get_info(handle->objects, handle->redraw[handle->redraw[row].index].file, info, &type);
+		objdb_get_info(handle->objects, handle->redraw[handle->redraw[row].index].file, info, &object);
 
-		dataxfer_start_load(pointer, pathname, info->size, type, 0);
+		dataxfer_start_load(pointer, pathname, info->size, object.filetype, 0);
 	}
 
 	free(pathname);
@@ -2212,9 +2214,10 @@ static void results_open_parent(struct results_window *handle, unsigned row)
 static void results_object_info_prepare(struct results_window *handle)
 {
 	char			*base, *end;
-	unsigned		row, type;
+	unsigned		row;
 	osgbpb_info		*file;
 	struct fileicon_info	info;
+	struct objdb_info	object;
 
 
 	if (handle == NULL || handle->selection_count != 1 || handle->selection_row >= handle->display_lines)
@@ -2231,8 +2234,8 @@ static void results_object_info_prepare(struct results_window *handle)
 	if (file == NULL)
 		return;
 
-	objdb_get_info(handle->objects, handle->redraw[row].file, file, &type);
-	fileicon_get_type_icon(type, "", &info);
+	objdb_get_info(handle->objects, handle->redraw[row].file, file, &object);
+	fileicon_get_type_icon(object.filetype, "", &info);
 
 	base = fileicon_get_base();
 
@@ -2251,8 +2254,8 @@ static void results_object_info_prepare(struct results_window *handle)
 			icons_get_indirected_text_length(results_object_window, RESULTS_OBJECT_ICON_ACCESS));
 
 	if (info.name != TEXTDUMP_NULL) {
-		if (type <= 0xfff)
-			icons_printf(results_object_window, RESULTS_OBJECT_ICON_TYPE, "%-8s (%03X)", base + info.name, type);
+		if (object.filetype <= 0xfff)
+			icons_printf(results_object_window, RESULTS_OBJECT_ICON_TYPE, "%-8s (%03X)", base + info.name, object.filetype);
 		else
 			icons_printf(results_object_window, RESULTS_OBJECT_ICON_TYPE, "%s", base + info.name);
 	}
