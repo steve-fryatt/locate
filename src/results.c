@@ -1029,7 +1029,6 @@ static void results_redraw_handler(wimp_draw *redraw)
 	struct results_line	*line;
 	struct fileicon_info	typeinfo;
 	struct objdb_info	object;
-	unsigned		filetype;
 	osgbpb_info		*file;
 	wimp_icon		*icon;
 	char			*text, *fileicon;
@@ -1106,8 +1105,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
-				filetype = objdb_get_filetype(handle->objects, line->file);
-				fileicon_get_type_icon(filetype, "", &typeinfo);
+				objdb_get_info(handle->objects, line->file, NULL, &object);
+				fileicon_get_type_icon(object.filetype, "", &typeinfo);
 
 				if (typeinfo.small != TEXTDUMP_NULL) {
 					strcpy(validation + 1, fileicon + typeinfo.small);
@@ -1119,6 +1118,11 @@ static void results_redraw_handler(wimp_draw *redraw)
 					strcpy(validation + 1, "small_xxx");
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 				}
+
+				if (object.status == OBJDB_STATUS_UNCHANGED || object.status == OBJDB_STATUS_CHANGED)
+					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_SHADED;
+				else
+					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SHADED;
 
 				if (truncation != NULL)
 					objdb_get_name(handle->objects, line->file, truncation + 3, truncation_len - 3);
@@ -1186,6 +1190,19 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_ATTRIBUTES].data.indirected_text.text = (attributes != NULL) ? attributes : "Redraw Error";
 				icon[RESULTS_ICON_DATE].data.indirected_text.text = (date != NULL) ? date : "Redraw Error";
 
+
+				if (object.status == OBJDB_STATUS_UNCHANGED) {
+					icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_SHADED;
+					icon[RESULTS_ICON_TYPE].flags &= ~wimp_ICON_SHADED;
+					icon[RESULTS_ICON_ATTRIBUTES].flags &= ~wimp_ICON_SHADED;
+					icon[RESULTS_ICON_DATE].flags &= ~wimp_ICON_SHADED;
+				} else {
+					icon[RESULTS_ICON_SIZE].flags |= wimp_ICON_SHADED;
+					icon[RESULTS_ICON_TYPE].flags |= wimp_ICON_SHADED;
+					icon[RESULTS_ICON_ATTRIBUTES].flags |= wimp_ICON_SHADED;
+					icon[RESULTS_ICON_DATE].flags |= wimp_ICON_SHADED;
+				}
+
 				wimp_plot_icon(&(icon[RESULTS_ICON_SIZE]));
 				wimp_plot_icon(&(icon[RESULTS_ICON_TYPE]));
 				wimp_plot_icon(&(icon[RESULTS_ICON_ATTRIBUTES]));
@@ -1223,6 +1240,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SELECTED;
 				else
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_SELECTED;
+
+				icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_SHADED;
 
 				wimp_plot_icon(&(icon[RESULTS_ICON_FILE]));
 				break;
