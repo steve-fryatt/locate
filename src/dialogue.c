@@ -1463,7 +1463,7 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 		success = FALSE;
 	}
 
-	dialogue->name_mode = event_get_window_icon_popup_selection(dialogue_window, DIALOGUE_ICON_NAME_MODE);
+	dialogue->name_mode = event_get_window_icon_popup_selection(dialogue_window, DIALOGUE_ICON_NAME_MODE_MENU);
 	dialogue->ignore_case = icons_get_selected(dialogue_window, DIALOGUE_ICON_IGNORE_CASE);
 
 	/* Set the Size pane */
@@ -2014,10 +2014,11 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 			dialogue->type_files, dialogue->type_directories, dialogue->type_applications);
 
 	/* Set the filename search options. */
-
-	if (strcmp(dialogue->filename, "") != 0 && strcmp(dialogue->filename, "*") != 0) {
+	debug_printf("Filename match type %d", dialogue->name_mode);
+	if (strcmp(dialogue->filename, "") != 0 && strcmp(dialogue->filename, "*") != 0 && dialogue->name_mode != DIALOGUE_NAME_NOT_IMPORTANT) {
 		strncpy(buffer, dialogue->filename, buffer_size);
-		search_set_filename(search, buffer, dialogue->ignore_case, FALSE);
+		search_set_filename(search, buffer, dialogue->ignore_case,
+				(dialogue->name_mode == DIALOGUE_NAME_NOT_EQUAL_TO || dialogue->name_mode == DIALOGUE_NAME_DOES_NOT_CONTAIN) ? TRUE : FALSE);
 	}
 
 	/* Set the size search options. */
