@@ -41,6 +41,7 @@ enum templates_menus {
 	TEMPLATES_MENU_RESULTS,							/**< The Results Window Menu.			*/
 	TEMPLATES_MENU_RESULTS_DISPLAY,
 	TEMPLATES_MENU_RESULTS_SAVE,
+	TEMPLATES_MENU_NAME_MODE,						/**< The Name Mode PopUp Menu.			*/
 	TEMPLATES_MENU_SIZE_MODE,						/**< The Size Mode PopUp Menu.			*/
 	TEMPLATES_MENU_SIZE_UNIT,						/**< The Size Unit PopUp Menu.			*/
 	TEMPLATES_MENU_DATE_MODE,						/**< The Date Mode PopUp Menu.			*/

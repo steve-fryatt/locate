@@ -115,6 +115,14 @@ menu(save_menu, "Save") {
  * Search Dialogue PopUp Menus.
  */
 
+menu(name_logic, "Name") {
+	item("Is not important");
+	item("Is equal to");
+	item("Is not equal to");
+	item("Contains");
+	item("Does not contain");
+}
+
 menu(size_logic, "Size") {
 	item("Not important");
 	item("Equal to");

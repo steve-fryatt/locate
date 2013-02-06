@@ -105,6 +105,8 @@
 #define DIALOGUE_ICON_IMAGE_FS 17
 #define DIALOGUE_ICON_SUPPRESS_ERRORS 18
 #define DIALOGUE_ICON_FULL_INFO 21
+#define DIALOGUE_ICON_NAME_MODE_MENU 22
+#define DIALOGUE_ICON_NAME_MODE 23
 
 /* Size Pane Icons */
 
@@ -188,6 +190,14 @@
 
 #define MAX_BUFFER(current, size) (((size) > (current)) ? (size) : (current))
 
+enum dialogue_name {
+	DIALOGUE_NAME_NOT_IMPORTANT = 0,
+	DIALOGUE_NAME_EQUAL_TO,
+	DIALOGUE_NAME_NOT_EQUAL_TO,
+	DIALOGUE_NAME_CONTAINS,
+	DIALOGUE_NAME_DOES_NOT_CONTAIN
+};
+
 enum dialogue_size {
 	DIALOGUE_SIZE_NOT_IMPORTANT = 0,
 	DIALOGUE_SIZE_EQUAL_TO,
@@ -258,6 +268,7 @@ struct dialogue_block {
 
 	/* The Filename. */
 
+	enum dialogue_name		name_mode;				/**< The filename comparison mode.			*/
 	char				*filename;				/**< The filename string to be matched.			*/
 	osbool				ignore_case;				/**< Whether the search is case sensitive or not.	*/
 
@@ -333,6 +344,7 @@ static wimp_w			dialogue_window = NULL;				/**< The handle of the main search di
 static wimp_w			dialogue_panes[DIALOGUE_PANES];			/**< The handles of the search dialogue panes.		*/
 
 static wimp_menu		*dialogue_menu = NULL;				/**< The main search window menu.			*/
+static wimp_menu		*dialogue_name_mode_menu = NULL;		/**< The Name Mode popup menu.				*/
 static wimp_menu		*dialogue_size_mode_menu = NULL;		/**< The Size Mode popup menu.				*/
 static wimp_menu		*dialogue_size_unit_menu = NULL;		/**< The Size Unit popup menu.				*/
 static wimp_menu		*dialogue_date_mode_menu = NULL;		/**< The Date Mode popup menu.				*/
@@ -350,6 +362,7 @@ static void	dialogue_close_window(void);
 static void	dialogue_change_pane(unsigned pane);
 static void	dialogue_toggle_size(bool expand);
 static void	dialogue_set_window(struct dialogue_block *dialogue);
+static void	dialogue_shade_window(void);
 static void	dialogue_shade_size_pane(void);
 static void	dialogue_shade_date_pane(void);
 static void	dialogue_shade_type_pane(void);
@@ -390,6 +403,7 @@ void dialogue_initialise(void)
 	/* Initialise the menus used in the window. */
 
 	dialogue_menu = templates_get_menu(TEMPLATES_MENU_SEARCH);
+	dialogue_name_mode_menu = templates_get_menu(TEMPLATES_MENU_NAME_MODE);
 	dialogue_size_mode_menu = templates_get_menu(TEMPLATES_MENU_SIZE_MODE);
 	dialogue_size_unit_menu = templates_get_menu(TEMPLATES_MENU_SIZE_UNIT);
 	dialogue_date_mode_menu = templates_get_menu(TEMPLATES_MENU_DATE_MODE);
@@ -419,6 +433,8 @@ void dialogue_initialise(void)
 	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_TYPE, FALSE);
 	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_ATTRIBUTES, FALSE);
 	event_add_window_icon_radio(dialogue_window, DIALOGUE_ICON_CONTENTS, FALSE);
+	event_add_window_icon_popup(dialogue_window, DIALOGUE_ICON_NAME_MODE_MENU,
+			dialogue_name_mode_menu, DIALOGUE_ICON_NAME_MODE, "NameMode");
 
 	/* Initialise the size pane. */
 
@@ -583,6 +599,7 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
 
 	/* Filename Details */
 
+	new->name_mode = (template != NULL) ? template->name_mode : DIALOGUE_NAME_EQUAL_TO;
 	strcpy(new->filename, (template != NULL) ? template->filename : "");
 	new->ignore_case = (template != NULL) ? template->ignore_case : TRUE;
 
@@ -704,6 +721,7 @@ void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *
 
 	/* The Filename. */
 
+	discfile_write_option_unsigned(out, "FMD", dialogue->name_mode);
 	discfile_write_option_string(out, "FNM", dialogue->filename);
 	discfile_write_option_boolean(out, "FIC", dialogue->ignore_case);
 
@@ -809,6 +827,7 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 
 	/* The Filename. */
 
+	discfile_read_option_unsigned(load, "FMD", &dialogue->name_mode);
 	discfile_read_option_flex_string(load, "FNM", (flex_ptr) &dialogue->filename);
 	discfile_read_option_boolean(load, "FIC", &dialogue->ignore_case);
 
@@ -1170,6 +1189,7 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 
 	icons_printf(dialogue_window, DIALOGUE_ICON_SEARCH_PATH, "%s", dialogue->path);
 
+	event_set_window_icon_popup_selection(dialogue_window, DIALOGUE_ICON_NAME_MODE_MENU, dialogue->name_mode);
 	icons_printf(dialogue_window, DIALOGUE_ICON_FILENAME, "%s", dialogue->filename);
 	icons_set_selected(dialogue_window, DIALOGUE_ICON_IGNORE_CASE, dialogue->ignore_case);
 
@@ -1244,11 +1264,27 @@ static void dialogue_set_window(struct dialogue_block *dialogue)
 
 	/* Update icon shading for the panes. */
 
+	dialogue_shade_window();
 	dialogue_shade_size_pane();
 	dialogue_shade_date_pane();
 	dialogue_shade_type_pane();
 	dialogue_shade_attributes_pane();
 	dialogue_shade_contents_pane();
+}
+
+
+/**
+ * Update the icon shading in the main window.
+ */
+
+static void dialogue_shade_window(void)
+{
+	enum dialogue_name	mode = event_get_window_icon_popup_selection(dialogue_window, DIALOGUE_ICON_NAME_MODE_MENU);
+
+	icons_set_group_shaded(dialogue_window, mode == DIALOGUE_NAME_NOT_IMPORTANT, 2,
+			DIALOGUE_ICON_FILENAME, DIALOGUE_ICON_IGNORE_CASE);
+
+	icons_replace_caret_in_window(dialogue_window);
 }
 
 
@@ -1427,6 +1463,7 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 		success = FALSE;
 	}
 
+	dialogue->name_mode = event_get_window_icon_popup_selection(dialogue_window, DIALOGUE_ICON_NAME_MODE);
 	dialogue->ignore_case = icons_get_selected(dialogue_window, DIALOGUE_ICON_IGNORE_CASE);
 
 	/* Set the Size pane */
@@ -1763,7 +1800,9 @@ static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp
 {
 	unsigned	*typelist;
 
-	if (menu == dialogue_size_mode_menu)
+	if (menu == dialogue_name_mode_menu)
+		dialogue_shade_window();
+	else if (menu == dialogue_size_mode_menu)
 		dialogue_shade_size_pane();
 	else if (menu == dialogue_date_mode_menu || menu == dialogue_age_mode_menu)
 		dialogue_shade_date_pane();

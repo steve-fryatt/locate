@@ -90,6 +90,14 @@ NoPaths:There were no paths specified to search.
 TypeBufFull:There was not enough space in the filetype field to add the new type.
 URLFailed:Could not find an application to launch the given URL.
 
+# Filename window menus.
+
+NameMode0:is not important
+NameMode1:is equal to
+NameMode2:is not equal to
+NameMode3:contains
+NameMode4:does not contain
+
 # Size options window menus.
 
 SizeMode0:not important
@@ -180,6 +188,8 @@ Help.Search.Type:\Ssee the search options concerning the type of object (file, d
 Help.Search.Attributes:\Ssee the search options concerning the object attributes (read and write access, locked).
 Help.Search.Contents:\Ssee the search options concerning the file contents.
 Help.Search.Icon11:Drag \s to set the search directory.|MDouble click \s to open the search directory.
+Help.Search.ModeM:\Sset the type of match to be used for filenames.
+Help.Search.Mode:\Ttype of match to be used for filenames.
 Help.Search.Case:\Stoggle whether the case of filenames is ignored.
 Help.Search.Options:\Stoggle the display of the search options.
 Help.Search.StoreAll:\Stoggle whether the full details of the search directory are recorded to allow future off-line searches.
@@ -317,6 +327,12 @@ Help.ResultsMenu.05:\Sopen the parent of the selected object.|MThis can also be 
 Help.ResultsMenu.06:\Scopy the filenames (all or those currently selected) to the global clipboard.
 Help.ResultsMenu.07:\Sopen a new search window with the same search options.
 Help.ResultsMenu.08:\Sstop the current search, while keeping those results that have already been found.
+
+Help.NameModeMenu.00:\Signore the filename when matching objects.
+Help.NameModeMenu.01:\Smatch objects whose names exactly match a given string.
+Help.NameModeMenu.02:\Smatch objects whose names do not exactly match a given string.
+Help.NameModeMenu.03:\Smatch objects whose names contain a given string.
+Help.NameModeMenu.04:\Smatch objects whose names do not contain a given string.
 
 Help.SizeModeMenu.00:\Signore size when matching objects.
 Help.SizeModeMenu.01:\Smatch objects which are exactly a given size.
