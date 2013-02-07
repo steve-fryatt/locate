@@ -54,11 +54,19 @@
 
 
 
+
+struct contents_block {
+
+
+}
+
+
+
 /**
  * Initialise the contents search system.
  */
 
-void contents_initialise(void)
+void contents_create(void)
 {
 	event_add_message_handler(message_CLAIM_ENTITY, EVENT_MESSAGE_INCOMING, clipboard_message_claim_entity);
 	event_add_message_handler(message_DATA_REQUEST, EVENT_MESSAGE_INCOMING, clipboard_message_data_request);
