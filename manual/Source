@@ -154,7 +154,7 @@ The default path used for the search is set in the <link ref="Configuration">cho
 
 <subhead title="Entering the filename">
 
-Enter the filename to you are looking for into the <icon>File name</icon> field.
+Enter the filename to you are looking for into the <icon>File name</icon> field. The filename criteria should be left as <menu>is equal to</menu> &ndash; see <link ref="Advanced">Advanced Use</link> for more details.
 
 Names are matched exactly: <code>Report</code> would match <code>report</code> but not <code>Reporter</code>.  For more flexibility, wildcards are allowed.  <code>#</code> will match any single character, so <code>Reporte#</code> would match <code>Reporter</code> and <code>Reported</code> but not <code>Reporters</code>.  <code>*</code> will match any zero or more characters, so <code>Report*</code> would match <code>Report</code>, <code>Reported</code> etc.  Wildcards can appear anywhere in the name.  To search for a substring (in the same way that the Filer's search option does), put an asterisk at each end of the name (for example <code>*SubStr*</code>).
 
@@ -224,9 +224,10 @@ The <menu>Display</menu> submenu, which leads to the options <menu>Path only</me
 
 <chapter title="Advanced Use" file="Advanced">
 
-It is possible to make <cite>Locate</cite> check more than just the filename of the objects being searched.  Options are available for size, modification date (or age), object file type, attributes and contents; they are split between several sub-windows to make things easier.  To view and enter the options for a given attribute, click <mouse>select</mouse> on the relevant tab on the left of the <window>search window</window>.  The options available are:
+It is possible to make <cite>Locate</cite> check more than just the filename of the objects being searched.  Options are available for size, modification date (or age), object file type, attributes and contents; they are split between several sub-windows to make things easier.  To view and enter the options for a given attribute, click <mouse>select</mouse> on the relevant tab on the left of the <window>search window</window>; the filename options are set above the sub-window pane.  The options available are:
 
 <list>
+<li><link ref="Name">Filename</link>
 <li><link ref="Size">File size</link>
 <li><link ref="Date">Creation or modification date</link>
 <li><link ref="Type">Object or file type</link>
@@ -234,7 +235,7 @@ It is possible to make <cite>Locate</cite> check more than just the filename of 
 <li><link ref="Contents">File contents</link>
 </list>
 
-Notice that all the sections (Size, Date. Type, Attributes and Contents) are always active; it's not just the one that is visible when you click on <icon>Search</icon>.  This allows you to (say) search for "all text files between 1Kb and 10Kb in size, created before 27th January 1996, which are locked"; it can also be confusing if you forget that you set an option.
+Notice that all the sections (Filename, Size, Date, Type, Attributes and Contents) are always active; it's not just the one that is visible when you click on <icon>Search</icon>.  This allows you to (say) search for "all text files between 1Kb and 10Kb in size, created before 27th January 1996, which are locked"; it can also be confusing if you forget that you set an option.
 
 Note that if you don't care what filename is found, it is quicker to leave the <icon>File name</icon> field blank than to search on a <code>*</code> wildcard.  This is because a blank field causes the whole wildcard search to be skipped, rather than checking each name against the <code>*</code> term.
 
@@ -269,9 +270,26 @@ In addition, clicking <mouse>adjust</mouse> on the icon-bar icon will open a sea
 
 
 
+<chapter title="Matching on Filename" file="Name">
+
+It is possible to match files based on their filenames. This was briefly discussed in the section on <link ref="Simple">Simple Searches</link>, although some detail was left out.
+
+By default, names are matched exactly to whatever is entered into the field to the right of <icon>Filename</icon> in the search window. Unlike other sections of the search options, where the default critera is <menu>is not important</menu>, the default critera for the filename is <menu>is equal to</menu> so as to give some compatibility with the behaviour of <cite>Locate&nbsp;1</cite>.
+
+The requirement for an exact match means that <code>Report</code> would match <code>report</code> but not <code>Reporter</code>.  For more flexibility, wildcards are allowed.  <code>#</code> will match any single character, so <code>Reporte#</code> would match <code>Reporter</code> and <code>Reported</code> but not <code>Reporters</code>.  <code>*</code> will match any zero or more characters, so <code>Report*</code> would match <code>Report</code>, <code>Reported</code> etc.  Wildcards can appear anywhere in the name.  To search for a substring (in the same way that the Filer's search option does), put an asterisk at each end of the name (for example <code>*SubStr*</code>).
+
+By selecting a criteria of <menu>is not equal to</menu>, files can be made to match if their names do <em>not</em> match based on the rules given above. For compatibility with <cite>Locate&nbsp;1</cite>, leaving the filename field blank or entering a single <code>*</code> will mean that the filename is not tested; this can also be achieved by setting the critera to <menu>is not important</menu>.
+
+By default the case of the name is ignored; un-tick the <icon>Ignore case</icon> switch to cause the case to matter (but remember that all RISC OS FileCore filing systems are case insensitive anyway).
+
+</chapter>
+
+
+
+
 <chapter title="Matching on File Size" file="Size">
 
-To check for certain sizes of file, select the <icon>Size</icon> option in the left margin of the <link ref="Advanced">search window</link>.  Choose a search criteria from the drop down list (the default is <code>not important</code> meaning that the size is ignored).  Having selected a criteria, it is possible to enter the required size(s) into the fields below; select the units required for each field.  The larger units match a spread either side of the specified size, so 1Kb would match from 1Kb-512bytes to 1Kb+512bytes.
+To check for certain sizes of file, select the <icon>Size</icon> option in the left margin of the <link ref="Advanced">search window</link>.  Choose a search criteria from the drop down list (the default is <menu>not important</menu> meaning that the size is ignored).  Having selected a criteria, it is possible to enter the required size(s) into the fields below; select the units required for each field.  The larger units match a spread either side of the specified size, so 1Kb would match from 1Kb-512bytes to 1Kb+512bytes.
 
 Directories and applications will always match the size test, as their sizes are not very meaningful.
 
