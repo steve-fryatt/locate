@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt
+/* Copyright 2013, Stephen Fryatt
  *
  * This file is part of Locate:
  *
@@ -30,14 +30,23 @@
 #ifndef LOCATE_CONTENTS
 #define LOCATE_CONTENTS
 
+#include "objdb.h"
+#include "results.h"
+
 //#include <stdlib.h>
 //#include "oslib/types.h"
+
+struct contents_block;
 
 /**
  * Initialise the contents search system.
  */
 
-void contents_initialise(void);
+struct contents_block *contents_create(struct objdb_block *objects, struct results_window *results);
+
+void contents_destroy(struct contents_block *handle);
+
+void contents_add_file(struct contents_block *handle, unsigned key);
 
 #endif
 

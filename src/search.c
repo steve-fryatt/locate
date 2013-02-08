@@ -59,6 +59,7 @@
 
 #include "search.h"
 
+#include "contents.h"
 #include "flexutils.h"
 #include "objdb.h"
 #include "results.h"
@@ -143,7 +144,12 @@ struct search_block {
 	bits			attributes;					/**< The required attributes.						*/
 	bits			attributes_mask;				/**< The bit mask for the required attributes (set to test).		*/
 
-	osbool			test_contents;
+	osbool			test_contents;					/**< TRUE to test the contents; FALSE to ignore.			*/
+	struct contents_block	*contents_engine;				/**< Handle for the contents search engine; NULL if no contents search.	*/
+	char			*contents;					/**< Pointer to a flex block with the contents to match; NULL if none.	*/
+	osbool			contents_any_case;				/**< TRUE if the contents should be tested case insenitively.		*/
+	osbool			contents_logic;					/**< The required result of contents comparisons.			*/
+
 
 	/* Block List */
 
@@ -277,6 +283,10 @@ struct search_block *search_create(struct file_block *file, struct objdb_block *
 	new->include_untyped = FALSE;
 
 	new->test_contents = FALSE;
+	new->contents_engine = NULL;
+	new->contents = NULL;
+	new->contents_any_case = FALSE;
+	new->contents_logic = TRUE;
 
 	new->path_count = paths;
 
@@ -326,7 +336,15 @@ void search_destroy(struct search_block *search)
 		heap_free(search->paths);
 
 	if (search->filename != NULL)
-		flex_free((flex_ptr) & (search->filename));
+		flex_free((flex_ptr) &(search->filename));
+
+	if (search->contents != NULL)
+		flex_free((flex_ptr) &(search->contents));
+
+	/* Remove the contents search if present. */
+
+	if (search->contents_engine != NULL)
+		contents_destroy(search->contents_engine);
 
 	heap_free(search);
 }
@@ -496,6 +514,29 @@ void search_set_attributes(struct search_block *search, fileswitch_attr mask, fi
 
 
 /**
+ * Set the contents matching options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param *contents		Pointer to the content string to match.
+ * \param any_case		TRUE to match case insensitively; else FALSE.
+ * \param invert		TRUE to match files whose names don't match; else FALSE.
+ */
+
+void search_set_contents(struct search_block *search, char *contents, osbool any_case, osbool invert)
+{
+	if (search == NULL)
+		return;
+
+	search->contents_engine = contents_create(search->objects, search->results);
+
+	search->test_contents = TRUE;
+	search->contents_logic = !invert;
+	flexutils_store_string((flex_ptr) &(search->contents), contents);
+	search->contents_any_case = any_case;
+}
+
+
+/**
  * Make a search active so that it will run on subsequent calls to search_poll().
  *
  * \param *search		The handle of the search to make active.
@@ -570,6 +611,10 @@ void search_start(struct search_block *search)
 
 /**
  * Stop an active search.
+ *
+ * \TODO -- This does not delete the search itself. It could be useful to
+ *          look at deleting the search: this would need to be done via the
+ *          file module as there's a pointer to the search there.
  *
  * \param *Search		The handle of the search to stop.
  */
@@ -839,7 +884,18 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				strcat(filename, ".");
 				strcat(filename, file_data->name);
 
-				results_add_file(search->results, search->stack[stack].key);
+				/* Files (and image files if not being treated as folders) get passed to the contents
+				 * search if one is configured; otherwise the get added to the results window
+				 * immediately.
+				 */
+
+				if (search->contents_engine != NULL && (file_data->obj_type == fileswitch_IS_FILE || (!search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE)))
+					contents_add_file(search->contents_engine, search->stack[stack].key);
+				else
+					results_add_file(search->results, search->stack[stack].key);
+
+				/* Clear the key, so we don't try to add the object to the database again later. */
+
 				search->stack[stack].key = OBJDB_NULL_KEY;
 			}
 

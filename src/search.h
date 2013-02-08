@@ -136,6 +136,18 @@ void search_set_attributes(struct search_block *search, fileswitch_attr mask, fi
 
 
 /**
+ * Set the contents matching options for a search.
+ *
+ * \param *search		The search to set the options for.
+ * \param *contents		Pointer to the content string to match.
+ * \param any_case		TRUE to match case insensitively; else FALSE.
+ * \param invert		TRUE to match files whose names don't match; else FALSE.
+ */
+
+void search_set_contents(struct search_block *search, char *contents, osbool any_case, osbool invert);
+
+
+/**
  * Make a search active so that it will run on subsequent calls to search_poll().
  *
  * \param *search		The handle of the search to make active.

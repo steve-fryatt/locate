@@ -330,7 +330,6 @@ struct dialogue_block {
 	osbool				ignore_imagefs;				/**< Ignore the contents of image filing systems.	*/
 	osbool				suppress_errors;			/**< Suppress errors during the search.			*/
 	osbool				full_info;				/**< Use a full-info display by default.		*/
-
 };
 
 
@@ -2014,7 +2013,7 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 			dialogue->type_files, dialogue->type_directories, dialogue->type_applications);
 
 	/* Set the filename search options. */
-	debug_printf("Filename match type %d", dialogue->name_mode);
+
 	if (strcmp(dialogue->filename, "") != 0 && strcmp(dialogue->filename, "*") != 0 && dialogue->name_mode != DIALOGUE_NAME_NOT_IMPORTANT) {
 		strncpy(buffer, dialogue->filename, buffer_size);
 		search_set_filename(search, buffer, dialogue->ignore_case,
@@ -2195,6 +2194,13 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 
 	if (dialogue->attributes_public_write)
 		search_set_attributes(search, fileswitch_ATTR_WORLD_WRITE, (dialogue->attributes_public_write_yes) ? fileswitch_ATTR_WORLD_WRITE : 0);
+
+	/* Set the contents search options. */
+
+	if (strcmp(dialogue->contents_text, "") != 0 && strcmp(dialogue->contents_text, "*") != 0 && dialogue->contents_mode != DIALOGUE_CONTENTS_ARE_NOT_IMPORTANT) {
+		strncpy(buffer, dialogue->contents_text, buffer_size);
+		search_set_contents(search, buffer, dialogue->contents_ignore_case, (dialogue->name_mode == DIALOGUE_CONTENTS_DO_NOT_INCLUDE) ? TRUE : FALSE);
+	}
 
 	/* Tidy up and start the search. */
 

@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt
+/* Copyright 2013, Stephen Fryatt
  *
  * This file is part of Locate:
  *
@@ -42,6 +42,8 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/debug.h"
+#include "sflib/heap.h"
 //#include "sflib/errors.h"
 //#include "sflib/event.h"
 
@@ -49,16 +51,16 @@
 
 #include "contents.h"
 
-//#include "dataxfer.h"
-//#include "main.h"
+#include "objdb.h"
+#include "results.h"
 
 
 
 
 struct contents_block {
-
-
-}
+	struct objdb_block		*objects;				/**< The object database related to the file.		*/
+	struct results_window		*results;				/**< The results window related to the file.		*/
+};
 
 
 
@@ -66,9 +68,44 @@ struct contents_block {
  * Initialise the contents search system.
  */
 
-void contents_create(void)
+struct contents_block *contents_create(struct objdb_block *objects, struct results_window *results)
 {
-	event_add_message_handler(message_CLAIM_ENTITY, EVENT_MESSAGE_INCOMING, clipboard_message_claim_entity);
-	event_add_message_handler(message_DATA_REQUEST, EVENT_MESSAGE_INCOMING, clipboard_message_data_request);
+	struct contents_block	*new;
+
+	if (objects == NULL || results == NULL)
+		return NULL;
+
+	new = heap_alloc(sizeof(struct contents_block));
+	if (new == NULL)
+		return NULL;
+
+	debug_printf("Created new content search: 0x%x", new);
+
+	new->objects = objects;
+	new->results = results;
+
+	return new;
+}
+
+
+void contents_destroy(struct contents_block *handle)
+{
+	if (handle == NULL)
+		return;
+
+	debug_printf("Destroyed content search: 0x%x", handle);
+
+	heap_free(handle);
+}
+
+
+void contents_add_file(struct contents_block *handle, unsigned key)
+{
+	if (handle == NULL)
+		return;
+
+	debug_printf("Processing object content: key = %d", key);
+
+	results_add_file(handle->results, key);
 }
 

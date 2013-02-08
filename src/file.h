@@ -30,6 +30,8 @@
 #ifndef LOCATE_FILE
 #define LOCATE_FILE
 
+#include "oslib/wimp.h"
+
 struct file_block;
 
 /**
