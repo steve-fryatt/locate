@@ -633,7 +633,7 @@ struct discfile_block *discfile_open_read(char *filename)
 	if (new == NULL)
 		return NULL;
 
-	error = xosfind_openinw(osfind_NO_PATH |osfind_ERROR_IF_DIR, filename, NULL, &(new->handle));
+	error = xosfind_openinw(osfind_NO_PATH | osfind_ERROR_IF_DIR, filename, NULL, &(new->handle));
 	if (error != NULL || new->handle == 0) {
 		heap_free(new);
 		return NULL;
