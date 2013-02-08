@@ -55,7 +55,9 @@
 #include "results.h"
 
 
-
+/**
+ * The block describing a contents search engine.
+ */
 
 struct contents_block {
 	struct objdb_block		*objects;				/**< The object database related to the file.		*/
@@ -65,9 +67,12 @@ struct contents_block {
 };
 
 
-
 /**
- * Initialise the contents search system.
+ * Create a new contents search engine.
+ *
+ * \param *objects		The object database to which the search will belong.
+ * \param *results		The results window to which the search will report.
+ * \return			The new contents search engine handle, or NULL.
  */
 
 struct contents_block *contents_create(struct objdb_block *objects, struct results_window *results)
@@ -92,6 +97,12 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 }
 
 
+/**
+ * Destroy a contents search engine and free its memory.
+ *
+ * \param *handle		The handle of the engine to destroy.
+ */
+
 void contents_destroy(struct contents_block *handle)
 {
 	if (handle == NULL)
@@ -102,6 +113,13 @@ void contents_destroy(struct contents_block *handle)
 	heap_free(handle);
 }
 
+
+/**
+ * Add a file to the search engine, to be processed on subsequent search polls.
+ *
+ * \param *handle		The handle of the engine to take the file.
+ * \param key			The ObjectDB key for the file to be searched.
+ */
 
 void contents_add_file(struct contents_block *handle, unsigned key)
 {
@@ -114,6 +132,17 @@ void contents_add_file(struct contents_block *handle, unsigned key)
 
 	handle->count = 5;
 }
+
+
+/**
+ * Poll a search to allow it to process the current file.
+ *
+ * \param *handle		The handle of the engine to poll.
+ * \param end_time		The latest time at which control must return.
+ * \param *matched		Pointer to a variable to return the matched state,
+ *				if search completes.
+ * \return			TRUE if the search has completed; else FALSE.
+ */
 
 osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *matched)
 {
@@ -128,3 +157,4 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 
 	return (handle->count == 0) ? TRUE : FALSE;
 }
+
