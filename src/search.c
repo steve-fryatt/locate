@@ -871,7 +871,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 						/* If we're testing filetype and the type falls between 0x000 and 0xfff, is it set in the bitmask? */
 
 						(!search->test_filetype || (search->stack[stack].filetype < 0x000) || (search->stack[stack].filetype > 0xfff) ||
-								((search->filetypes[search->stack[stack].filetype / (8 * sizeof(bits))] & (1 << (search->stack[stack].filetype % (8 * sizeof(bits))))) != 0)) &&
+								((search->filetypes[search->stack[stack].filetype /
+										(8 * sizeof(bits))] & (1 << (search->stack[stack].filetype % (8 * sizeof(bits))))) != 0)) &&
 
 						/* If we're testing attributes, do the bits cancel out? */
 
@@ -896,7 +897,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 					 * immediately.
 					 */
 
-					if (search->contents_engine != NULL && (file_data->obj_type == fileswitch_IS_FILE || (!search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE))) {
+					if (search->contents_engine != NULL && (file_data->obj_type == fileswitch_IS_FILE ||
+							(!search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE))) {
 						contents_add_file(search->contents_engine, search->stack[stack].key);
 						search->stack[stack].contents_active = TRUE;
 					} else {
