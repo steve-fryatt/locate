@@ -87,6 +87,9 @@ struct search_stack {
 	unsigned		parent;						/**< The object database key of the parent item.			*/
 
 	unsigned		filetype;					/**< The filetype of the current file.					*/
+
+	osbool			file_active;					/**< TRUE if the file is still active; FALSE if fully processed.	*/
+	osbool			contents_active;				/**< TRUE if the contents engine is in the middle of a search.		*/
 };
 
 /* A data structure defining a search. */
@@ -736,7 +739,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 {
 	os_error		*error;
 	int			i;
-	unsigned		stack, object_key;
+	unsigned		stack;
 	byte			*original, copy[SEARCH_BLOCK_SIZE];
 	osgbpb_info		*file_data = (osgbpb_info *) copy;
 	char			filename[4996], leafname[SEARCH_MAX_FILENAME];
@@ -760,119 +763,14 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 	while (stack != SEARCH_NULL && (os_read_monotonic_time() < end_time)) {
 
-		/* If there are no outstanding entries in the current buffer, call
-		 * OS_GBPB 10 to get another set of file details.
-		 */
-
-		error = NULL;
-
-		if (search->stack[stack].next >= search->stack[stack].read) {
-			*filename = '\0';
-
-			for (i = 0; i <= stack; i++) {
-				if (i > 0)
-					strcat(filename, ".");
-				strcat(filename, search->stack[i].filename);
-			}
-
-			error = xosgbpb_dir_entries_info(filename, (osgbpb_info_list *) search->stack[stack].info, 1000, search->stack[stack].context,
-					SEARCH_BLOCK_SIZE, "*", &(search->stack[stack].read), &(search->stack[stack].context));
-
-			search->stack[stack].next = 0;
-			search->stack[stack].data_offset = 0;
-		}
-
-		/* Handle any errors thrown by the OS_GBPB call by dropping back out of
-		 * the current directory.
-		 */
-
-		if (error != NULL) {
-			search->error_count++;
-
-			stack = search_drop_stack(search);
-
-			results_add_error(search->results, error->errmess, filename);
-
-			continue;
-		}
-
-		/* Process the buffered details. */
-
-		while ((os_read_monotonic_time() < end_time) && (search->stack[stack].next < search->stack[stack].read)) {
-			/* Take a copy of the current file data into static memory, so that any pointers that we
-			 * use on it remain valid even if the flex heap moved around.
-			 *
-			 * At the head of the function, file_data = copy, so we can now access the block via a
-			 * sensible data type.
+		if (search->stack[stack].contents_active == FALSE) {
+			/* If there are no outstanding entries in the current buffer, call
+			 * OS_GBPB 10 to get another set of file details.
 			 */
 
-			original = search->stack[stack].info + search->stack[stack].data_offset;
+			error = NULL;
 
-			for (i = 0; i < 20 || original[i] != '\0'; i++)
-				copy[i] = original[i];
-
-			copy[i] = '\0';
-
-			/* Update the data offsets for the next file. */
-
-			search->stack[stack].data_offset += ((i + 4) & 0xfffffffc);
-			search->stack[stack].next++;
-
-			/* Add the file to the database. */
-
-			object_key = objdb_add_file(search->objects, search->stack[stack].parent, file_data);
-			search->stack[stack].key = object_key;
-
-
-			/* Work out a filetype using the convention 0x000-0xfff, 0x1000, 0x2000, 0x3000. */
-
-			if (file_data->obj_type == fileswitch_IS_DIR && file_data->name[0] == '!')
-				search->stack[stack].filetype = osfile_TYPE_APPLICATION;
-			else if (file_data->obj_type == fileswitch_IS_DIR)
-				search->stack[stack].filetype = osfile_TYPE_DIR;
-			else if ((file_data->load_addr & 0xfff00000u) != 0xfff00000)
-				search->stack[stack].filetype = osfile_TYPE_UNTYPED;
-			else
-				search->stack[stack].filetype = (file_data->load_addr & osfile_FILE_TYPE) >> osfile_FILE_TYPE_SHIFT;
-
-			/* Test the object that we have found, starting by making sure that the object type is one that we want. */
-
-			if (((((search->stack[stack].filetype >= 0x000 && search->stack[stack].filetype <= 0xfff) ||
-					(search->stack[stack].filetype == osfile_TYPE_UNTYPED)) && search->include_files) ||
-					((search->stack[stack].filetype == osfile_TYPE_DIR) && search->include_directories) ||
-					((search->stack[stack].filetype == osfile_TYPE_APPLICATION) && search->include_applications)) &&
-
-					/* If we're testing filename, does the name match? */
-
-					(!search->test_filename || (string_wildcard_compare(search->filename, file_data->name, search->filename_any_case) == search->filename_logic)) &&
-
-					/* If we're testing filesize, does it fall into range? */
-
-					(!search->test_size || (search->stack[stack].filetype == osfile_TYPE_DIR) || (search->stack[stack].filetype == osfile_TYPE_APPLICATION) ||
-							(((file_data->size >= search->minimum_size) && (file_data->size <= search->maximum_size)) == search->size_logic)) &&
-
-					/* If we're testing date, does it fall into range? */
-
-					(!search->test_date || (search->stack[stack].filetype == osfile_TYPE_UNTYPED) ||
-							(((((file_data->load_addr & 0xffu) > search->minimum_date_hi) ||
-									(((file_data->load_addr & 0xffu) == search->minimum_date_hi) &&
-									(file_data->exec_addr >= search->minimum_date_lo))) &&
-							(((file_data->load_addr & 0xffu) < search->maximum_date_hi) ||
-									(((file_data->load_addr & 0xffu) == search->maximum_date_hi) &&
-									(file_data->exec_addr <= search->maximum_date_lo)))) == search->date_logic)) &&
-
-					/* If we're testing filetype and the type falls between 0x000 and 0xfff, is it set in the bitmask? */
-
-					(!search->test_filetype || (search->stack[stack].filetype < 0x000) || (search->stack[stack].filetype > 0xfff) ||
-							((search->filetypes[search->stack[stack].filetype / (8 * sizeof(bits))] & (1 << (search->stack[stack].filetype % (8 * sizeof(bits))))) != 0)) &&
-
-					/* If we're testing attributes, do the bits cancel out? */
-
-					(!search->test_attributes || (((file_data->attr ^ search->attributes) & search->attributes_mask) == 0x0u))
-
-					) {
-				search->file_count++;
-
+			if (search->stack[stack].next >= search->stack[stack].read) {
 				*filename = '\0';
 
 				for (i = 0; i <= stack; i++) {
@@ -881,40 +779,156 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 					strcat(filename, search->stack[i].filename);
 				}
 
-				strcat(filename, ".");
-				strcat(filename, file_data->name);
+				error = xosgbpb_dir_entries_info(filename, (osgbpb_info_list *) search->stack[stack].info, 1000, search->stack[stack].context,
+						SEARCH_BLOCK_SIZE, "*", &(search->stack[stack].read), &(search->stack[stack].context));
 
-				/* Files (and image files if not being treated as folders) get passed to the contents
-				 * search if one is configured; otherwise the get added to the results window
-				 * immediately.
-				 */
-
-				if (search->contents_engine != NULL && (file_data->obj_type == fileswitch_IS_FILE || (!search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE)))
-					contents_add_file(search->contents_engine, search->stack[stack].key);
-				else
-					results_add_file(search->results, search->stack[stack].key);
-
-				/* Clear the key, so we don't try to add the object to the database again later. */
-
-				search->stack[stack].key = OBJDB_NULL_KEY;
+				search->stack[stack].next = 0;
+				search->stack[stack].data_offset = 0;
 			}
 
-			/* If the object is a folder, recurse down into it. */
+			/* Handle any errors thrown by the OS_GBPB call by dropping back out of
+			 * the current directory.
+			 */
 
-			if (file_data->obj_type == fileswitch_IS_DIR || (search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE)) {
-				/* Take a copy of the name before we shift the flex heap. */
+			if (error != NULL) {
+				search->error_count++;
 
-				strncpy(leafname, file_data->name, SEARCH_MAX_FILENAME);
+				stack = search_drop_stack(search);
 
-				stack = search_add_stack(search);
-
-				strncpy(search->stack[stack].filename, leafname, SEARCH_MAX_FILENAME);
-				search->stack[stack].parent = object_key;
+				results_add_error(search->results, error->errmess, filename);
 
 				continue;
-			} else if (search->stack[stack].key != OBJDB_NULL_KEY && !search->store_all) {
-				objdb_delete_last_key(search->objects, search->stack[stack].key);
-				search->stack[stack].key = OBJDB_NULL_KEY;
+			}
+		}
+
+		/* Process the buffered details. */
+
+		while ((os_read_monotonic_time() < end_time) &&
+				((search->stack[stack].contents_active == TRUE) || (search->stack[stack].next < search->stack[stack].read))) {
+			if (search->stack[stack].contents_active == FALSE) {
+				/* Take a copy of the current file data into static memory, so that any pointers that we
+				 * use on it remain valid even if the flex heap moved around.
+				 *
+				 * At the head of the function, file_data = copy, so we can now access the block via a
+				 * sensible data type.
+				 */
+
+				original = search->stack[stack].info + search->stack[stack].data_offset;
+
+				for (i = 0; i < 20 || original[i] != '\0'; i++)
+					copy[i] = original[i];
+
+				copy[i] = '\0';
+
+				/* Update the data offsets for the next file. */
+
+				search->stack[stack].data_offset += ((i + 4) & 0xfffffffc);
+				search->stack[stack].next++;
+
+				/* Add the file to the database. */
+
+				search->stack[stack].key = objdb_add_file(search->objects, search->stack[stack].parent, file_data);
+				search->stack[stack].file_active = TRUE;
+
+
+				/* Work out a filetype using the convention 0x000-0xfff, 0x1000, 0x2000, 0x3000. */
+
+				if (file_data->obj_type == fileswitch_IS_DIR && file_data->name[0] == '!')
+					search->stack[stack].filetype = osfile_TYPE_APPLICATION;
+				else if (file_data->obj_type == fileswitch_IS_DIR)
+					search->stack[stack].filetype = osfile_TYPE_DIR;
+				else if ((file_data->load_addr & 0xfff00000u) != 0xfff00000)
+					search->stack[stack].filetype = osfile_TYPE_UNTYPED;
+				else
+					search->stack[stack].filetype = (file_data->load_addr & osfile_FILE_TYPE) >> osfile_FILE_TYPE_SHIFT;
+
+				/* Test the object that we have found, starting by making sure that the object type is one that we want. */
+
+				if (((((search->stack[stack].filetype >= 0x000 && search->stack[stack].filetype <= 0xfff) ||
+						(search->stack[stack].filetype == osfile_TYPE_UNTYPED)) && search->include_files) ||
+						((search->stack[stack].filetype == osfile_TYPE_DIR) && search->include_directories) ||
+						((search->stack[stack].filetype == osfile_TYPE_APPLICATION) && search->include_applications)) &&
+
+						/* If we're testing filename, does the name match? */
+
+						(!search->test_filename || (string_wildcard_compare(search->filename, file_data->name, search->filename_any_case) == search->filename_logic)) &&
+
+						/* If we're testing filesize, does it fall into range? */
+
+						(!search->test_size || (search->stack[stack].filetype == osfile_TYPE_DIR) || (search->stack[stack].filetype == osfile_TYPE_APPLICATION) ||
+								(((file_data->size >= search->minimum_size) && (file_data->size <= search->maximum_size)) == search->size_logic)) &&
+
+						/* If we're testing date, does it fall into range? */
+
+						(!search->test_date || (search->stack[stack].filetype == osfile_TYPE_UNTYPED) ||
+								(((((file_data->load_addr & 0xffu) > search->minimum_date_hi) ||
+										(((file_data->load_addr & 0xffu) == search->minimum_date_hi) &&
+										(file_data->exec_addr >= search->minimum_date_lo))) &&
+								(((file_data->load_addr & 0xffu) < search->maximum_date_hi) ||
+										(((file_data->load_addr & 0xffu) == search->maximum_date_hi) &&
+										(file_data->exec_addr <= search->maximum_date_lo)))) == search->date_logic)) &&
+
+						/* If we're testing filetype and the type falls between 0x000 and 0xfff, is it set in the bitmask? */
+
+						(!search->test_filetype || (search->stack[stack].filetype < 0x000) || (search->stack[stack].filetype > 0xfff) ||
+								((search->filetypes[search->stack[stack].filetype / (8 * sizeof(bits))] & (1 << (search->stack[stack].filetype % (8 * sizeof(bits))))) != 0)) &&
+
+						/* If we're testing attributes, do the bits cancel out? */
+
+						(!search->test_attributes || (((file_data->attr ^ search->attributes) & search->attributes_mask) == 0x0u))
+
+						) {
+					search->file_count++;
+
+					*filename = '\0';
+
+					for (i = 0; i <= stack; i++) {
+						if (i > 0)
+							strcat(filename, ".");
+						strcat(filename, search->stack[i].filename);
+					}
+
+					strcat(filename, ".");
+					strcat(filename, file_data->name);
+
+					/* Files (and image files if not being treated as folders) get passed to the contents
+					 * search if one is configured; otherwise the get added to the results window
+					 * immediately.
+					 */
+
+					if (search->contents_engine != NULL && (file_data->obj_type == fileswitch_IS_FILE || (!search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE))) {
+						contents_add_file(search->contents_engine, search->stack[stack].key);
+						search->stack[stack].contents_active = TRUE;
+					} else {
+						results_add_file(search->results, search->stack[stack].key);
+						search->stack[stack].file_active = FALSE;
+					}
+				}
+			}
+
+			if (search->stack[stack].contents_active == TRUE && contents_poll(search->contents_engine, end_time, NULL)) {
+				search->stack[stack].contents_active = FALSE;
+				search->stack[stack].file_active = FALSE; // \TODO -- Should be if matched.
+			}
+
+			if (search->stack[stack].contents_active == FALSE) {
+				/* If the object is a folder, recurse down into it. */
+
+				if (file_data->obj_type == fileswitch_IS_DIR || (search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE)) {
+					/* Take a copy of the name before we shift the flex heap. */
+
+					strncpy(leafname, file_data->name, SEARCH_MAX_FILENAME);
+
+					stack = search_add_stack(search);
+
+					strncpy(search->stack[stack].filename, leafname, SEARCH_MAX_FILENAME);
+					search->stack[stack].parent = search->stack[stack - 1].key;
+
+					continue;
+				} else if (search->stack[stack].file_active && !search->store_all) {
+					objdb_delete_last_key(search->objects, search->stack[stack].key);
+					search->stack[stack].file_active = FALSE;
+				}
 			}
 		}
 
@@ -922,12 +936,13 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 		 * parent.
 		 */
 
-		if ((search->stack[stack].next >= search->stack[stack].read) && (search->stack[stack].context == -1)) {
+		if ((search->stack[stack].contents_active == FALSE) && (search->stack[stack].next >= search->stack[stack].read) &&
+				(search->stack[stack].context == -1)) {
 			stack = search_drop_stack(search);
 
-			if (stack != SEARCH_NULL && search->stack[stack].key != OBJDB_NULL_KEY && !search->store_all) {
+			if (stack != SEARCH_NULL && search->stack[stack].file_active && !search->store_all) {
 				objdb_delete_last_key(search->objects, search->stack[stack].key);
-				search->stack[stack].key = OBJDB_NULL_KEY;
+				search->stack[stack].file_active = FALSE;
 			}
 
 			continue;
@@ -1006,6 +1021,8 @@ static unsigned search_add_stack(struct search_block *search)
 	search->stack[offset].context = 0;
 	search->stack[offset].next = 0;
 	search->stack[offset].data_offset = 0;
+	search->stack[offset].file_active = FALSE;
+	search->stack[offset].contents_active = FALSE;
 
 	return offset;
 }

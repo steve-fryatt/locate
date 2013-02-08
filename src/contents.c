@@ -60,6 +60,8 @@
 struct contents_block {
 	struct objdb_block		*objects;				/**< The object database related to the file.		*/
 	struct results_window		*results;				/**< The results window related to the file.		*/
+
+	unsigned			count;
 };
 
 
@@ -84,6 +86,8 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 	new->objects = objects;
 	new->results = results;
 
+	new->count = 0;
+
 	return new;
 }
 
@@ -107,5 +111,20 @@ void contents_add_file(struct contents_block *handle, unsigned key)
 	debug_printf("Processing object content: key = %d", key);
 
 	results_add_file(handle->results, key);
+
+	handle->count = 5;
 }
 
+osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *matched)
+{
+	if (handle == NULL)
+		return TRUE;
+
+	debug_printf("Starting contents search loop %d at time %u", handle->count--, os_read_monotonic_time());
+
+	while (handle->count > 0 && os_read_monotonic_time() < end_time);
+
+	debug_printf("Finishing contents search loop at time %u", os_read_monotonic_time());
+
+	return (handle->count == 0) ? TRUE : FALSE;
+}

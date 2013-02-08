@@ -48,5 +48,7 @@ void contents_destroy(struct contents_block *handle);
 
 void contents_add_file(struct contents_block *handle, unsigned key);
 
+osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *matched);
+
 #endif
 
