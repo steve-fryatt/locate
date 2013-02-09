@@ -159,7 +159,7 @@ void contents_destroy(struct contents_block *handle)
 	if (handle->filename != NULL)
 		flex_free((flex_ptr) &(handle->filename));
 
-	if (handle->filename != NULL)
+	if (handle->file != NULL)
 		flex_free((flex_ptr) &(handle->file));
 
 	heap_free(handle);
