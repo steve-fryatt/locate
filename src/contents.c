@@ -207,6 +207,10 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 	 */
 
 	error = xosfile_read_no_path(handle->filename, NULL, NULL, NULL, &size, NULL);
+	if (error != NULL) {
+		results_add_error(handle->results, error->errmess, handle->filename);
+		return FALSE;
+	}
 
 	block_length = (size > handle->file_block_size) ? handle->file_block_size : size;
 
@@ -215,20 +219,26 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 	/* Load the first block of the file into memory. */
 
 	error = xosfind_openinw(osfind_NO_PATH | osfind_ERROR_IF_DIR, handle->filename, NULL, &input_handle);
-	if (error != NULL || input_handle == 0)
+	if (error != NULL || input_handle == 0) {
+		results_add_error(handle->results, (error != NULL) ? error->errmess : "", handle->filename);
 		return FALSE;
+	}
 
 	error = xosgbpb_readw(input_handle, (byte *) handle->file, block_length, &unread);
 	if (error != NULL) {
-		//discfile_set_error(handle, "FileError");
-		return 0;
+		results_add_error(handle->results, error->errmess, handle->filename);
+		return FALSE;
 	} else {
 		handle->file_length = block_length;
 		*(handle->file + 25) = '\0';
 		debug_printf("Loaded data: '%s;", handle->file);
 	}
 
-	xosfind_close(input_handle);
+	error = xosfind_close(input_handle);
+	if (error != NULL) {
+		results_add_error(handle->results, error->errmess, handle->filename);
+		return FALSE;
+	}
 
 	results_add_file(handle->results, key);
 

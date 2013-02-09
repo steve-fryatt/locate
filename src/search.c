@@ -899,8 +899,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 					if (search->contents_engine != NULL && (file_data->obj_type == fileswitch_IS_FILE ||
 							(!search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE))) {
-						contents_add_file(search->contents_engine, search->stack[stack].key);
-						search->stack[stack].contents_active = TRUE;
+						if (contents_add_file(search->contents_engine, search->stack[stack].key))
+							search->stack[stack].contents_active = TRUE;
 					} else {
 						results_add_file(search->results, search->stack[stack].key);
 						search->stack[stack].file_active = FALSE;
