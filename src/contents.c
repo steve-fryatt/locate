@@ -156,6 +156,12 @@ void contents_destroy(struct contents_block *handle)
 
 	debug_printf("Destroyed content search: 0x%x", handle);
 
+	if (handle->filename != NULL)
+		flex_free((flex_ptr) &(handle->filename));
+
+	if (handle->filename != NULL)
+		flex_free((flex_ptr) &(handle->file));
+
 	heap_free(handle);
 }
 
