@@ -61,7 +61,8 @@
 
 
 #define CONTENTS_FILENAME_SIZE 256						/**< The space in bytes initially allocated to take filenames.	*/
-#define CONTENTS_FILE_BUFFER_SIZE 50						/**< The space in KBytes allocated to load file contents.	*/
+#define CONTENTS_FILE_BUFFER_SIZE 4						/**< The space in KBytes allocated to load file contents.	*/
+#define CONTENTS_FILE_BACKSPACE 8						/**< 1/n of the buffer space retained when block moves forward.	*/
 
 
 /**
@@ -74,21 +75,23 @@ struct contents_block {
 
 	unsigned			key;					/**< The ObjectDB key of the file being searched.		*/
 
+	osbool				error;					/**< TRUE if an error has occurred; else FALSE.			*/
+
 	char				*filename;				/**< Flex block containing the name of the current file.	*/
 
 	char				*file;					/**< Flex block containing the file data or a subset of it.	*/
 	size_t				file_block_size;			/**< The number of bytes allocated to the file block.		*/
 
-	int				file_length;				/**< The number of bytes of file data on disc.			*/
+	int				file_extent;				/**< The number of bytes of file data on disc.			*/
 	int				file_offset;				/**< File ptr for the start of the data in memory.		*/
 
-	unsigned			count;
+	int				count;
 };
 
 
 
 static osbool	contents_load_file_chunk(struct contents_block *handle, int position);
-static char	contents_get_byte(struct contents_block *handle, unsigned byte);
+static char	contents_get_byte(struct contents_block *handle, int pointer);
 
 
 /**
@@ -123,6 +126,8 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 	new->filename = NULL;
 	new->file = NULL;
 
+	new->error = FALSE;
+
 	if (flex_alloc((flex_ptr) &(new->filename), CONTENTS_FILENAME_SIZE) == 0)
 		mem_ok = FALSE;
 
@@ -142,7 +147,7 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 	}
 
 	new->file_offset = 0;
-	new->file_length = 0;
+	new->file_extent = 0;
 
 	new->count = 0;
 
@@ -191,8 +196,10 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 
 	handle->key = key;
 
-	handle->file_length = 0;
+	handle->file_extent = 0;
 	handle->file_offset = 0;
+
+	handle->error = FALSE;
 
 	debug_printf("Processing object content: key = %d", key);
 
@@ -210,10 +217,10 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 	 * available space.
 	 */
 
-	error = xosfile_read_no_path(handle->filename, NULL, NULL, NULL, &handle->file_length, NULL);
+	error = xosfile_read_no_path(handle->filename, NULL, NULL, NULL, &handle->file_extent, NULL);
 	if (error != NULL) {
 		results_add_error(handle->results, error->errmess, handle->filename);
-		handle->file_length = 0;
+		handle->file_extent = 0;
 		return FALSE;
 	}
 
@@ -233,7 +240,7 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 
 	results_add_file(handle->results, key);
 
-	handle->count = 1;
+	handle->count = 0;
 
 	return TRUE;
 }
@@ -251,19 +258,41 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 
 osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *matched)
 {
+	char	buffer[100], byte;
+	int	line = 0;
+
 	if (handle == NULL)
 		return TRUE;
 
-	debug_printf("Starting contents search loop %d at time %u", handle->count--, os_read_monotonic_time());
+	debug_printf("Starting contents search loop %d at time %u", handle->count, os_read_monotonic_time());
 
-	while (handle->count > 0 && os_read_monotonic_time() < end_time);
+	debug_printf("Opening offset: %d, count = %d", handle->file_offset, handle->count);
+
+	while (handle->count < handle->file_extent && os_read_monotonic_time() < end_time) {
+		byte = contents_get_byte(handle, handle->count++);
+		buffer[line++] = (byte >= ' ' && byte <= 126) ? byte : '.';
+
+		if (line >= 50 || handle->count >= handle->file_extent) {
+			buffer[line] = '\0';
+			debug_printf("Read data: '%s' (%d to %d)", buffer, handle->count - line, handle->count - 1);
+			line = 0;
+		}
+	}
 
 	debug_printf("Finishing contents search loop at time %u", os_read_monotonic_time());
 
-	return (handle->count == 0) ? TRUE : FALSE;
+	return (handle->count >= handle->file_extent) ? TRUE : FALSE;
 }
 
 
+/**
+ * Load a chunk of the file into the memory buffer, starting at the given file
+ * position.
+ *
+ * \param *handle		The contents search handle.
+ * \param position		The file pointer for the start of the data.
+ * \return			TRUE if successful; FALSE if an error occurs.
+ */
 
 static osbool contents_load_file_chunk(struct contents_block *handle, int position)
 {
@@ -293,7 +322,7 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 
 	/* If the file extent isn't the same as it was at the start, get out. */
 
-	if (extent != handle->file_length) {
+	if (extent != handle->file_extent) {
 		results_add_error(handle->results, "File changed!", handle->filename);
 		error = xosfind_close(file);
 		if (error != NULL)
@@ -306,8 +335,10 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 	 * is completely full.
 	 */
 
+	debug_printf("File extent: %d, block size %d", extent, handle->file_block_size);
+
 	if (extent > handle->file_block_size) {
-		ptr = (extent - position > handle->file_block_size) ? position : extent - position > handle->file_block_size;
+		ptr = ((extent - position) > handle->file_block_size) ? position : extent - handle->file_block_size;
 		bytes = handle->file_block_size;
 	} else {
 		ptr = 0;
@@ -320,9 +351,6 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 		return FALSE;
 	} else {
 		handle->file_offset = ptr;
-
-//		*(handle->file + 25) = '\0';
-//		debug_printf("Loaded data: '%s;", handle->file);
 	}
 
 	error = xosfind_close(file);
@@ -335,12 +363,29 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 }
 
 
+/**
+ * Return the character from a given location within the file, loading the
+ * necessary data into memory if required.
+ *
+ * \param *handle		The contents search handle.
+ * \param pointer		The file pointer of the required byte.
+ * \return			The required character.
+ */
 
-static char contents_get_byte(struct contents_block *handle, unsigned byte)
+static char contents_get_byte(struct contents_block *handle, int pointer)
 {
-	if (handle == NULL)
+	if (handle == NULL || handle->error)
 		return 0;
 
+	if ((pointer < handle->file_offset || pointer >= handle->file_offset + handle->file_block_size) &&
+			!contents_load_file_chunk(handle, pointer - (handle->file_block_size / CONTENTS_FILE_BACKSPACE))) {
+		handle->error = TRUE;
+		return 0;
+	}
 
-	return 0;
+	if (pointer < handle->file_offset || pointer >= handle->file_offset + handle->file_block_size)
+		return 0;
+
+	return handle->file[pointer - handle->file_offset];
 }
+
