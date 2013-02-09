@@ -64,9 +64,10 @@ void contents_destroy(struct contents_block *handle);
  *
  * \param *handle		The handle of the engine to take the file.
  * \param key			The ObjectDB key for the file to be searched.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-void contents_add_file(struct contents_block *handle, unsigned key);
+osbool contents_add_file(struct contents_block *handle, unsigned key);
 
 
 /**

@@ -34,9 +34,13 @@
 
 /* Acorn C header files */
 
+#include "flex.h"
+
 /* OSLib header files */
 
-//#include "oslib/osfile.h"
+#include "oslib/osfile.h"
+#include "oslib/osfind.h"
+#include "oslib/osgbpb.h"
 //#include "oslib/types.h"
 //#include "oslib/wimp.h"
 
@@ -55,13 +59,26 @@
 #include "results.h"
 
 
+#define CONTENTS_FILENAME_SIZE 256						/**< The space in bytes initially allocated to take filenames.	*/
+#define CONTENTS_FILE_BUFFER_SIZE 50						/**< The space in KBytes allocated to load file contents.	*/
+
+
 /**
  * The block describing a contents search engine.
  */
 
 struct contents_block {
-	struct objdb_block		*objects;				/**< The object database related to the file.		*/
-	struct results_window		*results;				/**< The results window related to the file.		*/
+	struct objdb_block		*objects;				/**< The object database related to the search.			*/
+	struct results_window		*results;				/**< The results window related to the search.			*/
+
+	unsigned			key;					/**< The ObjectDB key of the file being searched.		*/
+
+	char				*filename;				/**< Flex block containing the name of the current file.	*/
+
+	char				*file;					/**< Flex block containing the file data or a subset of it.	*/
+	size_t				file_block_size;			/**< The number of bytes allocated to the file block.		*/
+	unsigned			file_offset;				/**< Offset from the start of the file to the file data.	*/
+	unsigned			file_length;				/**< The number of bytes of file data.				*/
 
 	unsigned			count;
 };
@@ -78,6 +95,7 @@ struct contents_block {
 struct contents_block *contents_create(struct objdb_block *objects, struct results_window *results)
 {
 	struct contents_block	*new;
+	osbool			mem_ok = TRUE;
 
 	if (objects == NULL || results == NULL)
 		return NULL;
@@ -90,6 +108,34 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 
 	new->objects = objects;
 	new->results = results;
+
+	new->file_block_size = 1024 * CONTENTS_FILE_BUFFER_SIZE;
+
+	new->key = OBJDB_NULL_KEY;
+
+	new->filename = NULL;
+	new->file = NULL;
+
+	if (flex_alloc((flex_ptr) &(new->filename), CONTENTS_FILENAME_SIZE) == 0)
+		mem_ok = FALSE;
+
+	if (flex_alloc((flex_ptr) &(new->file), new->file_block_size) == 0)
+		mem_ok = FALSE;
+
+	if (!mem_ok) {
+		if (new->filename != NULL)
+			flex_free((flex_ptr) &(new->filename));
+
+		if (new->filename != NULL)
+			flex_free((flex_ptr) &(new->file));
+
+		heap_free(new);
+
+		return NULL;
+	}
+
+	new->file_offset = 0;
+	new->file_length = 0;
 
 	new->count = 0;
 
@@ -119,18 +165,70 @@ void contents_destroy(struct contents_block *handle)
  *
  * \param *handle		The handle of the engine to take the file.
  * \param key			The ObjectDB key for the file to be searched.
+ * \return			TRUE if successful; FALSE on failure.
  */
 
-void contents_add_file(struct contents_block *handle, unsigned key)
+osbool contents_add_file(struct contents_block *handle, unsigned key)
 {
-	if (handle == NULL)
-		return;
+	size_t		filename_length, block_length;
+	os_error	*error;
+	int		size;
+	os_fw		input_handle;
+	int		unread;
+
+	if (handle == NULL || key == OBJDB_NULL_KEY)
+		return FALSE;
+
+	handle->key = key;
+
+	handle->file_length = 0;
+	handle->file_offset = 0;
 
 	debug_printf("Processing object content: key = %d", key);
 
+	/* Find the filename of the file to be searched. */
+
+	filename_length = objdb_get_name_length(handle->objects, key);
+	if (filename_length > flex_size((flex_ptr) &handle->filename) &&
+			flex_extend((flex_ptr) &handle->filename, filename_length) == 0)
+		return FALSE;
+
+	if (!objdb_get_name(handle->objects, key, handle->filename, filename_length))
+		return FALSE;
+
+	/* Get the size of the file to be searched and decide if it will fit into the
+	 * available space.
+	 */
+
+	error = xosfile_read_no_path(handle->filename, NULL, NULL, NULL, &size, NULL);
+
+	block_length = (size > handle->file_block_size) ? handle->file_block_size : size;
+
+	debug_printf("Filename: %s, size: %d, block length: %d", handle->filename, size, block_length);
+
+	/* Load the first block of the file into memory. */
+
+	error = xosfind_openinw(osfind_NO_PATH | osfind_ERROR_IF_DIR, handle->filename, NULL, &input_handle);
+	if (error != NULL || input_handle == 0)
+		return FALSE;
+
+	error = xosgbpb_readw(input_handle, (byte *) handle->file, block_length, &unread);
+	if (error != NULL) {
+		//discfile_set_error(handle, "FileError");
+		return 0;
+	} else {
+		handle->file_length = block_length;
+		*(handle->file + 25) = '\0';
+		debug_printf("Loaded data: '%s;", handle->file);
+	}
+
+	xosfind_close(input_handle);
+
 	results_add_file(handle->results, key);
 
-	handle->count = 5;
+	handle->count = 1;
+
+	return TRUE;
 }
 
 
