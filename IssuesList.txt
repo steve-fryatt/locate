@@ -1,6 +1,10 @@
 Locate 2 Issues List
 --------------------
 
+* Check the correct behaviour of contents searches.
+
+* File contents strings should be centred on match in window.
+
 * Untyped files always match on filetype search.
 
 * Results window doesn't scroll on new additions.
