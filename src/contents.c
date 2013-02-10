@@ -65,7 +65,7 @@
 
 
 #define CONTENTS_FILENAME_SIZE 256						/**< The space in bytes initially allocated to take filenames.	*/
-#define CONTENTS_FILE_BUFFER_SIZE 4						/**< The space in KBytes allocated to load file contents.	*/
+#define CONTENTS_FILE_BUFFER_SIZE 100						/**< The space in KBytes allocated to load file contents.	*/
 #define CONTENTS_FILE_BACKSPACE 8						/**< 1/n of the buffer space retained when block moves forward.	*/
 
 
@@ -303,7 +303,7 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 	if (handle == NULL)
 		return TRUE;
 
-	debug_printf("Starting contents search loop %d at time %u", handle->pointer, os_read_monotonic_time());
+	//debug_printf("Starting contents search loop %d at time %u", handle->pointer, os_read_monotonic_time());
 
 	while (!handle->error && (!handle->invert || !handle->matched) && (handle->pointer < handle->file_extent) &&
 			(os_read_monotonic_time() < end_time)) {
@@ -316,17 +316,18 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 				if (!handle->matched)
 					handle->parent = results_add_file(handle->results, handle->key);
 
-				if (contents_get_context(handle, handle->pointer, end, 15, buffer, 1024))
+				if (contents_get_context(handle, handle->pointer, end, 30, buffer, 1024))
 					results_add_contents(handle->results, handle->key, handle->parent, buffer);
 			}
 
 			handle->matched = TRUE;
+			handle->pointer = end;
 		}
 
 		handle->pointer++;
 	}
 
-	debug_printf("Finishing contents search loop at time %u", os_read_monotonic_time());
+	//debug_printf("Finishing contents search loop at time %u", os_read_monotonic_time());
 
 	if (handle->error || (handle->matched && handle->invert) || handle->pointer >= handle->file_extent) {
 		if (handle->invert && !handle->matched && !handle->error)
@@ -393,6 +394,7 @@ loopStart:
 			}
 
 			goto loopStart;
+			break;
 
 		default:
 			//debug_printf("Testing char=%c against pattern=%c", contents_get_byte(handle, pointer + i, TRUE), pattern[i]);
@@ -444,11 +446,14 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 	if (handle == NULL)
 		return FALSE;
 
+	if (position < 0)
+		position = 0;
+
 	/* Open the file. */
 
 	error = xosfind_openinw(osfind_NO_PATH | osfind_ERROR_IF_DIR, handle->filename, NULL, &file);
 	if (error != NULL || file == 0) {
-		results_add_error(handle->results, (error != NULL) ? error->errmess : "", handle->filename);
+		results_add_error(handle->results, (error != NULL) ? error->errmess : "Failed to open file", handle->filename);
 		return FALSE;
 	}
 
@@ -485,7 +490,7 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 
 	error = xosgbpb_read_atw(file, (byte *) handle->file, bytes, ptr, &unread);
 	if (error != NULL || unread != 0) {
-		results_add_error(handle->results, (error != NULL) ? error->errmess : "", handle->filename);
+		results_add_error(handle->results, (error != NULL) ? error->errmess : "Error reading from file", handle->filename);
 		return FALSE;
 	} else {
 		handle->file_offset = ptr;
