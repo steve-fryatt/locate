@@ -44,10 +44,13 @@ struct contents_block;
  *
  * \param *objects		The object database to which the search will belong.
  * \param *results		The results window to which the search will report.
+ * \param *text			Pointer to the string to be matched.
+ * \param any_case		TRUE to match case insensitively; else FALSE.
+ * \param invert		TRUE to invert the search logic.
  * \return			The new contents search engine handle, or NULL.
  */
 
-struct contents_block *contents_create(struct objdb_block *objects, struct results_window *results);
+struct contents_block *contents_create(struct objdb_block *objects, struct results_window *results, char *text, osbool any_case, osbool invert);
 
 
 /**

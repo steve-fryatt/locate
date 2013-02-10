@@ -287,9 +287,6 @@ struct search_block *search_create(struct file_block *file, struct objdb_block *
 
 	new->test_contents = FALSE;
 	new->contents_engine = NULL;
-	new->contents = NULL;
-	new->contents_any_case = FALSE;
-	new->contents_logic = TRUE;
 
 	new->path_count = paths;
 
@@ -340,9 +337,6 @@ void search_destroy(struct search_block *search)
 
 	if (search->filename != NULL)
 		flex_free((flex_ptr) &(search->filename));
-
-	if (search->contents != NULL)
-		flex_free((flex_ptr) &(search->contents));
 
 	/* Remove the contents search if present. */
 
@@ -530,12 +524,8 @@ void search_set_contents(struct search_block *search, char *contents, osbool any
 	if (search == NULL)
 		return;
 
-	search->contents_engine = contents_create(search->objects, search->results);
-
 	search->test_contents = TRUE;
-	search->contents_logic = !invert;
-	flexutils_store_string((flex_ptr) &(search->contents), contents);
-	search->contents_any_case = any_case;
+	search->contents_engine = contents_create(search->objects, search->results, contents, any_case, invert);
 }
 
 
@@ -743,6 +733,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	byte			*original, copy[SEARCH_BLOCK_SIZE];
 	osgbpb_info		*file_data = (osgbpb_info *) copy;
 	char			filename[4996], leafname[SEARCH_MAX_FILENAME];
+	osbool			contents_match;
 
 	// \TODO -- The allocation of copy[] is ugly.
 
@@ -879,8 +870,6 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 						(!search->test_attributes || (((file_data->attr ^ search->attributes) & search->attributes_mask) == 0x0u))
 
 						) {
-					search->file_count++;
-
 					*filename = '\0';
 
 					for (i = 0; i <= stack; i++) {
@@ -902,15 +891,19 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 						if (contents_add_file(search->contents_engine, search->stack[stack].key))
 							search->stack[stack].contents_active = TRUE;
 					} else {
+						search->file_count++;
 						results_add_file(search->results, search->stack[stack].key);
 						search->stack[stack].file_active = FALSE;
 					}
 				}
 			}
 
-			if (search->stack[stack].contents_active == TRUE && contents_poll(search->contents_engine, end_time, NULL)) {
+			if (search->stack[stack].contents_active == TRUE && contents_poll(search->contents_engine, end_time, &contents_match)) {
 				search->stack[stack].contents_active = FALSE;
-				search->stack[stack].file_active = FALSE; // \TODO -- Should be if matched.
+				if (contents_match) {
+					search->file_count++;
+					search->stack[stack].file_active = FALSE;
+				}
 			}
 
 			if (search->stack[stack].contents_active == FALSE) {

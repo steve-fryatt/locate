@@ -29,6 +29,7 @@
 
 /* ANSI C header files */
 
+#include <string.h>
 //#include <stdlib.h>
 //#include <stdio.h>
 
@@ -56,6 +57,7 @@
 
 #include "contents.h"
 
+#include "flexutils.h"
 #include "objdb.h"
 #include "results.h"
 
@@ -73,6 +75,8 @@ struct contents_block {
 	struct objdb_block		*objects;				/**< The object database related to the search.			*/
 	struct results_window		*results;				/**< The results window related to the search.			*/
 
+	/* File details. */
+
 	unsigned			key;					/**< The ObjectDB key of the file being searched.		*/
 
 	osbool				error;					/**< TRUE if an error has occurred; else FALSE.			*/
@@ -85,7 +89,15 @@ struct contents_block {
 	int				file_extent;				/**< The number of bytes of file data on disc.			*/
 	int				file_offset;				/**< File ptr for the start of the data in memory.		*/
 
-	int				count;
+	/* Search details. */
+
+	char				*text;					/**< Flex block holding the text to match.			*/
+
+	osbool				any_case;				/**< TRUE to match case-insensitively.				*/
+	osbool				invert;					/**< TRUE to match files which do not contain the text.		*/
+
+	int				pointer;				/**< Pointer to the current search byte.			*/
+	osbool				matched;				/**< TRUE if the file has matched the text at least once.	*/
 };
 
 
@@ -99,10 +111,13 @@ static char	contents_get_byte(struct contents_block *handle, int pointer);
  *
  * \param *objects		The object database to which the search will belong.
  * \param *results		The results window to which the search will report.
+ * \param *text			Pointer to the string to be matched.
+ * \param any_case		TRUE to match case insensitively; else FALSE.
+ * \param invert		TRUE to invert the search logic.
  * \return			The new contents search engine handle, or NULL.
  */
 
-struct contents_block *contents_create(struct objdb_block *objects, struct results_window *results)
+struct contents_block *contents_create(struct objdb_block *objects, struct results_window *results, char *text, osbool any_case, osbool invert)
 {
 	struct contents_block	*new;
 	osbool			mem_ok = TRUE;
@@ -119,14 +134,34 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 	new->objects = objects;
 	new->results = results;
 
+	new->any_case = any_case;
+	new->invert = invert;
+
 	new->file_block_size = 1024 * CONTENTS_FILE_BUFFER_SIZE;
 
 	new->key = OBJDB_NULL_KEY;
 
 	new->filename = NULL;
 	new->file = NULL;
+	new->text = NULL;
 
 	new->error = FALSE;
+
+	/* Process the search string to remove all leading wildcards, then store
+	 * it in a flex block and finally remove all trailing wildcards.
+	 */
+
+	while (*text == '#' || *text == '*')
+		text++;
+
+	if (flexutils_store_string((flex_ptr) &(new->text), text)) {
+		text = new->text + strlen(new->text) - 1;
+
+		while (text >= new->text && (*text == '#' || *text == '*'))
+			*text-- = '\0';
+	} else {
+		mem_ok = FALSE;
+	}
 
 	if (flex_alloc((flex_ptr) &(new->filename), CONTENTS_FILENAME_SIZE) == 0)
 		mem_ok = FALSE;
@@ -149,7 +184,8 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 	new->file_offset = 0;
 	new->file_extent = 0;
 
-	new->count = 0;
+	new->pointer = 0;
+	new->matched = FALSE;
 
 	return new;
 }
@@ -173,6 +209,9 @@ void contents_destroy(struct contents_block *handle)
 
 	if (handle->file != NULL)
 		flex_free((flex_ptr) &(handle->file));
+
+	if (handle->text != NULL)
+		flex_free((flex_ptr) &(handle->text));
 
 	heap_free(handle);
 }
@@ -201,6 +240,9 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 
 	handle->error = FALSE;
 
+	handle->pointer = 0;
+	handle->matched = FALSE;
+
 	debug_printf("Processing object content: key = %d", key);
 
 	/* Find the filename of the file to be searched. */
@@ -228,20 +270,6 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 
 	contents_load_file_chunk(handle, 0);
 
-
-
-
-	//block_length = (size > handle->file_block_size) ? handle->file_block_size : size;
-
-	//debug_printf("Filename: %s, size: %d, block length: %d", handle->filename, size, block_length);
-
-	/* Load the first block of the file into memory. */
-
-
-	results_add_file(handle->results, key);
-
-	handle->count = 0;
-
 	return TRUE;
 }
 
@@ -258,30 +286,41 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 
 osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *matched)
 {
-	char	buffer[100], byte;
-	int	line = 0;
+	char	byte;
 
 	if (handle == NULL)
 		return TRUE;
 
-	debug_printf("Starting contents search loop %d at time %u", handle->count, os_read_monotonic_time());
+	debug_printf("Starting contents search loop %d at time %u", handle->pointer, os_read_monotonic_time());
 
-	debug_printf("Opening offset: %d, count = %d", handle->file_offset, handle->count);
+	while (!handle->error && (!handle->invert || !handle->matched) && (handle->pointer < handle->file_extent) &&
+			(os_read_monotonic_time() < end_time)) {
+		byte = contents_get_byte(handle, handle->pointer);
 
-	while (handle->count < handle->file_extent && os_read_monotonic_time() < end_time) {
-		byte = contents_get_byte(handle, handle->count++);
-		buffer[line++] = (byte >= ' ' && byte <= 126) ? byte : '.';
+		if (byte == *(handle->text)) {
+			debug_printf("Potential match start at offset %d", handle->pointer);
+			if (!handle->invert && !handle->matched)
+				results_add_file(handle->results, handle->key);
 
-		if (line >= 50 || handle->count >= handle->file_extent) {
-			buffer[line] = '\0';
-			debug_printf("Read data: '%s' (%d to %d)", buffer, handle->count - line, handle->count - 1);
-			line = 0;
+			handle->matched = TRUE;
 		}
+
+		handle->pointer++;
 	}
 
 	debug_printf("Finishing contents search loop at time %u", os_read_monotonic_time());
 
-	return (handle->count >= handle->file_extent) ? TRUE : FALSE;
+	if (handle->error || (handle->matched && handle->invert) || handle->pointer >= handle->file_extent) {
+		if (handle->invert && !handle->matched)
+				results_add_file(handle->results, handle->key);
+
+		if (matched != NULL)
+			*matched = (handle->invert) ? !handle->matched : handle->matched;
+
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 
@@ -334,8 +373,6 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 	 * the start. Otherwise, make sure that the position means that the blocl
 	 * is completely full.
 	 */
-
-	debug_printf("File extent: %d, block size %d", extent, handle->file_block_size);
 
 	if (extent > handle->file_block_size) {
 		ptr = ((extent - position) > handle->file_block_size) ? position : extent - handle->file_block_size;
