@@ -98,8 +98,6 @@
 #define RESULTS_ALLOC_TEXT 1024							/**< Number of bytes of text storage to allocate at a time.		*/
 #define RESULTS_ALLOC_CLIPBOARD 1024						/**< Number of bytes of clipboard storage to allocate at a time.	*/
 
-#define RESULTS_NULL 0xffffffff							/**< 'NULL' value for use with the unsigned flex block offsets.		*/
-
 #define RESULTS_ROW_NONE ((unsigned) 0xffffffff)				/**< Row selection value to indicate "No Row".				*/
 
 #define RESULTS_REDRAW_SIZE_LEN 32						/**< Space allocated for building textual file size strings.		*/
@@ -1203,10 +1201,38 @@ static void results_redraw_handler(wimp_draw *redraw)
 					icon[RESULTS_ICON_DATE].flags |= wimp_ICON_SHADED;
 				}
 
+				icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_FG_COLOUR;
+				icon[RESULTS_ICON_SIZE].flags |= line->colour << wimp_ICON_FG_COLOUR_SHIFT;
+				icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_SELECTED;
+
 				wimp_plot_icon(&(icon[RESULTS_ICON_SIZE]));
 				wimp_plot_icon(&(icon[RESULTS_ICON_TYPE]));
 				wimp_plot_icon(&(icon[RESULTS_ICON_ATTRIBUTES]));
 				wimp_plot_icon(&(icon[RESULTS_ICON_DATE]));
+				break;
+
+
+			case RESULTS_LINE_CONTENTS:
+				icon[RESULTS_ICON_SIZE].extent.y0 = LINE_Y0(y);
+				icon[RESULTS_ICON_SIZE].extent.y1 = LINE_Y1(y);
+
+				if (truncation != NULL && line->truncate > 0) {
+					strcpy(truncation + 3, text + line->text + line->truncate);
+					icon[RESULTS_ICON_SIZE].data.indirected_text.text = truncation;
+				} else {
+					icon[RESULTS_ICON_SIZE].data.indirected_text.text = text + line->text;
+				}
+				icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_FG_COLOUR;
+				icon[RESULTS_ICON_SIZE].flags |= line->colour << wimp_ICON_FG_COLOUR_SHIFT;
+
+				if (line->flags & RESULTS_FLAG_SELECTED)
+					icon[RESULTS_ICON_SIZE].flags |= wimp_ICON_SELECTED;
+				else
+					icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_SELECTED;
+
+				icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_SHADED;
+
+				wimp_plot_icon(&(icon[RESULTS_ICON_SIZE]));
 				break;
 
 
@@ -1423,33 +1449,74 @@ void results_add_error(struct results_window *handle, char *message, char *path)
  *
  * \param *handle		The handle of the results window to update.
  * \param key			The database key for the file.
+ * \return			The results line, or RESULTS_NULL on failure.
  */
 
-void results_add_file(struct results_window *handle, unsigned key)
+unsigned results_add_file(struct results_window *handle, unsigned key)
 {
-	unsigned		line;
+	unsigned		file, info;
 
 	if (handle == NULL)
-		return;
+		return RESULTS_NULL;
 
 	/* Add the core filename line */
 
-	line = results_add_line(handle, TRUE);
-	if (line == RESULTS_NULL)
-		return;
+	file = results_add_line(handle, TRUE);
+	if (file == RESULTS_NULL)
+		return RESULTS_NULL;
 
-	handle->redraw[line].type = RESULTS_LINE_FILENAME;
-	handle->redraw[line].file = key;
-	handle->redraw[line].flags |= RESULTS_FLAG_SELECTABLE;
+	handle->redraw[file].type = RESULTS_LINE_FILENAME;
+	handle->redraw[file].file = key;
+	handle->redraw[file].flags |= RESULTS_FLAG_SELECTABLE;
 
 	/* Add the file info line. */
+
+	info = results_add_line(handle, handle->full_info);
+	if (info == RESULTS_NULL)
+		return file;
+
+	handle->redraw[info].type = RESULTS_LINE_FILEINFO;
+	handle->redraw[info].file = key;
+	handle->redraw[info].parent = file;
+
+	return file;
+}
+
+
+/**
+ * Add a piece of file content to the end of the results window.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param key			The database key for the file.
+ * \param parent		The parent line for the file.
+ */
+
+void results_add_contents(struct results_window *handle, unsigned key, unsigned parent, char *text)
+{
+	unsigned		line, offt, length;
+
+	if (handle == NULL || parent == RESULTS_NULL)
+		return;
 
 	line = results_add_line(handle, handle->full_info);
 	if (line == RESULTS_NULL)
 		return;
 
-	handle->redraw[line].type = RESULTS_LINE_FILEINFO;
+	offt = textdump_store(handle->text, text);
+
+	if (offt == TEXTDUMP_NULL)
+		return;
+
+	handle->redraw[line].type = RESULTS_LINE_CONTENTS;
+	handle->redraw[line].text = offt;
+	handle->redraw[line].sprite = FILEICON_ERROR;
+	handle->redraw[line].colour = wimp_COLOUR_DARK_BLUE;
 	handle->redraw[line].file = key;
+	handle->redraw[line].parent = parent;
+
+	length = strlen(text) + 1;
+	if (length > handle->longest_line)
+		handle->longest_line = length;
 }
 
 
@@ -1579,11 +1646,11 @@ static void results_set_display_mode(struct results_window *handle, osbool full_
 		switch (handle->redraw[line].type) {
 		case RESULTS_LINE_TEXT:
 		case RESULTS_LINE_FILENAME:
-		case RESULTS_LINE_CONTENTS:
 			handle->redraw[handle->display_lines++].index = line;
 			break;
 
 		case RESULTS_LINE_FILEINFO:
+		case RESULTS_LINE_CONTENTS:
 			if (full_info)
 				handle->redraw[handle->display_lines++].index = line;
 			break;

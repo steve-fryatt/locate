@@ -80,6 +80,7 @@ struct contents_block {
 	/* File details. */
 
 	unsigned			key;					/**< The ObjectDB key of the file being searched.		*/
+	unsigned			parent;					/**< The Results parent of the file being searched.		*/
 
 	osbool				error;					/**< TRUE if an error has occurred; else FALSE.			*/
 
@@ -143,6 +144,7 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 	new->file_block_size = 1024 * CONTENTS_FILE_BUFFER_SIZE;
 
 	new->key = OBJDB_NULL_KEY;
+	new->parent = RESULTS_NULL;
 
 	new->filename = NULL;
 	new->file = NULL;
@@ -242,6 +244,7 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 		return FALSE;
 
 	handle->key = key;
+	handle->parent = RESULTS_NULL;
 
 	handle->file_extent = 0;
 	handle->file_offset = 0;
@@ -311,10 +314,10 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 
 			if (!handle->invert) {
 				if (!handle->matched)
-					results_add_file(handle->results, handle->key);
+					handle->parent = results_add_file(handle->results, handle->key);
 
 				if (contents_get_context(handle, handle->pointer, end, 15, buffer, 1024))
-					debug_printf("Text matched: '%s'", buffer);
+					results_add_contents(handle->results, handle->key, handle->parent, buffer);
 			}
 
 			handle->matched = TRUE;

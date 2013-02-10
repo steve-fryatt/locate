@@ -35,6 +35,11 @@
 
 struct results_window;
 
+/**
+ * NULL value for results module calls.
+ */
+
+#define RESULTS_NULL 0xffffffff
 
 /**
  * Initialise the Results module.
@@ -139,9 +144,21 @@ void results_add_error(struct results_window *handle, char *message, char *path)
  *
  * \param *handle		The handle of the results window to update.
  * \param key			The database key for the file.
+ * \return			The results line handle, or RESULTS_NULL on failure.
  */
 
-void results_add_file(struct results_window *handle, unsigned key);
+unsigned results_add_file(struct results_window *handle, unsigned key);
+
+
+/**
+ * Add a piece of file content to the end of the results window.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param key			The database key for the file.
+ * \param parent		The parent line for the file.
+ */
+
+void results_add_contents(struct results_window *handle, unsigned key, unsigned parent, char *text);
 
 
 /**
