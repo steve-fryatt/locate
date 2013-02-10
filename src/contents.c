@@ -1,5 +1,8 @@
 /* Copyright 2013, Stephen Fryatt
  *
+ * Wildcard search based on code by Alessandro Cantatore:
+ * http://xoomer.virgilio.it/acantato/dev/wildcard/wildmatch.html
+ *
  * This file is part of Locate:
  *
  *   http://www.stevefryatt.org.uk/software/
@@ -29,6 +32,7 @@
 
 /* ANSI C header files */
 
+#include <ctype.h>
 #include <string.h>
 //#include <stdlib.h>
 //#include <stdio.h>
@@ -43,15 +47,13 @@
 #include "oslib/osfile.h"
 #include "oslib/osfind.h"
 #include "oslib/osgbpb.h"
-//#include "oslib/types.h"
-//#include "oslib/wimp.h"
+#include "oslib/types.h"
 
 /* SF-Lib header files. */
 
 #include "sflib/debug.h"
 #include "sflib/heap.h"
-//#include "sflib/errors.h"
-//#include "sflib/event.h"
+#include "sflib/string.h"
 
 /* Application header files */
 
@@ -101,7 +103,7 @@ struct contents_block {
 };
 
 
-
+static osbool	contents_test_wildcard(struct contents_block *handle, int pointer);
 static osbool	contents_load_file_chunk(struct contents_block *handle, int position);
 static char	contents_get_byte(struct contents_block *handle, int pointer);
 
@@ -159,6 +161,11 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 
 		while (text >= new->text && (*text == '#' || *text == '*'))
 			*text-- = '\0';
+
+		if (new->any_case)
+			string_toupper(new->text);
+
+		debug_printf("String to match: '%s', inverted=%d", new->text, new->invert);
 	} else {
 		mem_ok = FALSE;
 	}
@@ -297,8 +304,8 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 			(os_read_monotonic_time() < end_time)) {
 		byte = contents_get_byte(handle, handle->pointer);
 
-		if (byte == *(handle->text)) {
-			debug_printf("Potential match start at offset %d", handle->pointer);
+		if (byte == *(handle->text) && contents_test_wildcard(handle, handle->pointer)) {
+			debug_printf("Match at offset %d", handle->pointer);
 			if (!handle->invert && !handle->matched)
 				results_add_file(handle->results, handle->key);
 
@@ -311,8 +318,8 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 	debug_printf("Finishing contents search loop at time %u", os_read_monotonic_time());
 
 	if (handle->error || (handle->matched && handle->invert) || handle->pointer >= handle->file_extent) {
-		if (handle->invert && !handle->matched)
-				results_add_file(handle->results, handle->key);
+		if (handle->invert && !handle->matched && !handle->error)
+			results_add_file(handle->results, handle->key);
 
 		if (matched != NULL)
 			*matched = (handle->invert) ? !handle->matched : handle->matched;
@@ -321,6 +328,75 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 	}
 
 	return FALSE;
+}
+
+
+
+
+
+static osbool contents_test_wildcard(struct contents_block *handle, int pointer)
+{
+	int		i;
+	osbool		star = FALSE;
+	char		*pattern = handle->text;
+
+	/* NB: Taking a copy of handle->text into pattern assumes that there will
+	 *     be NO FLEX ACTIVITY for the duration of the wildcard match. If anything
+	 *     does move the flex heap, then this will break messily!
+	 */
+
+	debug_printf("Entering wildcard routine");
+
+loopStart:
+	for (i = 0; pattern[i] != '\0' && (pointer + i) < handle->file_extent; i++) {
+		debug_printf("Loop i=%d, for pattern %c", i, pattern[i]);
+
+		switch (pattern[i]) {
+		case '?':
+			break;
+
+		case '*':
+			star = TRUE;
+
+			pointer += i;
+			pattern += i;
+
+			do {
+				++pattern;
+			} while (*pattern == '*');
+
+			if (!*pattern) {
+				debug_printf("Returning TRUE");
+				return TRUE;
+			}
+
+			goto loopStart;
+
+		default:
+			debug_printf("Testing char=%c against pattern=%c", contents_get_byte(handle, pointer + i), pattern[i]);
+			if (contents_get_byte(handle, pointer + i) != pattern[i])
+				goto starCheck;
+
+			break;
+		}
+	}
+
+	while (pattern[i] == '*')
+		++i;
+
+	debug_printf("Returning %s", (!pattern[i]) ? "TRUE" : "FALSE");
+
+	return (!pattern[i]);
+
+starCheck:
+	if (!star) {
+		debug_printf("Returning FALSE");
+		return FALSE;
+	}
+
+	pointer++;
+
+	goto loopStart;
 }
 
 
@@ -402,7 +478,8 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 
 /**
  * Return the character from a given location within the file, loading the
- * necessary data into memory if required.
+ * necessary data into memory if required. If the search is case-insensitive,
+ * returned characters are adjusted accordingly.
  *
  * \param *handle		The contents search handle.
  * \param pointer		The file pointer of the required byte.
@@ -411,6 +488,8 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 
 static char contents_get_byte(struct contents_block *handle, int pointer)
 {
+	char	byte;
+
 	if (handle == NULL || handle->error)
 		return 0;
 
@@ -423,6 +502,11 @@ static char contents_get_byte(struct contents_block *handle, int pointer)
 	if (pointer < handle->file_offset || pointer >= handle->file_offset + handle->file_block_size)
 		return 0;
 
-	return handle->file[pointer - handle->file_offset];
+	byte = handle->file[pointer - handle->file_offset];
+
+	if (handle->any_case)
+		byte = toupper(byte);
+
+	return byte;
 }
 
