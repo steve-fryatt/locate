@@ -7,4 +7,14 @@ Locate 2 Issues List
 
 * Results window doesn't always redraw on new additions.
 
-* Search doesn't need to store the contents data?
+* Plugin support not implemented.
+
+* Search history is not implemented.
+
+* Caret doesn't move correctly around search dialogue.
+
+* Loading saved results from Locate 1.
+
+* Application icons are not supported by fileicon module.
+
+* Status bar is not updated when saved results are loaded.
