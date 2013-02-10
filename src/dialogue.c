@@ -2199,7 +2199,7 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 
 	if (strcmp(dialogue->contents_text, "") != 0 && strcmp(dialogue->contents_text, "*") != 0 && dialogue->contents_mode != DIALOGUE_CONTENTS_ARE_NOT_IMPORTANT) {
 		strncpy(buffer, dialogue->contents_text, buffer_size);
-		search_set_contents(search, buffer, dialogue->contents_ignore_case, (dialogue->name_mode == DIALOGUE_CONTENTS_DO_NOT_INCLUDE) ? TRUE : FALSE);
+		search_set_contents(search, buffer, dialogue->contents_ignore_case, (dialogue->contents_mode == DIALOGUE_CONTENTS_DO_NOT_INCLUDE) ? TRUE : FALSE);
 	}
 
 	/* Tidy up and start the search. */
