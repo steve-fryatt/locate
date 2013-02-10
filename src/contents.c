@@ -103,9 +103,10 @@ struct contents_block {
 };
 
 
-static osbool	contents_test_wildcard(struct contents_block *handle, int pointer);
+static osbool	contents_test_wildcard(struct contents_block *handle, int pointer, int *end);
 static osbool	contents_load_file_chunk(struct contents_block *handle, int position);
-static char	contents_get_byte(struct contents_block *handle, int pointer);
+static char	contents_get_byte(struct contents_block *handle, int pointer, osbool ignore_case);
+static osbool	contents_get_context(struct contents_block *handle, int start, int end, int context, char *buffer, size_t length);
 
 
 /**
@@ -293,7 +294,8 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 
 osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *matched)
 {
-	char	byte;
+	char	byte, buffer[1024];
+	int	end;
 
 	if (handle == NULL)
 		return TRUE;
@@ -302,12 +304,18 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 
 	while (!handle->error && (!handle->invert || !handle->matched) && (handle->pointer < handle->file_extent) &&
 			(os_read_monotonic_time() < end_time)) {
-		byte = contents_get_byte(handle, handle->pointer);
+		byte = contents_get_byte(handle, handle->pointer, TRUE);
 
-		if (byte == *(handle->text) && contents_test_wildcard(handle, handle->pointer)) {
+		if (byte == *(handle->text) && contents_test_wildcard(handle, handle->pointer, &end)) {
 			debug_printf("Match at offset %d", handle->pointer);
-			if (!handle->invert && !handle->matched)
-				results_add_file(handle->results, handle->key);
+
+			if (!handle->invert) {
+				if (!handle->matched)
+					results_add_file(handle->results, handle->key);
+
+				if (contents_get_context(handle, handle->pointer, end, 15, buffer, 1024))
+					debug_printf("Text matched: '%s'", buffer);
+			}
 
 			handle->matched = TRUE;
 		}
@@ -331,10 +339,16 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 }
 
 
+/**
+ * Run a wildcard test on the file, starting at the given pointer.
+ *
+ * \param *handle		The contents search handle.
+ * \param pointer		The file pointer at which to start the search.
+ * \param *end			Pointer to a variable to take the end pointer for the match.
+ * \return			TRUE if the pattern matches; FALSE if not.
+ */
 
-
-
-static osbool contents_test_wildcard(struct contents_block *handle, int pointer)
+static osbool contents_test_wildcard(struct contents_block *handle, int pointer, int *end)
 {
 	int		i;
 	osbool		star = FALSE;
@@ -345,11 +359,14 @@ static osbool contents_test_wildcard(struct contents_block *handle, int pointer)
 	 *     does move the flex heap, then this will break messily!
 	 */
 
-	debug_printf("Entering wildcard routine");
+	//debug_printf("Entering wildcard routine");
+
+	if (end != NULL)
+		*end = 0;
 
 loopStart:
 	for (i = 0; pattern[i] != '\0' && (pointer + i) < handle->file_extent; i++) {
-		debug_printf("Loop i=%d, for pattern %c", i, pattern[i]);
+		//debug_printf("Loop i=%d, for pattern %c", i, pattern[i]);
 
 		switch (pattern[i]) {
 		case '?':
@@ -366,31 +383,36 @@ loopStart:
 			} while (*pattern == '*');
 
 			if (!*pattern) {
-				debug_printf("Returning TRUE");
+				if (end != NULL)
+					*end = pointer + i - 1;
+				//debug_printf("Returning TRUE");
 				return TRUE;
 			}
 
 			goto loopStart;
 
 		default:
-			debug_printf("Testing char=%c against pattern=%c", contents_get_byte(handle, pointer + i), pattern[i]);
-			if (contents_get_byte(handle, pointer + i) != pattern[i])
+			//debug_printf("Testing char=%c against pattern=%c", contents_get_byte(handle, pointer + i, TRUE), pattern[i]);
+			if (contents_get_byte(handle, pointer + i, TRUE) != pattern[i])
 				goto starCheck;
 
 			break;
 		}
 	}
 
+	if (end != NULL)
+		*end = pointer + i - 1;
+
 	while (pattern[i] == '*')
 		++i;
 
-	debug_printf("Returning %s", (!pattern[i]) ? "TRUE" : "FALSE");
+	//debug_printf("Returning %s", (!pattern[i]) ? "TRUE" : "FALSE");
 
 	return (!pattern[i]);
 
 starCheck:
 	if (!star) {
-		debug_printf("Returning FALSE");
+		//debug_printf("Returning FALSE");
 		return FALSE;
 	}
 
@@ -483,10 +505,11 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
  *
  * \param *handle		The contents search handle.
  * \param pointer		The file pointer of the required byte.
+ * \param ignore_case		TRUE to adjust characters to be case insenstitive.
  * \return			The required character.
  */
 
-static char contents_get_byte(struct contents_block *handle, int pointer)
+static char contents_get_byte(struct contents_block *handle, int pointer, osbool ignore_case)
 {
 	char	byte;
 
@@ -504,9 +527,116 @@ static char contents_get_byte(struct contents_block *handle, int pointer)
 
 	byte = handle->file[pointer - handle->file_offset];
 
-	if (handle->any_case)
+	if (ignore_case && handle->any_case)
 		byte = toupper(byte);
 
 	return byte;
+}
+
+
+/**
+ * Extract the context of a match from the current file and place it into the
+ * supplied buffer.
+ *
+ * \param *handle		The contents search handle.
+ * \param start			The pointer to the first character of the match.
+ * \param end			The pointer to the last character of the match.
+ * \param context		The number of characters to include either side.
+ * \param *buffer		Pointer to the buffer to take the match.
+ * \param length		The size of the supplied buffer.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+static osbool contents_get_context(struct contents_block *handle, int start, int end, int context, char *buffer, size_t length)
+{
+	int prefix, postfix, match_length, skip_from, skip_length, ptr, i;
+
+	if (handle == NULL || buffer == NULL)
+		return FALSE;
+
+	/* Get the number of prefix characters to use.  Include up to the required
+	 * context, stopping on the first non-printing character.
+	 */
+
+	prefix = 0;
+
+	while (((start - (prefix + 1)) >= 0) && isprint(contents_get_byte(handle, start - (prefix + 1), FALSE)) && (prefix < context))
+		prefix++;
+
+	/* Get the number of postfix characters to use.  Include up to the required
+	 * context, stopping on the first non-printing character.
+	 */
+
+	postfix = 0;
+
+	while (((end + (postfix + 1)) < handle->file_extent) && isprint(contents_get_byte(handle, end + (postfix + 1), FALSE)) && (postfix < context))
+		postfix++;
+
+	match_length = (end - start) + 1;
+
+	/* If the match plus context is too big to fit the available space, trim
+	 * the prefix and postfix, and then if that fails take a chunk from the
+	 * centre of the match itself.
+	 */
+
+	skip_from = -1;
+	skip_length = 0;
+
+	if (prefix + match_length + postfix + 1 > length) {
+		while ((postfix > prefix) && ((prefix + match_length + postfix + 1) > length))
+			postfix--;
+
+		while ((prefix > postfix) && ((prefix + match_length + postfix + 1) > length))
+			prefix--;
+
+		/* By now, the same prefix and postfix are in use. If it still won't
+		 * fit, trim both back to the length of the ellipsis.
+		 */
+
+		while ((prefix > 3) && ((prefix + match_length + postfix + 1) > length)) {
+			prefix--;
+			postfix--;
+		}
+
+		/* If it's still to big, take a chunk out of the middle of the
+		 * match.
+		 */
+
+		if ((prefix + match_length + postfix + 1) > length) {
+			skip_length = (prefix + match_length + postfix + 4) - length; // 4 = 1 + Ellipsis
+			skip_from = ((match_length - skip_length) / 2) + start;
+		}
+	}
+
+	/* Copy the context from the file into the buffer. */
+
+	for (ptr = start - prefix, i = 0; (ptr <= (end + postfix)) && (i < (length - 1)); ptr++) {
+		if (ptr == skip_from) {
+			ptr += skip_length;
+			buffer[i++] = '.';
+			buffer[i++] = '.';
+			buffer[i++] = '.';
+		} else {
+			buffer[i++] = contents_get_byte(handle, ptr, FALSE);
+		}
+	}
+
+	buffer[i] = '\0';
+
+	/* Add ellipses to the start and end of the string if required. */
+
+	if (((start - prefix) > 0) && isprint(contents_get_byte(handle, start - (prefix + 1), FALSE))) {
+		buffer[0] = '.';
+		buffer[1] = '.';
+		buffer[2] = '.';
+	}
+
+	if (((end + postfix) < (handle->file_extent - 1)) && isprint(contents_get_byte(handle, end + (postfix + 1), FALSE))) {
+		buffer[i - 1] = '.';
+		buffer[i - 2] = '.';
+		buffer[i - 3] = '.';
+	}
+
+	return TRUE;
 }
 
