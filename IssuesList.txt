@@ -20,3 +20,7 @@ Locate 2 Issues List
 * Status bar is not updated when saved results are loaded.
 
 * Save search options from search dialogue does not capture current window contents.
+
+* Window visible extent isn't changed when full info is turned on and off.
+
+* Full info setting doesn't pass from search dialogue to results window.
