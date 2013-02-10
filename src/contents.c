@@ -309,6 +309,8 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 			(os_read_monotonic_time() < end_time)) {
 		byte = contents_get_byte(handle, handle->pointer, TRUE);
 
+		end = -1;
+
 		if (byte == *(handle->text) && contents_test_wildcard(handle, handle->pointer, &end)) {
 			debug_printf("Match at offset %d", handle->pointer);
 
@@ -321,6 +323,12 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 			}
 
 			handle->matched = TRUE;
+			handle->pointer = end;
+		} else if (end != -1 && end >= handle->file_extent - 1) {
+			/* If the wildcard matching reached the end of the file, then give
+			 * up because we won't manage to find a match.
+			 */
+
 			handle->pointer = end;
 		}
 
@@ -417,6 +425,8 @@ loopStart:
 
 starCheck:
 	if (!star) {
+		if (end != NULL)
+			*end = pointer + i - 1;
 		//debug_printf("Returning FALSE");
 		return FALSE;
 	}
