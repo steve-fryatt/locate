@@ -1,0 +1,10 @@
+Locate 2 Issues List
+--------------------
+
+* Untyped files always match on filetype search.
+
+* Results window doesn't scroll on new additions.
+
+* Results window doesn't always redraw on new additions.
+
+* Search doesn't need to store the contents data?
