@@ -18,3 +18,5 @@ Locate 2 Issues List
 * Application icons are not supported by fileicon module.
 
 * Status bar is not updated when saved results are loaded.
+
+* Save search options from search dialogue does not capture current window contents.
