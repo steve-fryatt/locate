@@ -353,12 +353,13 @@ void search_destroy(struct search_block *search)
  * \param *search		The search to set the options for.
  * \param search_imagefs	TRUE to search into ImageFSs; FALSE to skip.
  * \param store_all		TRUE to store all file details; FALSE to store matches.
+ * \param full_info		TRUE to show full info in the results; FALSE to hide it.
  * \param include_files		TRUE to include files; FALSE to exclude.
  * \param include_directories	TRUE to include directories; FALSE to exclude.
  * \param include_applications	TRUE to include applications; FALSE to exclude.
  */
 
-void search_set_options(struct search_block *search, osbool search_imagefs, osbool store_all,
+void search_set_options(struct search_block *search, osbool search_imagefs, osbool store_all, osbool full_info,
 		osbool include_files, osbool include_directories, osbool include_applications)
 {
 	if (search == NULL)
@@ -370,6 +371,8 @@ void search_set_options(struct search_block *search, osbool search_imagefs, osbo
 	search->include_files = include_files;
 	search->include_directories = include_directories;
 	search->include_applications = include_applications;
+
+	results_set_options(search->results, full_info);
 }
 
 

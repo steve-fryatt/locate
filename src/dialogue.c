@@ -2009,7 +2009,7 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 
 	/* Set the generic search options. */
 
-	search_set_options(search, !dialogue->ignore_imagefs, dialogue->store_all,
+	search_set_options(search, !dialogue->ignore_imagefs, dialogue->store_all, dialogue->full_info,
 			dialogue->type_files, dialogue->type_directories, dialogue->type_applications);
 
 	/* Set the filename search options. */

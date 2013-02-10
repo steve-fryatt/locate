@@ -1289,6 +1289,22 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 
 /**
+ * Set options for a results window.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param full_info		TRUE to display the window in full info mode.
+ */
+
+void results_set_options(struct results_window *handle, osbool full_info)
+{
+	if (handle == NULL)
+		return;
+
+	results_set_display_mode(handle, full_info);
+}
+
+
+/**
  * Update the status bar text for a results window.
  *
  * \param *handle		The handle of the results window to update.

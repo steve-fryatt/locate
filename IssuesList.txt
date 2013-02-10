@@ -27,4 +27,4 @@ Locate 2 Issues List
 
 * Window visible extent isn't changed when full info is turned on and off.
 
-* Full info setting doesn't pass from search dialogue to results window.
+* What does Suppress Errors option actually do?!

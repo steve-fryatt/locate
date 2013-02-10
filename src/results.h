@@ -96,6 +96,16 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 
 
 /**
+ * Set options for a results window.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param full_info		TRUE to display the window in full info mode.
+ */
+
+void results_set_options(struct results_window *handle, osbool full_info);
+
+
+/**
  * Update the status bar text for a results window.
  *
  * \param *handle		The handle of the results window to update.
