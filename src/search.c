@@ -864,9 +864,11 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 						/* If we're testing filetype and the type falls between 0x000 and 0xfff, is it set in the bitmask? */
 
-						(!search->test_filetype || (search->stack[stack].filetype < 0x000) || (search->stack[stack].filetype > 0xfff) ||
+						(!search->test_filetype || ((search->stack[stack].filetype >= 0x000) && (search->stack[stack].filetype <= 0xfff) &&
 								((search->filetypes[search->stack[stack].filetype /
-										(8 * sizeof(bits))] & (1 << (search->stack[stack].filetype % (8 * sizeof(bits))))) != 0)) &&
+										(8 * sizeof(bits))] & (1 << (search->stack[stack].filetype % (8 * sizeof(bits))))) != 0)) ||
+								((search->stack[stack].filetype == osfile_TYPE_UNTYPED) && search->include_untyped) ||
+								(search->stack[stack].filetype == osfile_TYPE_APPLICATION) || (search->stack[stack].filetype == osfile_TYPE_DIR)) &&
 
 						/* If we're testing attributes, do the bits cancel out? */
 
