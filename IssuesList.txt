@@ -23,6 +23,4 @@ Locate 2 Issues List
 
 * Save search options from search dialogue does not capture current window contents.
 
-* Window visible extent isn't changed when full info is turned on and off.
-
 * What does Suppress Errors option actually do?!

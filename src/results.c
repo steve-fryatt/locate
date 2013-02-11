@@ -1693,16 +1693,28 @@ static void results_update_extent(struct results_window *handle)
 {
 	wimp_window_info	info;
 	unsigned		lines;
+	int			new_y_extent;
 
 	if (handle == NULL)
 		return;
+
+	lines = (handle->display_lines > RESULTS_MIN_LINES) ? handle->display_lines : RESULTS_MIN_LINES;
+	new_y_extent = -((lines * RESULTS_LINE_HEIGHT) + RESULTS_TOOLBAR_HEIGHT + RESULTS_STATUS_HEIGHT);
 
 	info.w = handle->window;
 	if (xwimp_get_window_info_header_only(&info) != NULL)
 		return;
 
+	if (new_y_extent > (info.visible.y0 - info.visible.y1))
+		info.visible.y0 = info.visible.y1 + new_y_extent;
+	else if (new_y_extent > (info.visible.y0 - info.visible.y1 + info.yscroll))
+		info.yscroll = new_y_extent - (info.visible.y0 - info.visible.y1);
+
+	if (xwimp_open_window((wimp_open *) &info) != NULL)
+		return;
+
 	lines = (handle->display_lines > RESULTS_MIN_LINES) ? handle->display_lines : RESULTS_MIN_LINES;
-	info.extent.y0 = -((lines * RESULTS_LINE_HEIGHT) + RESULTS_TOOLBAR_HEIGHT + RESULTS_STATUS_HEIGHT);
+	info.extent.y0 = info.extent.y1 + new_y_extent;
 
 	xwimp_set_extent(handle->window, &(info.extent));
 }
