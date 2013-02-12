@@ -1731,7 +1731,7 @@ static void results_update_extent(struct results_window *handle, osbool to_end)
 	if (xwimp_set_extent(handle->window, &(info.extent)) != NULL)
 		return;
 
-	if (to_end) {
+	if (to_end && LINE_Y0(handle->display_lines) < (info.visible.y0 - info.visible.y1 + info.yscroll)) {
 		info.yscroll = new_y_extent - (info.visible.y0 - info.visible.y1);
 		xwimp_open_window((wimp_open *) &info);
 	}
