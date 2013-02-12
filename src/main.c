@@ -275,9 +275,11 @@ static void main_parse_command_line(int argc, char *argv[])
 	int     i;
 
 	if (argc > 1) {
-		for (i=1; i<argc; i++) {
-			if (strcmp(argv[i], "-file") == 0 && i <= argc)
-				file_create_from_saved(argv[i+1]);
+		for (i = 1; i < argc; i++) {
+			if (strcmp(argv[i], "-file") == 0 && (i + 1) < argc)
+				file_create_from_saved(argv[i + 1]);
+			else if (strcmp(argv[i], "-open") == 0 && (i + 1) < argc)
+				file_create_dialogue_at(argv[i + 1]);
 		}
 	}
 }

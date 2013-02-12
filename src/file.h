@@ -44,6 +44,17 @@ struct file_block *file_create(void);
 
 
 /**
+ * Create a new file block by opening a search window using the value of the
+ * -open parameter from the command line. The parameter is in the form
+ * "XxY".
+ *
+ * \param *coords		Pointer to the parameter value to parse.
+ */
+
+void file_create_dialogue_at(char *coords);
+
+
+/**
  * Create a new file block by opening a search window.
  *
  * \param *pointer		The pointer position to open the dialogue at.
