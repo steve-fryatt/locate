@@ -482,6 +482,9 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	results_window_def->title_data.indirected_text.size = (title == NULL) ? TITLE_LENGTH : strlen(title_block) + 1;
 	results_window_def->sprite_area = results_sprite_area;
 
+	results_window_def->extent.y1 = 0;
+	results_window_def->extent.y0 = -((RESULTS_MIN_LINES * RESULTS_LINE_HEIGHT) + RESULTS_TOOLBAR_HEIGHT + RESULTS_STATUS_HEIGHT);
+
 	results_status_def->icons[RESULTS_ICON_STATUS].data.indirected_text.text = status_block;
 	results_status_def->icons[RESULTS_ICON_STATUS].data.indirected_text.size = STATUS_LENGTH;
 	*status_block = '\0';
