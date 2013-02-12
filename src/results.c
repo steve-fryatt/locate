@@ -1030,15 +1030,13 @@ static void results_close_handler(wimp_close *close)
 
 static void results_redraw_handler(wimp_draw *redraw)
 {
-	int			ox, oy, top, bottom, y;
+	int			ox, oy, top, bottom, y, i;
 	osbool			more;
 	struct results_window	*handle;
-	struct results_line	*line;
 	struct fileicon_info	typeinfo;
 	struct objdb_info	object;
 	osgbpb_info		*file;
 	wimp_icon		*icon;
-	char			*text, *fileicon;
 	char			validation[255];
 	char			*truncation, *size, *attributes, *date;
 	size_t			truncation_len;
@@ -1087,9 +1085,6 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 	/* Redraw the window. */
 
-	text = textdump_get_base(handle->text);
-	fileicon = fileicon_get_base();
-
 	more = wimp_redraw_window(redraw);
 
 	ox = redraw->box.x0 - redraw->xscroll;
@@ -1105,21 +1100,21 @@ static void results_redraw_handler(wimp_draw *redraw)
 			bottom = handle->display_lines;
 
 		for (y = top; y < bottom; y++) {
-			line = &(handle->redraw[handle->redraw[y].index]);
+			i = handle->redraw[y].index;
 
-			switch (line->type) {
+			switch (handle->redraw[i].type) {
 			case RESULTS_LINE_FILENAME:
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
-				objdb_get_info(handle->objects, line->file, NULL, &object);
+				objdb_get_info(handle->objects, handle->redraw[i].file, NULL, &object);
 				fileicon_get_type_icon(object.filetype, "", &typeinfo);
 
 				if (typeinfo.small != TEXTDUMP_NULL) {
-					strcpy(validation + 1, fileicon + typeinfo.small);
+					strcpy(validation + 1, fileicon_get_base() + typeinfo.small);
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 				} else if (typeinfo.large != TEXTDUMP_NULL) {
-					strcpy(validation + 1, fileicon + typeinfo.large);
+					strcpy(validation + 1, fileicon_get_base() + typeinfo.large);
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
 				} else {
 					strcpy(validation + 1, "small_xxx");
@@ -1132,27 +1127,27 @@ static void results_redraw_handler(wimp_draw *redraw)
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SHADED;
 
 				if (truncation != NULL)
-					objdb_get_name(handle->objects, line->file, truncation + 3, truncation_len - 3);
+					objdb_get_name(handle->objects, handle->redraw[i].file, truncation + 3, truncation_len - 3);
 
 				if (truncation == NULL) {
 					icon[RESULTS_ICON_FILE].data.indirected_text.text = "Redraw Error";
-				} else if (line->truncate > 0) {
-					truncation[line->truncate] = '.';
-					truncation[line->truncate + 1] = '.';
-					truncation[line->truncate + 2] = '.';
-					icon[RESULTS_ICON_FILE].data.indirected_text.text = truncation + line->truncate;
+				} else if (handle->redraw[i].truncate > 0) {
+					truncation[handle->redraw[i].truncate] = '.';
+					truncation[handle->redraw[i].truncate + 1] = '.';
+					truncation[handle->redraw[i].truncate + 2] = '.';
+					icon[RESULTS_ICON_FILE].data.indirected_text.text = truncation + handle->redraw[i].truncate;
 				} else {
 					icon[RESULTS_ICON_FILE].data.indirected_text.text = truncation + 3;
 				}
 
 				icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_FG_COLOUR;
-				icon[RESULTS_ICON_FILE].flags |= (line->colour << wimp_ICON_FG_COLOUR_SHIFT);
-				if (line->flags & RESULTS_FLAG_HALFSIZE)
+				icon[RESULTS_ICON_FILE].flags |= (handle->redraw[i].colour << wimp_ICON_FG_COLOUR_SHIFT);
+				if (handle->redraw[i].flags & RESULTS_FLAG_HALFSIZE)
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
 				else
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 
-				if (line->flags & RESULTS_FLAG_SELECTED)
+				if (handle->redraw[i].flags & RESULTS_FLAG_SELECTED)
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SELECTED;
 				else
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_SELECTED;
@@ -1165,11 +1160,11 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_TYPE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_TYPE].extent.y1 = LINE_Y1(y);
 
-				objdb_get_info(handle->objects, line->file, file, &object);
+				objdb_get_info(handle->objects, handle->redraw[i].file, file, &object);
 				fileicon_get_type_icon(object.filetype, "", &typeinfo);
 
 				if (typeinfo.name != TEXTDUMP_NULL) {
-					icon[RESULTS_ICON_TYPE].data.indirected_text.text = fileicon + typeinfo.name;
+					icon[RESULTS_ICON_TYPE].data.indirected_text.text = fileicon_get_base() + typeinfo.name;
 				} else {
 					icon[RESULTS_ICON_TYPE].data.indirected_text.text = "";
 				}
@@ -1211,7 +1206,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 				}
 
 				icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_FG_COLOUR;
-				icon[RESULTS_ICON_SIZE].flags |= (line->colour << wimp_ICON_FG_COLOUR_SHIFT);
+				icon[RESULTS_ICON_SIZE].flags |= (handle->redraw[i].colour << wimp_ICON_FG_COLOUR_SHIFT);
 				icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_SELECTED;
 
 				wimp_plot_icon(&(icon[RESULTS_ICON_SIZE]));
@@ -1225,16 +1220,20 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_SIZE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_SIZE].extent.y1 = LINE_Y1(y);
 
-				if (truncation != NULL && line->truncate > 0) {
-					strcpy(truncation + 3, text + line->text + line->truncate);
+				/* We're about to copy a pointer to the icon text from the flex heap,
+				 * so take care not to shift the heap until wimp_plot_icon().
+				 */
+
+				if (truncation != NULL && handle->redraw[i].truncate > 0) {
+					strcpy(truncation + 3, textdump_get_base(handle->text) + handle->redraw[i].text + handle->redraw[i].truncate);
 					icon[RESULTS_ICON_SIZE].data.indirected_text.text = truncation;
 				} else {
-					icon[RESULTS_ICON_SIZE].data.indirected_text.text = text + line->text;
+					icon[RESULTS_ICON_SIZE].data.indirected_text.text = textdump_get_base(handle->text) + handle->redraw[i].text;
 				}
 				icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_FG_COLOUR;
-				icon[RESULTS_ICON_SIZE].flags |= (line->colour << wimp_ICON_FG_COLOUR_SHIFT);
+				icon[RESULTS_ICON_SIZE].flags |= (handle->redraw[i].colour << wimp_ICON_FG_COLOUR_SHIFT);
 
-				if (line->flags & RESULTS_FLAG_SELECTED)
+				if (handle->redraw[i].flags & RESULTS_FLAG_SELECTED)
 					icon[RESULTS_ICON_SIZE].flags |= wimp_ICON_SELECTED;
 				else
 					icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_SELECTED;
@@ -1249,29 +1248,33 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
-				fileicon_get_special_icon(line->sprite, &typeinfo);
+				fileicon_get_special_icon(handle->redraw[i].sprite, &typeinfo);
 
 				if (typeinfo.small != TEXTDUMP_NULL) {
-					strcpy(validation + 1, fileicon + typeinfo.small);
+					strcpy(validation + 1, fileicon_get_base() + typeinfo.small);
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 				} else if (typeinfo.large != TEXTDUMP_NULL) {
-					strcpy(validation + 1, fileicon + typeinfo.large);
+					strcpy(validation + 1, fileicon_get_base() + typeinfo.large);
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
 				} else {
 					strcpy(validation + 1, "small_xxx");
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 				}
 
-				if (truncation != NULL && line->truncate > 0) {
-					strcpy(truncation + 3, text + line->text + line->truncate);
+				/* We're about to copy a pointer to the icon text from the flex heap,
+				 * so take care not to shift the heap until wimp_plot_icon().
+				 */
+
+				if (truncation != NULL && handle->redraw[i].truncate > 0) {
+					strcpy(truncation + 3, textdump_get_base(handle->text) + handle->redraw[i].text + handle->redraw[i].truncate);
 					icon[RESULTS_ICON_FILE].data.indirected_text.text = truncation;
 				} else {
-					icon[RESULTS_ICON_FILE].data.indirected_text.text = text + line->text;
+					icon[RESULTS_ICON_FILE].data.indirected_text.text = textdump_get_base(handle->text) + handle->redraw[i].text;
 				}
 				icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_FG_COLOUR;
-				icon[RESULTS_ICON_FILE].flags |= (line->colour << wimp_ICON_FG_COLOUR_SHIFT);
+				icon[RESULTS_ICON_FILE].flags |= (handle->redraw[i].colour << wimp_ICON_FG_COLOUR_SHIFT);
 
-				if (line->flags & RESULTS_FLAG_SELECTED)
+				if (handle->redraw[i].flags & RESULTS_FLAG_SELECTED)
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SELECTED;
 				else
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_SELECTED;

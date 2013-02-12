@@ -86,6 +86,8 @@ char *fileicon_get_base(void);
  * Return the offset of a sprite name suitable for the given file with
  * a type and name as specified.
  *
+ * This call could move the flex heap if memory has to be allocated internally.
+ *
  * \param type			The filetype of the file.
  * \param *name			The name of the file.
  * \info *icon			Pointer to a block to take the filetype details.
