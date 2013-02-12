@@ -195,6 +195,8 @@ struct results_window {
 
 	unsigned		format_width;					/**< The currently formatted window width.				*/
 
+	osbool			scroll_to_end;					/**< TRUE if the window should scroll on new additions; else FALSE.	*/
+
 	/* Results Window line data. */
 
 	struct results_line	*redraw;					/**< The array of redraw data for the window.				*/
@@ -282,7 +284,7 @@ static void	results_menu_close(wimp_w w, wimp_menu *menu);
 static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
 static void	results_set_display_mode(struct results_window *handle, osbool full_info);
-static void	results_update_extent(struct results_window *handle);
+static void	results_update_extent(struct results_window *handle, osbool to_end);
 static void	results_add_raw(struct results_window *handle, enum results_line_type type, unsigned message, wimp_colour colour, enum fileicon_icons sprite);
 static unsigned	results_add_line(struct results_window *handle, osbool show);
 static osbool	results_extend(struct results_window *handle, unsigned lines);
@@ -457,6 +459,8 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	new->display_lines = 0;
 
 	new->full_info = FALSE;
+
+	new->scroll_to_end = config_opt_read("ScrollResults");
 
 	new->longest_line = 0;
 
@@ -1621,7 +1625,7 @@ void results_reformat(struct results_window *handle, osbool all)
 
 	handle->formatted_lines = handle->redraw_lines;
 
-	results_update_extent(handle);
+	results_update_extent(handle, handle->scroll_to_end);
 }
 
 
@@ -1678,7 +1682,7 @@ static void results_set_display_mode(struct results_window *handle, osbool full_
 
 	handle->full_info = full_info;
 
-	results_update_extent(handle);
+	results_update_extent(handle, FALSE);
 	windows_redraw(handle->window);
 }
 
@@ -1687,13 +1691,16 @@ static void results_set_display_mode(struct results_window *handle, osbool full_
  * Update the window extent to hold all of the defined lines.
  *
  * \param *handle		The handle of the results window to update.
+ * \param to_end		TRUE to scroll to the end of the display, FALSE to
+ *				retain the current scroll offset if possible.
  */
 
-static void results_update_extent(struct results_window *handle)
+static void results_update_extent(struct results_window *handle, osbool to_end)
 {
 	wimp_window_info	info;
 	unsigned		lines;
 	int			new_y_extent;
+	osbool			reopen = TRUE;
 
 	if (handle == NULL)
 		return;
@@ -1707,16 +1714,24 @@ static void results_update_extent(struct results_window *handle)
 
 	if (new_y_extent > (info.visible.y0 - info.visible.y1))
 		info.visible.y0 = info.visible.y1 + new_y_extent;
-	else if (new_y_extent > (info.visible.y0 - info.visible.y1 + info.yscroll))
+	else if ((new_y_extent > (info.visible.y0 - info.visible.y1 + info.yscroll)))
 		info.yscroll = new_y_extent - (info.visible.y0 - info.visible.y1);
+	else
+		reopen = FALSE;
 
-	if (xwimp_open_window((wimp_open *) &info) != NULL)
+	if (reopen && (xwimp_open_window((wimp_open *) &info) != NULL))
 		return;
 
 	lines = (handle->display_lines > RESULTS_MIN_LINES) ? handle->display_lines : RESULTS_MIN_LINES;
 	info.extent.y0 = info.extent.y1 + new_y_extent;
 
-	xwimp_set_extent(handle->window, &(info.extent));
+	if (xwimp_set_extent(handle->window, &(info.extent)) != NULL)
+		return;
+
+	if (to_end) {
+		info.yscroll = new_y_extent - (info.visible.y0 - info.visible.y1);
+		xwimp_open_window((wimp_open *) &info);
+	}
 }
 
 
