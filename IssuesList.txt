@@ -1,8 +1,6 @@
 Locate 2 Issues List
 --------------------
 
-* On long searches (Beagleboard) icon background turns light blue!
-
 * Check the correct behaviour of contents searches.
 
 * Status bar is not updated when saved results are loaded.
