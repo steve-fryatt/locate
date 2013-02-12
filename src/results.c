@@ -1146,7 +1146,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 				}
 
 				icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_FG_COLOUR;
-				icon[RESULTS_ICON_FILE].flags |= line->colour << wimp_ICON_FG_COLOUR_SHIFT;
+				icon[RESULTS_ICON_FILE].flags |= (line->colour << wimp_ICON_FG_COLOUR_SHIFT);
 				if (line->flags & RESULTS_FLAG_HALFSIZE)
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
 				else
@@ -1211,7 +1211,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 				}
 
 				icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_FG_COLOUR;
-				icon[RESULTS_ICON_SIZE].flags |= line->colour << wimp_ICON_FG_COLOUR_SHIFT;
+				icon[RESULTS_ICON_SIZE].flags |= (line->colour << wimp_ICON_FG_COLOUR_SHIFT);
 				icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_SELECTED;
 
 				wimp_plot_icon(&(icon[RESULTS_ICON_SIZE]));
@@ -1232,7 +1232,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 					icon[RESULTS_ICON_SIZE].data.indirected_text.text = text + line->text;
 				}
 				icon[RESULTS_ICON_SIZE].flags &= ~wimp_ICON_FG_COLOUR;
-				icon[RESULTS_ICON_SIZE].flags |= line->colour << wimp_ICON_FG_COLOUR_SHIFT;
+				icon[RESULTS_ICON_SIZE].flags |= (line->colour << wimp_ICON_FG_COLOUR_SHIFT);
 
 				if (line->flags & RESULTS_FLAG_SELECTED)
 					icon[RESULTS_ICON_SIZE].flags |= wimp_ICON_SELECTED;
@@ -1269,7 +1269,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 					icon[RESULTS_ICON_FILE].data.indirected_text.text = text + line->text;
 				}
 				icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_FG_COLOUR;
-				icon[RESULTS_ICON_FILE].flags |= line->colour << wimp_ICON_FG_COLOUR_SHIFT;
+				icon[RESULTS_ICON_FILE].flags |= (line->colour << wimp_ICON_FG_COLOUR_SHIFT);
 
 				if (line->flags & RESULTS_FLAG_SELECTED)
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SELECTED;
