@@ -203,7 +203,8 @@ struct results_window {
 	unsigned		redraw_lines;					/**< The number of lines in the window.					*/
 	unsigned		redraw_size;					/**< The number of redraw lines claimed.				*/
 
-	unsigned		formatted_lines;				/**< The number of lines currently formatted;				*/
+	unsigned		formatted_lines;				/**< The number of lines currently formatted during search.		*/
+	unsigned		redrawn_lines;					/**< The number of lines currently redrawn during search.		*/
 
 	unsigned		display_lines;					/**< The number of lines currently indexed into the window.		*/
 
@@ -455,6 +456,7 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	new->redraw_lines = 0;
 
 	new->formatted_lines = 0;
+	new->redrawn_lines = 0;
 
 	new->display_lines = 0;
 
@@ -1621,9 +1623,10 @@ void results_reformat(struct results_window *handle, osbool all)
 
 	error = xwimp_force_redraw(handle->window,
 			0, LINE_Y0(handle->display_lines - 1),
-			handle->format_width, (all) ? LINE_Y1(0) : LINE_Y1(handle->formatted_lines));
+			handle->format_width, (all) ? LINE_Y1(0) : LINE_Y1(handle->redrawn_lines));
 
 	handle->formatted_lines = handle->redraw_lines;
+	handle->redrawn_lines = handle->display_lines;
 
 	results_update_extent(handle, handle->scroll_to_end);
 }
