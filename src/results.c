@@ -1725,7 +1725,6 @@ static void results_update_extent(struct results_window *handle, osbool to_end)
 	if (reopen && (xwimp_open_window((wimp_open *) &info) != NULL))
 		return;
 
-	lines = (handle->display_lines > RESULTS_MIN_LINES) ? handle->display_lines : RESULTS_MIN_LINES;
 	info.extent.y0 = info.extent.y1 + new_y_extent;
 
 	if (xwimp_set_extent(handle->window, &(info.extent)) != NULL)
