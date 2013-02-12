@@ -3,22 +3,20 @@ Locate 2 Issues List
 
 * Check the correct behaviour of contents searches.
 
-* File contents strings should be centred on match in window.
+* Status bar is not updated when saved results are loaded.
 
-* Results window doesn't always redraw on new additions.
+* Caret doesn't move correctly around search dialogue.
+
+* Save search options from search dialogue does not capture current window contents.
+
+* Application icons are not supported by fileicon module.
+
+* File contents strings should be centred on match in window.
 
 * Plugin support not implemented.
 
 * Search history is not implemented.
 
-* Caret doesn't move correctly around search dialogue.
-
 * Loading saved results from Locate 1.
-
-* Application icons are not supported by fileicon module.
-
-* Status bar is not updated when saved results are loaded.
-
-* Save search options from search dialogue does not capture current window contents.
 
 * What does Suppress Errors option actually do?!
