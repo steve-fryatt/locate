@@ -10,6 +10,8 @@ Locate 2 Issues List
 * Save search options from search dialogue does not capture current window contents.
 
 * Application icons are not supported by fileicon module.
+* DEADDEAD icons are not supported by the fileicon module.
+-> fileicon_get_object_icon() taking ObjDB key would fix this and streamline results module?
 
 * File contents strings should be centred on match in window.
 
