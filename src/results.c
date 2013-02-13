@@ -184,6 +184,8 @@ struct results_line {
 	unsigned		truncate;					/**< Non-zero indicates first character of text to be displayed.	*/
 	wimp_colour		colour;						/**< The foreground colour of the text.					*/
 
+	unsigned		format_width;					/**< The window width, in OS units, to which the line is formatted.	*/
+
 	unsigned		index;						/**< Sort indirection index. UNCONNECTED TO REMAINING DATA.		*/
 };
 
@@ -203,7 +205,6 @@ struct results_window {
 	unsigned		redraw_lines;					/**< The number of lines in the window.					*/
 	unsigned		redraw_size;					/**< The number of redraw lines claimed.				*/
 
-	unsigned		formatted_lines;				/**< The number of lines currently formatted during search.		*/
 	unsigned		redrawn_lines;					/**< The number of lines currently redrawn during search.		*/
 
 	unsigned		display_lines;					/**< The number of lines currently indexed into the window.		*/
@@ -284,6 +285,7 @@ static void	results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 static void	results_menu_close(wimp_w w, wimp_menu *menu);
 static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_close_handler(wimp_close *close);
+static void	results_reformat_line(struct results_window *handle, unsigned line, char *truncate, size_t truncate_len);
 static void	results_set_display_mode(struct results_window *handle, osbool full_info);
 static void	results_update_extent(struct results_window *handle, osbool to_end);
 static void	results_add_raw(struct results_window *handle, enum results_line_type type, unsigned message, wimp_colour colour, enum fileicon_icons sprite);
@@ -455,7 +457,6 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	new->redraw_size = RESULTS_ALLOC_REDRAW;
 	new->redraw_lines = 0;
 
-	new->formatted_lines = 0;
 	new->redrawn_lines = 0;
 
 	new->display_lines = 0;
@@ -750,7 +751,7 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 
 	/* Reformat the loaded lines in the window. */
 
-	results_reformat(new, TRUE);
+	results_accept_lines(new);
 
 	return new;
 }
@@ -1103,6 +1104,9 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 		for (y = top; y < bottom; y++) {
 			i = handle->redraw[y].index;
+
+			if (handle->redraw[i].format_width != handle->format_width)
+				results_reformat_line(handle, i, truncation, truncation_len);
 
 			switch (handle->redraw[i].type) {
 			case RESULTS_LINE_FILENAME:
@@ -1551,30 +1555,49 @@ void results_add_contents(struct results_window *handle, unsigned key, unsigned 
 
 
 /**
- * Reformat lines in the results window to take into account the current
- * display width.
+ * Update the extent of the results window to take into account the current
+ * number of lines, and redraw any new areas.
  *
  * \param *handle		The handle of the results window to update.
- * \param all			TRUE to format all lines; FALSE to format
- *				only those added since the last update.
  */
 
-void results_reformat(struct results_window *handle, osbool all)
+void results_accept_lines(struct results_window *handle)
 {
 	os_error		*error;
-	int			line, width, length, pos;
-	size_t			truncate_len;
-	char			*text, *truncate;
 
 	if (handle == NULL)
 		return;
 
-	truncate_len = objdb_get_name_length(handle->objects, OBJDB_NULL_KEY) + 3;
-	if (truncate_len < handle->longest_line + 4)
-		truncate_len = handle->longest_line + 4;
-	truncate = malloc(truncate_len);
+	results_update_extent(handle, handle->scroll_to_end);
 
-	if (truncate == NULL)
+	error = xwimp_force_redraw(handle->window,
+			0, LINE_Y0(handle->display_lines - 1),
+			handle->format_width, LINE_Y1(handle->redrawn_lines));
+
+	handle->redrawn_lines = handle->display_lines;
+}
+
+
+/**
+ * Reformat a line in the results window to take into account the current
+ * display width. If the line is already formatted to the current width then
+ * do nothing.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param line			The line to be reformatted.
+ * \param *truncate		Pointer to a buffer to use for the formatting.
+ * \param truncate_len		The length of the truncation buffer.
+ */
+
+static void results_reformat_line(struct results_window *handle, unsigned line, char *truncate, size_t truncate_len)
+{
+	int			width, length, pos;
+	char			*text;
+
+	if (handle == NULL || truncate == NULL)
+		return;
+
+	if (handle->redraw[line].format_width == handle->format_width)
 		return;
 
 	strcpy(truncate, "...");
@@ -1583,60 +1606,49 @@ void results_reformat(struct results_window *handle, osbool all)
 
 	width = handle->format_width - (2 * RESULTS_WINDOW_MARGIN) - RESULTS_ICON_WIDTH;
 
-	for (line = (all) ? 0 : handle->formatted_lines; line < handle->redraw_lines; line++) {
-		switch (handle->redraw[line].type) {
-		case RESULTS_LINE_FILENAME:
-			objdb_get_name(handle->objects, handle->redraw[line].file, truncate + 3, truncate_len - 3);
+	switch (handle->redraw[line].type) {
+	case RESULTS_LINE_FILENAME:
+		objdb_get_name(handle->objects, handle->redraw[line].file, truncate + 3, truncate_len - 3);
 
-			if (wimptextop_string_width(truncate + 3, 0) <= width)
-				break;
-
-			length = strlen(truncate + 3);
-			pos = 0;
-
-			while (pos < length &&
-					wimptextop_string_width(truncate + pos, 0) > width) {
-					*(truncate + pos + 3) = '.';
-					pos++;
-			}
-
-			if (pos > 0)
-				handle->redraw[line].truncate = pos;
+		if (wimptextop_string_width(truncate + 3, 0) <= width)
 			break;
 
-		case RESULTS_LINE_TEXT:
-			if (wimptextop_string_width(text + handle->redraw[line].text, 0) <= width)
-				break;
+		length = strlen(truncate + 3);
+		pos = 0;
 
-			strcpy(truncate + 3, text + handle->redraw[line].text);
-			length = strlen(truncate + 3);
-			pos = 0;
-
-			while (pos < length &&
-					wimptextop_string_width(truncate + pos, 0) > width) {
-					*(truncate + pos + 3) = '.';
-					pos++;
-			}
-
-			if (pos > 0)
-				handle->redraw[line].truncate = pos;
-			break;
-
-		default:
-			break;
+		while (pos < length &&
+				wimptextop_string_width(truncate + pos, 0) > width) {
+				*(truncate + pos + 3) = '.';
+				pos++;
 		}
+
+		if (pos > 0)
+			handle->redraw[line].truncate = pos;
+		break;
+
+	case RESULTS_LINE_TEXT:
+		if (wimptextop_string_width(text + handle->redraw[line].text, 0) <= width)
+			break;
+
+		strcpy(truncate + 3, text + handle->redraw[line].text);
+		length = strlen(truncate + 3);
+		pos = 0;
+
+		while (pos < length &&
+				wimptextop_string_width(truncate + pos, 0) > width) {
+				*(truncate + pos + 3) = '.';
+				pos++;
+		}
+
+		if (pos > 0)
+			handle->redraw[line].truncate = pos;
+		break;
+
+	default:
+		break;
 	}
 
-	free(truncate);
-
-	error = xwimp_force_redraw(handle->window,
-			0, LINE_Y0(handle->display_lines - 1),
-			handle->format_width, (all) ? LINE_Y1(0) : LINE_Y1(handle->redrawn_lines));
-
-	handle->formatted_lines = handle->redraw_lines;
-	handle->redrawn_lines = handle->display_lines;
-
-	results_update_extent(handle, handle->scroll_to_end);
+	handle->redraw[line].format_width = handle->format_width;
 }
 
 
@@ -1784,6 +1796,7 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 	handle->redraw[offset].sprite = FILEICON_UNKNOWN;
 	handle->redraw[offset].truncate = 0;
 	handle->redraw[offset].colour = wimp_COLOUR_BLACK;
+	handle->redraw[offset].format_width = 0;
 
 	/* If the line is for immediate display, add it to the index. */
 

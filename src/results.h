@@ -172,15 +172,13 @@ void results_add_contents(struct results_window *handle, unsigned key, unsigned 
 
 
 /**
- * Reformat lines in the results window to take into account the current
- * display width.
+ * Update the extent of the results window to take into account the current
+ * number of lines, and redraw any new areas.
  *
  * \param *handle		The handle of the results window to update.
- * \param all			TRUE to format all lines; FALSE to format
- *				only those added since the last update.
  */
 
-void results_reformat(struct results_window *handle, osbool all);
+void results_accept_lines(struct results_window *handle);
 
 #endif
 

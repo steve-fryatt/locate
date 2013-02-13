@@ -979,7 +979,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 		results_set_status_template(search->results, "Searching", filename);
 	}
 
-	results_reformat(search->results, FALSE);
+	results_accept_lines(search->results);
 
 	return TRUE;
 }
