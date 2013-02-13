@@ -1,6 +1,8 @@
 Locate 2 Issues List
 --------------------
 
+* Select All followed by the menu closing will deselect all.
+
 * Check the correct behaviour of contents searches.
 
 * Status bar is not updated when saved results are loaded.
