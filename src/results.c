@@ -957,10 +957,12 @@ static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 
 	case RESULTS_MENU_SELECT_ALL:
 		results_select_all(handle);
+		handle->selection_from_menu = FALSE;
 		break;
 
 	case RESULTS_MENU_CLEAR_SELECTION:
 		results_select_none(handle);
+		handle->selection_from_menu = FALSE;
 		break;
 
 	case RESULTS_MENU_OPEN_PARENT:
