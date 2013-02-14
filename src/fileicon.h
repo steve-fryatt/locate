@@ -30,6 +30,7 @@
 #ifndef LOCATE_FILEICON
 #define LOCATE_FILEICON
 
+#include "oslib/osgbpb.h"
 #include "oslib/types.h"
 
 #include "textdump.h"
@@ -83,19 +84,31 @@ char *fileicon_get_base(void);
 
 
 /**
+ * Return the offset of a sprite name suitable for the given object with
+ * the details as given.
+ *
+ * This call could move the flex heap if memory has to be allocated internally.
+ *
+ * \param *file			The file details.
+ * \param *info			Pointer to block to take the filetype details.
+ * \return			TRUE on success; else FALSE.
+ */
+
+osbool fileicon_get_object_icon(osgbpb_info *file, struct fileicon_info *info);
+
+
+/**
  * Return the offset of a sprite name suitable for the given file with
- * a type and name as specified.
+ * a type specified.
  *
  * This call could move the flex heap if memory has to be allocated internally.
  *
  * \param type			The filetype of the file.
- * \param *name			The name of the file.
- * \info *icon			Pointer to a block to take the filetype details.
+ * \param *info			Pointer to block to take the filetype details.
  * \return			TRUE on success; else FALSE.
- * \return			Offset to the sprite name, or TEXTDUMP_NULL.
  */
 
-osbool fileicon_get_type_icon(unsigned type, char *name, struct fileicon_info *info);
+osbool fileicon_get_type_icon(unsigned type, struct fileicon_info *info);
 
 
 /**

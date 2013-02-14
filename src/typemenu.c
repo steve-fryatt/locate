@@ -158,7 +158,7 @@ wimp_menu *typemenu_build(void)
 			/* Get the iconsprite name. */
 
 			typemenu_types[typemenu_entries].validation[0] = 'S';
-			fileicon_get_type_icon(typemenu_types[typemenu_entries].type, "", &icon);
+			fileicon_get_type_icon(typemenu_types[typemenu_entries].type, &icon);
 			if (icon.small != TEXTDUMP_NULL) {
 				validation = sprite_base + icon.small;
 				typemenu_types[typemenu_entries].small = TRUE;

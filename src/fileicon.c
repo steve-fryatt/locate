@@ -46,6 +46,7 @@
 /* OSLib Header files. */
 
 #include "oslib/osfile.h"
+#include "oslib/osgbpb.h"
 #include "oslib/types.h"
 #include "oslib/wimpspriteop.h"
 
@@ -159,44 +160,59 @@ char *fileicon_get_base(void)
 
 
 /**
- * Return the offset of a sprite name suitable for the given file with
- * a type and name as specified.
+ * Return the offset of a sprite name suitable for the given object with
+ * the details as given.
  *
- * \param type			The filetype of the file.
- * \param *name			The name of the file.
- * \info *icon			Pointer to a block to take the filetype details.
+ * This call could move the flex heap if memory has to be allocated internally.
+ *
+ * \param *file			The file details.
+ * \param *info			Pointer to block to take the filetype details.
  * \return			TRUE on success; else FALSE.
- * \return			Offset to the sprite name, or TEXTDUMP_NULL.
  */
 
-osbool fileicon_get_type_icon(unsigned type, char *name, struct fileicon_info *info)
+osbool fileicon_get_object_icon(osgbpb_info *file, struct fileicon_info *info)
 {
-	char	smallname[20], largename[20], typename[20], typevar[20], buffer[20];
-	int	length;
-
-	if (info == NULL)
+	if (file == NULL || info == NULL)
 		return FALSE;
 
 	/* Deal with special cases first. */
 
-	if (type > 0xfffu) {
-		switch (type) {
-		case osfile_TYPE_DIR:
-			return fileicon_get_special_icon(FILEICON_DIRECTORY, info);
-			break;
-		case osfile_TYPE_APPLICATION:
-			return fileicon_get_special_icon(FILEICON_APPLICATION, info);
-			break;
-		case osfile_TYPE_UNTYPED:
-			return fileicon_get_special_icon(FILEICON_UNTYPED, info);
-			break;
-		default:
-			return fileicon_get_special_icon(FILEICON_UNKNOWN, info);
-			break;
-		}
+	if (file->obj_type == fileswitch_IS_DIR && file->name[0] == '!')
+		return fileicon_get_special_icon(FILEICON_APPLICATION, info);
+	else if (file->obj_type == fileswitch_IS_DIR)
+		return fileicon_get_special_icon(FILEICON_DIRECTORY, info);
+	else if (file->load_addr == 0xdeaddead && file->exec_addr == 0xdeaddead)
+		return fileicon_get_special_icon(FILEICON_INCOMPLETE, info);
+	else if ((file->load_addr & 0xfff00000u) != 0xfff00000u)
+		return fileicon_get_special_icon(FILEICON_UNTYPED, info);
 
-		return TRUE;
-	}
+	if (file->obj_type != fileswitch_IS_FILE && file->obj_type != fileswitch_IS_IMAGE)
+		return fileicon_get_special_icon(FILEICON_UNKNOWN, info);
+
+	/* We now have a typed file. */
+
+	return fileicon_get_type_icon((file->load_addr & osfile_FILE_TYPE) >> osfile_FILE_TYPE_SHIFT, info);
+}
+
+
+/**
+ * Return the offset of a sprite name suitable for the given file with
+ * a type specified.
+ *
+ * This call could move the flex heap if memory has to be allocated internally.
+ *
+ * \param type			The filetype of the file.
+ * \param *info			Pointer to block to take the filetype details.
+ * \return			TRUE on success; else FALSE.
+ */
+
+osbool fileicon_get_type_icon(unsigned type, struct fileicon_info *info)
+{
+	char		smallname[20], largename[20], typename[20], typevar[20], buffer[20];
+	int		length;
+
+	if (info == NULL)
+		return FALSE;
 
 	/* Process the filetype name. */
 

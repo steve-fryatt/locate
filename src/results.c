@@ -1113,8 +1113,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
-				objdb_get_info(handle->objects, handle->redraw[i].file, NULL, &object);
-				fileicon_get_type_icon(object.filetype, "", &typeinfo);
+				objdb_get_info(handle->objects, handle->redraw[i].file, file, &object);
+				fileicon_get_object_icon(file, &typeinfo);
 
 				if (typeinfo.small != TEXTDUMP_NULL) {
 					strcpy(validation + 1, fileicon_get_base() + typeinfo.small);
@@ -1167,7 +1167,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_TYPE].extent.y1 = LINE_Y1(y);
 
 				objdb_get_info(handle->objects, handle->redraw[i].file, file, &object);
-				fileicon_get_type_icon(object.filetype, "", &typeinfo);
+				fileicon_get_object_icon(file, &typeinfo);
 
 				if (typeinfo.name != TEXTDUMP_NULL) {
 					icon[RESULTS_ICON_TYPE].data.indirected_text.text = fileicon_get_base() + typeinfo.name;
@@ -1875,13 +1875,17 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 {
 	int			x, y;
 	os_box			extent;
-	unsigned		filetype;
 	struct fileicon_info	icon;
 	wimp_drag		drag;
 	wimp_auto_scroll_info	scroll;
+	osgbpb_info		*file;
 	char			*sprite = NULL;
 
 	if (handle == NULL || pointer == NULL || state == NULL)
+		return;
+
+	file = malloc(objdb_get_info(handle->objects, handle->redraw[row].file, NULL, NULL));
+	if (file == NULL)
 		return;
 
 	x = pointer->pos.x - state->visible.x0 + state->xscroll;
@@ -1895,8 +1899,8 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 		extent.y1 = LINE_Y1(row);
 
 		if (handle->selection_count == 1 && handle->selection_row == row) {
-			filetype = objdb_get_filetype(handle->objects, handle->redraw[handle->redraw[row].index].file);
-			fileicon_get_type_icon(filetype, "", &icon);
+			objdb_get_info(handle->objects, handle->redraw[handle->redraw[row].index].file, file, NULL);
+			fileicon_get_object_icon(file, &icon);
 
 			if (icon.large != TEXTDUMP_NULL)
 				sprite = fileicon_get_base() + icon.large;
@@ -1941,6 +1945,8 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 
 		event_set_drag_handler(results_select_drag_end_handler, NULL, handle);
 	}
+
+	free(file);
 }
 
 
@@ -2387,7 +2393,7 @@ static void results_object_info_prepare(struct results_window *handle)
 		return;
 
 	objdb_get_info(handle->objects, handle->redraw[row].file, file, &object);
-	fileicon_get_type_icon(object.filetype, "", &info);
+	fileicon_get_object_icon(file, &info);
 
 	base = fileicon_get_base();
 
