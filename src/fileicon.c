@@ -79,6 +79,8 @@ static struct textdump_block		*fileicon_text;				/**< The text dump for filetype
 static struct fileicon_icon		fileicon_types[4096];			/**< Array of details for the 4096 filetype icons.			*/
 static struct fileicon_icon		fileicon_specials[FILEICON_MAX_ICONS];	/**< Array of details for the special icons.				*/
 
+static unsigned				fileicon_large_fixed_allocation;	/**< Text dump offset of a fixed allocation for large sprite names.	*/
+static unsigned				fileicon_small_fixed_allocation;	/**< Text dump offset of a fixed allocation for small sprite names.	*/
 
 static void	fileicon_find_sprites(struct fileicon_icon *icon, char *small, char *large, osbool allocate);
 
@@ -135,12 +137,19 @@ void fileicon_initialise(void)
 	fileicon_specials[FILEICON_ERROR].large = TEXTDUMP_NULL;
 	fileicon_specials[FILEICON_ERROR].small = textdump_store(fileicon_text, "error");
 
-	/* Create a 12 character block to hold custom application sprite names. */
+	/* The custom application icon is a special case that gets created on the
+	 * fly as required.
+	 */
 
 	fileicon_specials[FILEICON_CUSTOM_APPLICATION].status = FILEICON_UNCHECKED;
 	fileicon_specials[FILEICON_CUSTOM_APPLICATION].name = fileicon_specials[FILEICON_APPLICATION].name;
-	fileicon_specials[FILEICON_CUSTOM_APPLICATION].large = textdump_store(fileicon_text, "123456789012");
-	fileicon_specials[FILEICON_CUSTOM_APPLICATION].small = textdump_store(fileicon_text, "123456789012");
+	fileicon_specials[FILEICON_CUSTOM_APPLICATION].large = TEXTDUMP_NULL;
+	fileicon_specials[FILEICON_CUSTOM_APPLICATION].small = TEXTDUMP_NULL;
+
+	/* Create two 12 character blocks to hold custom sprite names. */
+
+	fileicon_large_fixed_allocation = textdump_store(fileicon_text, "123456789012");
+	fileicon_small_fixed_allocation = textdump_store(fileicon_text, "123456789012");
 }
 
 
@@ -197,6 +206,8 @@ osbool fileicon_get_object_icon(osgbpb_info *file, struct fileicon_info *info)
 		string_tolower(smallname);
 
 		fileicon_specials[FILEICON_CUSTOM_APPLICATION].status = FILEICON_UNCHECKED;
+		fileicon_specials[FILEICON_CUSTOM_APPLICATION].large = TEXTDUMP_NULL;
+		fileicon_specials[FILEICON_CUSTOM_APPLICATION].small = TEXTDUMP_NULL;
 		fileicon_find_sprites(fileicon_specials + FILEICON_CUSTOM_APPLICATION, smallname, largename, FALSE);
 		if (fileicon_specials[FILEICON_CUSTOM_APPLICATION].status != FILEICON_NONE)
 			return fileicon_get_special_icon(FILEICON_CUSTOM_APPLICATION, info);
@@ -328,28 +339,32 @@ static void fileicon_find_sprites(struct fileicon_icon *icon, char *small, char 
 	if (icon == NULL)
 		return;
 
-	if (small != NULL && (icon->small == TEXTDUMP_NULL || !allocate)) {
+	if (small != NULL && icon->small == TEXTDUMP_NULL) {
 		error = xwimpspriteop_read_sprite_info(small, NULL, NULL, NULL, NULL);
 
 		if (error == NULL) {
 			icon->status = FILEICON_SMALL;
-			if (allocate)
+			if (allocate) {
 				icon->small = textdump_store(fileicon_text, small);
-			else
+			} else {
+				icon->small = fileicon_small_fixed_allocation;
 				strcpy(textdump_get_base(fileicon_text) + icon->small, small);
+			}
 		}
 	}
 
-	if (large != NULL && (icon->large == TEXTDUMP_NULL || !allocate)) {
+	if (large != NULL && icon->large == TEXTDUMP_NULL) {
 		error = xwimpspriteop_read_sprite_info(large, NULL, NULL, NULL, NULL);
 
 		if (error == NULL) {
 			if (icon->status != FILEICON_SMALL)
 				icon->status = FILEICON_LARGE;
-			if (allocate)
+			if (allocate) {
 				icon->large = textdump_store(fileicon_text, large);
-			else
+			} else {
+				icon->large = fileicon_large_fixed_allocation;
 				strcpy(textdump_get_base(fileicon_text) + icon->large, large);
+			}
 		}
 	}
 
