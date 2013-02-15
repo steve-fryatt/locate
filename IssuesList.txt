@@ -9,8 +9,6 @@ Locate 2 Issues List
 
 * Save search options from search dialogue does not capture current window contents.
 
-* Application icons are not supported by fileicon module.
-
 * File contents strings should be centred on match in window.
 
 * Plugin support not implemented.
