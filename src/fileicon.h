@@ -43,6 +43,7 @@ enum fileicon_icons {
 	FILEICON_UNTYPED,							/**< The Untyped filetype icon.				*/
 	FILEICON_INCOMPLETE,							/**< The Incomplete (dead) filetype icon.		*/
 	FILEICON_ERROR,								/**< The Error icon.					*/
+	FILEICON_CUSTOM_APPLICATION,						/**< Custom application icons.				*/
 	FILEICON_MAX_ICONS							/**< Placeholder to show the maximum index.		*/
 };
 
