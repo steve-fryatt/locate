@@ -161,7 +161,6 @@ enum results_line_type {
 
 enum results_line_flags {
 	RESULTS_FLAG_NONE = 0,							/**< No flags set.							*/
-	RESULTS_FLAG_HALFSIZE = 1,						/**< Sprite should be plotted at half-size.				*/
 	RESULTS_FLAG_SELECTABLE = 2,						/**< The row can be selected by the user.				*/
 	RESULTS_FLAG_SELECTED = 4						/**< The row is currently selected.					*/
 };
@@ -1148,10 +1147,6 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 				icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_FG_COLOUR;
 				icon[RESULTS_ICON_FILE].flags |= (handle->redraw[i].colour << wimp_ICON_FG_COLOUR_SHIFT);
-				if (handle->redraw[i].flags & RESULTS_FLAG_HALFSIZE)
-					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
-				else
-					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 
 				if (handle->redraw[i].flags & RESULTS_FLAG_SELECTED)
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SELECTED;
