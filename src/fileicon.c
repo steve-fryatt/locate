@@ -196,13 +196,8 @@ osbool fileicon_get_object_icon(osgbpb_info *file, struct fileicon_info *info)
 		smallname[12] = '\0';
 		string_tolower(smallname);
 
-		debug_printf("Trying application sprites '%s' and '%s'", largename, smallname);
-
 		fileicon_specials[FILEICON_CUSTOM_APPLICATION].status = FILEICON_UNCHECKED;
 		fileicon_find_sprites(fileicon_specials + FILEICON_CUSTOM_APPLICATION, smallname, largename, FALSE);
-
-		debug_printf("Resulting status: %d", fileicon_specials[FILEICON_CUSTOM_APPLICATION].status);
-
 		if (fileicon_specials[FILEICON_CUSTOM_APPLICATION].status != FILEICON_NONE)
 			return fileicon_get_special_icon(FILEICON_CUSTOM_APPLICATION, info);
 		else
@@ -247,7 +242,6 @@ osbool fileicon_get_type_icon(unsigned type, struct fileicon_info *info)
 
 	if (fileicon_types[type].name == TEXTDUMP_NULL) {
 		snprintf(typevar, sizeof(typevar), "File$Type_%03X", type);
-		debug_printf("Testing variable %s", typevar);
 		if (xos_read_var_val(typevar, buffer, sizeof(buffer), 0, os_VARTYPE_STRING, &length, NULL, NULL) == NULL) {
 			buffer[(length < sizeof(buffer)) ? length : (sizeof(buffer) - 1)] = '\0';
 			snprintf(typename, sizeof(typename), "%s", buffer);
@@ -256,8 +250,6 @@ osbool fileicon_get_type_icon(unsigned type, struct fileicon_info *info)
 		}
 
 		fileicon_types[type].name = textdump_store(fileicon_text, typename);
-
-		debug_printf("Allocated filetype name %s for %d", typename, type);
 	}
 
 	info->name = fileicon_types[type].name;
