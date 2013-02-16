@@ -29,7 +29,7 @@ menu(icon_bar_menu, "Locate") {
 	item("Info") {
 		d_box(ProgInfo);
 	}
-	item("Help...") {
+	item("Help") {
 		dotted;
 	}
 	item("History") {
