@@ -732,7 +732,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 {
 	os_error		*error;
 	int			i;
-	unsigned		stack;
+	unsigned		stack, object_key;
 	byte			*original, copy[SEARCH_BLOCK_SIZE];
 	osgbpb_info		*file_data = (osgbpb_info *) copy;
 	char			filename[4996], leafname[SEARCH_MAX_FILENAME];
@@ -756,7 +756,6 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	stack = search->stack_level - 1;
 
 	while (stack != SEARCH_NULL && (os_read_monotonic_time() < end_time)) {
-
 		if (search->stack[stack].contents_active == FALSE) {
 			/* If there are no outstanding entries in the current buffer, call
 			 * OS_GBPB 10 to get another set of file details.
@@ -786,10 +785,9 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 			if (error != NULL) {
 				search->error_count++;
+				results_add_error(search->results, error->errmess, filename);
 
 				stack = search_drop_stack(search);
-
-				results_add_error(search->results, error->errmess, filename);
 
 				continue;
 			}
@@ -819,11 +817,17 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				search->stack[stack].data_offset += ((i + 4) & 0xfffffffc);
 				search->stack[stack].next++;
 
-				/* Add the file to the database. */
+				/* Add the file to the database.
+				 *
+				 * The object key is saved to a local variable and then put into the stack,
+				 * as the stack could move mid function call (due to the Object DB shuffling
+				 * the flex heap) and this might result in the return value getting written
+				 * back to the wrong place if it went straight to a flex block pointer.
+				 */
 
-				search->stack[stack].key = objdb_add_file(search->objects, search->stack[stack].parent, file_data);
+				object_key = objdb_add_file(search->objects, search->stack[stack].parent, file_data);
+				search->stack[stack].key = object_key;
 				search->stack[stack].file_active = TRUE;
-
 
 				/* Work out a filetype using the convention 0x000-0xfff, 0x1000, 0x2000, 0x3000. */
 
