@@ -104,6 +104,8 @@
 #define RESULTS_REDRAW_ATTRIBUTES_LEN 32					/**< Space allocated for building textual attribute strings.		*/
 #define RESULTS_REDRAW_DATE_LEN 64						/**< Space allocated for building textual dates.			*/
 
+#define RESULTS_STATUS_INSET 4							/**< The inset around the results status bar's icon.			*/
+
 /* Results window icons. */
 
 #define RESULTS_ICON_FILE 0
@@ -113,6 +115,7 @@
 #define RESULTS_ICON_ATTRIBUTES 3
 #define RESULTS_ICON_DATE 4
 
+#define RESULTS_ICON_BORDER 0
 #define RESULTS_ICON_STATUS 1
 
 /* Object Info window icons. */
@@ -283,8 +286,9 @@ static void	results_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_wa
 static void	results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void	results_menu_close(wimp_w w, wimp_menu *menu);
 static void	results_redraw_handler(wimp_draw *redraw);
+static void	results_open_handler(wimp_open *open);
 static void	results_close_handler(wimp_close *close);
-static void	results_reformat_line(struct results_window *handle, unsigned line, char *truncate, size_t truncate_len);
+static osbool	results_reformat_line(struct results_window *handle, unsigned line, char *truncate, size_t truncate_len);
 static void	results_set_display_mode(struct results_window *handle, osbool full_info);
 static void	results_update_extent(struct results_window *handle, osbool to_end);
 static void	results_add_raw(struct results_window *handle, enum results_line_type type, unsigned message, wimp_colour colour, enum fileicon_icons sprite);
@@ -501,6 +505,7 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	event_add_window_user_data(new->status, new);
 
 	event_add_window_redraw_event(new->window, results_redraw_handler);
+	event_add_window_open_event(new->window, results_open_handler);
 	event_add_window_close_event(new->window, results_close_handler);
 	event_add_window_mouse_event(new->window, results_click_handler);
 	//event_add_window_key_event(new->window, results_keypress_handler);
@@ -1093,6 +1098,9 @@ static void results_redraw_handler(wimp_draw *redraw)
 	oy = redraw->box.y1 - redraw->yscroll;
 
 	while (more) {
+		icon[RESULTS_ICON_FILE].extent.x1 = handle->format_width - RESULTS_WINDOW_MARGIN;
+		icon[RESULTS_ICON_SIZE].extent.x1 = handle->format_width - RESULTS_WINDOW_MARGIN;
+
 		top = (oy - redraw->clip.y1 - RESULTS_TOOLBAR_HEIGHT) / RESULTS_LINE_HEIGHT;
 		if (top < 0)
 			top = 0;
@@ -1104,8 +1112,9 @@ static void results_redraw_handler(wimp_draw *redraw)
 		for (y = top; y < bottom; y++) {
 			i = handle->redraw[y].index;
 
-			if (handle->redraw[i].format_width != handle->format_width)
-				results_reformat_line(handle, i, truncation, truncation_len);
+			if (handle->redraw[i].format_width != handle->format_width && results_reformat_line(handle, i, truncation, truncation_len))
+				wimp_force_redraw(redraw->w, redraw->xscroll, LINE_BASE(y), redraw->xscroll + (redraw->box.x1 - redraw->box.x0), LINE_Y1(y));
+
 
 			switch (handle->redraw[i].type) {
 			case RESULTS_LINE_FILENAME:
@@ -1299,6 +1308,50 @@ static void results_redraw_handler(wimp_draw *redraw)
 	if (file != NULL)
 		free(file);
 }
+
+
+/**
+ * Callback to handle window open events on the results window.
+ *
+ * \param *open			The Wimp Open event block.
+ */
+
+static void results_open_handler(wimp_open *open)
+{
+	struct results_window	*handle;
+	wimp_icon_state		icon;
+	os_error		*error;
+
+	handle = (struct results_window *) event_get_window_user_data(open->w);
+
+	if (handle == NULL)
+		return;
+
+	handle->format_width = open->visible.x1 - open->visible.x0;
+
+	wimp_open_window(open);
+
+	/* Resize the info pane's icon to fit. */
+
+	icon.w = handle->status;
+	icon.i = RESULTS_ICON_STATUS;
+	error = xwimp_get_icon_state(&icon);
+	if (error != NULL)
+		return;
+
+	error = xwimp_resize_icon(handle->status, RESULTS_ICON_BORDER, open->xscroll + RESULTS_STATUS_INSET, icon.icon.extent.y0,
+			open->xscroll + (open->visible.x1 - open->visible.x0) - RESULTS_STATUS_INSET, icon.icon.extent.y1);
+	if (error != NULL)
+		return;
+
+	error = xwimp_resize_icon(handle->status, RESULTS_ICON_STATUS, open->xscroll + RESULTS_STATUS_INSET, icon.icon.extent.y0,
+			open->xscroll + (open->visible.x1 - open->visible.x0) - RESULTS_STATUS_INSET, icon.icon.extent.y1);
+	if (error != NULL)
+		return;
+
+	windows_redraw(handle->status);
+}
+
 
 
 /**
@@ -1582,18 +1635,20 @@ void results_accept_lines(struct results_window *handle)
  * \param line			The line to be reformatted.
  * \param *truncate		Pointer to a buffer to use for the formatting.
  * \param truncate_len		The length of the truncation buffer.
+ * \return			TRUE if the formatting changed; FALSE if not.
  */
 
-static void results_reformat_line(struct results_window *handle, unsigned line, char *truncate, size_t truncate_len)
+static osbool results_reformat_line(struct results_window *handle, unsigned line, char *truncate, size_t truncate_len)
 {
 	int			width, length, pos;
 	char			*text;
+	osbool			changed = FALSE;
 
 	if (handle == NULL || truncate == NULL)
-		return;
+		return FALSE;
 
 	if (handle->redraw[line].format_width == handle->format_width)
-		return;
+		return FALSE;
 
 	strcpy(truncate, "...");
 
@@ -1605,7 +1660,7 @@ static void results_reformat_line(struct results_window *handle, unsigned line, 
 	case RESULTS_LINE_FILENAME:
 		objdb_get_name(handle->objects, handle->redraw[line].file, truncate + 3, truncate_len - 3);
 
-		if (wimptextop_string_width(truncate + 3, 0) <= width)
+		if (handle->redraw[line].truncate == 0 && wimptextop_string_width(truncate + 3, 0) <= width)
 			break;
 
 		length = strlen(truncate + 3);
@@ -1617,12 +1672,14 @@ static void results_reformat_line(struct results_window *handle, unsigned line, 
 				pos++;
 		}
 
-		if (pos > 0)
+		if (pos != handle->redraw[line].truncate) {
 			handle->redraw[line].truncate = pos;
+			changed = TRUE;
+		}
 		break;
 
 	case RESULTS_LINE_TEXT:
-		if (wimptextop_string_width(text + handle->redraw[line].text, 0) <= width)
+		if (handle->redraw[line].truncate == 0 && wimptextop_string_width(text + handle->redraw[line].text, 0) <= width)
 			break;
 
 		strcpy(truncate + 3, text + handle->redraw[line].text);
@@ -1635,8 +1692,10 @@ static void results_reformat_line(struct results_window *handle, unsigned line, 
 				pos++;
 		}
 
-		if (pos > 0)
+		if (pos != handle->redraw[line].truncate) {
 			handle->redraw[line].truncate = pos;
+			changed = TRUE;
+		}
 		break;
 
 	default:
@@ -1644,6 +1703,8 @@ static void results_reformat_line(struct results_window *handle, unsigned line, 
 	}
 
 	handle->redraw[line].format_width = handle->format_width;
+
+	return changed;
 }
 
 
