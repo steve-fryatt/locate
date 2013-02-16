@@ -540,7 +540,7 @@ void search_set_contents(struct search_block *search, char *contents, osbool any
 
 void search_start(struct search_block *search)
 {
-	unsigned	stack;
+	unsigned	stack, object_key;
 	char		title[256], flag[10], flags[10];
 
 
@@ -590,7 +590,8 @@ void search_start(struct search_block *search)
 		return;
 
 	strncpy(search->stack[stack].filename, search->path[--search->path_count], SEARCH_MAX_FILENAME);
-	search->stack[stack].parent = objdb_add_root(search->objects, search->stack[stack].filename);
+	object_key = objdb_add_root(search->objects, search->stack[stack].filename);
+	search->stack[stack].parent = object_key;
 
 	/* Flag the search as active. */
 
@@ -959,11 +960,13 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	 */
 
 	if (stack == SEARCH_NULL) {
-		if (search->path_count > 0) {
+		if ((search->path_count > 0) && ((stack = search_add_stack(search)) != SEARCH_NULL)) {
 			/* Re-allocate a search stack and set up the first search folder. */
 
-			if ((stack = search_add_stack(search)) != SEARCH_NULL)
-				strncpy(search->stack[stack].filename, search->path[--search->path_count], SEARCH_MAX_FILENAME);
+			strncpy(search->stack[stack].filename, search->path[--search->path_count], SEARCH_MAX_FILENAME);
+
+			object_key = objdb_add_root(search->objects, search->stack[stack].filename);
+			search->stack[stack].parent = object_key;
 		} else {
 			search_stop(search);
 		}
@@ -987,8 +990,6 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 	return TRUE;
 }
-
-
 
 
 /**
