@@ -183,9 +183,10 @@ struct results_line {
 
 	enum fileicon_icons	sprite;						/**< Fileicon sprite id for the icon's sprite.				*/
 
-	unsigned		truncate;					/**< Non-zero indicates first character of text to be displayed.	*/
 	wimp_colour		colour;						/**< The foreground colour of the text.					*/
 
+	unsigned		truncate;					/**< Non-zero indicates first character of text to be displayed.	*/
+	unsigned		content_width;					/**< The width of the content of the line.				*/
 	unsigned		format_width;					/**< The window width, in OS units, to which the line is formatted.	*/
 
 	unsigned		index;						/**< Sort indirection index. UNCONNECTED TO REMAINING DATA.		*/
@@ -1319,7 +1320,7 @@ static void results_open_handler(wimp_open *open)
 {
 	struct results_window	*handle;
 	wimp_icon_state		icon;
-	int			top, bottom, y;
+	int			top, bottom, y, i;
 	unsigned		new_width;
 	os_error		*error;
 
@@ -1327,6 +1328,12 @@ static void results_open_handler(wimp_open *open)
 
 	if (handle == NULL)
 		return;
+
+	/* If the window width has changed, run down the list of displayed lines
+	 * and force a redraw of each line where the truncation might have
+	 * been affected. The actual reformatting will be done on demand in the
+	 * redraw loop.
+	 */
 
 	if (handle->format_width != open->visible.x1 - open->visible.x0) {
 		new_width = open->visible.x1 - open->visible.x0;
@@ -1338,14 +1345,18 @@ static void results_open_handler(wimp_open *open)
 			if (y < 0 || y >= handle->display_lines)
 				continue;
 
-			if ((new_width < handle->format_width) || ((new_width > handle->format_width) && handle->redraw[handle->redraw[y].index].truncate > 0))
-					wimp_force_redraw(open->w, open->xscroll, LINE_BASE(y),
-							open->xscroll + (open->visible.x1 - open->visible.x0), LINE_Y1(y));
+			i = handle->redraw[y].index;
+
+			if ((new_width < handle->format_width && new_width <= handle->redraw[i].content_width) ||
+					((new_width > handle->format_width) && handle->redraw[i].truncate > 0))
+				wimp_force_redraw(open->w, open->xscroll, LINE_BASE(y),
+						open->xscroll + (open->visible.x1 - open->visible.x0), LINE_Y1(y));
 		}
 
 		handle->format_width = new_width;
 	}
 
+	/* Open the window at its new position. */
 
 	wimp_open_window(open);
 
@@ -1677,6 +1688,9 @@ static osbool results_reformat_line(struct results_window *handle, unsigned line
 	case RESULTS_LINE_FILENAME:
 		objdb_get_name(handle->objects, handle->redraw[line].file, truncate + 3, truncate_len - 3);
 
+		if (handle->redraw[line].content_width == 0)
+			handle->redraw[line].content_width = (2 * RESULTS_WINDOW_MARGIN) + RESULTS_ICON_WIDTH + wimptextop_string_width(truncate + 3, 0);
+
 		if (handle->redraw[line].truncate == 0 && wimptextop_string_width(truncate + 3, 0) <= width)
 			break;
 
@@ -1696,6 +1710,9 @@ static osbool results_reformat_line(struct results_window *handle, unsigned line
 		break;
 
 	case RESULTS_LINE_TEXT:
+		if (handle->redraw[line].content_width == 0)
+			handle->redraw[line].content_width = (2 * RESULTS_WINDOW_MARGIN) + RESULTS_ICON_WIDTH + wimptextop_string_width(text + handle->redraw[line].text, 0);
+
 		if (handle->redraw[line].truncate == 0 && wimptextop_string_width(text + handle->redraw[line].text, 0) <= width)
 			break;
 
@@ -1870,6 +1887,7 @@ static unsigned results_add_line(struct results_window *handle, osbool show)
 	handle->redraw[offset].truncate = 0;
 	handle->redraw[offset].colour = wimp_COLOUR_BLACK;
 	handle->redraw[offset].format_width = 0;
+	handle->redraw[offset].content_width = 0;
 
 	/* If the line is for immediate display, add it to the index. */
 
