@@ -1112,9 +1112,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 		for (y = top; y < bottom; y++) {
 			i = handle->redraw[y].index;
 
-			if (handle->redraw[i].format_width != handle->format_width && results_reformat_line(handle, i, truncation, truncation_len))
-				wimp_force_redraw(redraw->w, redraw->xscroll, LINE_BASE(y), redraw->xscroll + (redraw->box.x1 - redraw->box.x0), LINE_Y1(y));
-
+			if (handle->redraw[i].format_width != handle->format_width)
+				results_reformat_line(handle, i, truncation, truncation_len);
 
 			switch (handle->redraw[i].type) {
 			case RESULTS_LINE_FILENAME:
@@ -1320,6 +1319,8 @@ static void results_open_handler(wimp_open *open)
 {
 	struct results_window	*handle;
 	wimp_icon_state		icon;
+	int			top, bottom, y;
+	unsigned		new_width;
 	os_error		*error;
 
 	handle = (struct results_window *) event_get_window_user_data(open->w);
@@ -1327,7 +1328,24 @@ static void results_open_handler(wimp_open *open)
 	if (handle == NULL)
 		return;
 
-	handle->format_width = open->visible.x1 - open->visible.x0;
+	if (handle->format_width != open->visible.x1 - open->visible.x0) {
+		new_width = open->visible.x1 - open->visible.x0;
+
+		top = ROW(open->yscroll);
+		bottom = ROW(open->yscroll - (open->visible.y1 - open->visible.y0 - RESULTS_STATUS_HEIGHT));
+
+		for (y = top; y <= bottom; y++) {
+			if (y < 0 || y >= handle->display_lines)
+				continue;
+
+			if ((new_width < handle->format_width) || ((new_width > handle->format_width) && handle->redraw[handle->redraw[y].index].truncate > 0))
+					wimp_force_redraw(open->w, open->xscroll, LINE_BASE(y),
+							open->xscroll + (open->visible.x1 - open->visible.x0), LINE_Y1(y));
+		}
+
+		handle->format_width = new_width;
+	}
+
 
 	wimp_open_window(open);
 
@@ -1351,7 +1369,6 @@ static void results_open_handler(wimp_open *open)
 
 	windows_redraw(handle->status);
 }
-
 
 
 /**
