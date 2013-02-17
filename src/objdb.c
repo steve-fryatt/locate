@@ -225,13 +225,15 @@ void objdb_destroy(struct objdb_block *handle)
 
 unsigned objdb_add_root(struct objdb_block *handle, char *path)
 {
-	unsigned	length, index = objdb_new(handle);
+	unsigned	length, name, index = objdb_new(handle);
 
 	if (handle == NULL || path == NULL || index == OBJDB_NULL_INDEX)
 		return OBJDB_NULL_KEY;
 
+	name = textdump_store(handle->text, path);
+
 	handle->list[index].parent = OBJDB_NULL_KEY;
-	handle->list[index].name = textdump_store(handle->text, path);
+	handle->list[index].name = name;
 
 	if ((length = strlen(path)) > handle->longest_name)
 		handle->longest_name = length;
@@ -257,10 +259,12 @@ unsigned objdb_add_root(struct objdb_block *handle, char *path)
 
 unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info *file)
 {
-	unsigned	length, index = objdb_new(handle);
+	unsigned	length, name, index = objdb_new(handle);
 
 	if (handle == NULL || file == NULL || index == OBJDB_NULL_INDEX)
 		return OBJDB_NULL_KEY;
+
+	name = textdump_store(handle->text, file->name);
 
 	handle->list[index].parent = parent;
 
@@ -269,7 +273,7 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 	handle->list[index].size = file->size;
 	handle->list[index].attributes = file->attr;
 	handle->list[index].type = file->obj_type;
-	handle->list[index].name = textdump_store(handle->text, file->name);
+	handle->list[index].name = name;
 
 	if ((length = strlen(file->name)) > handle->longest_name)
 		handle->longest_name = length;
