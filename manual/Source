@@ -308,6 +308,8 @@ Clicking on the <icon>Set...</icon> button on the right of the date fields will 
 
 If specifying the dates in terms of age, pick a unit from the drop down menu by the field and enter the required value. <menu>Exactly</menu> and <menu>Any age but</menu> match a window of the unit centred on the specified point in history: "exactly four months" would match a period of 15 days either side of the time four months ago when the search was started. Note that dates and ages work in opposite directions: as dates get 'bigger' the objects get more recent; as ages get 'bigger' the objects get older. Also note that, unlike in <cite>Locate 1</cite>, month and year now correctly take the calendar into account.
 
+Note that all dates and ages refer to the last time that an object was <em>modified</em>, and not when it was first created: RISC&nbsp;OS does not maintain separate creation and modification dates.
+
 The datestamps of directories and applications are tested, but the results may not always be as expected.  For applications the Filer shows the datestamp to be that of the <file>!RunImage</file> file inside (if one is present).  <cite>Locate</cite> will check the datestamp of the application directory itself, as shown by using <command>*Info</command> at the command line.  Untyped files do not have datestamps, so these will <strong>always</strong> match whatever date constraints are set.
 
 The default criteria for date is <menu>not important</menu>, meaning that the datestamp will be ignored.
