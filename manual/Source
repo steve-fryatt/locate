@@ -154,7 +154,7 @@ The default path used for the search is set in the <link ref="Configuration">cho
 
 <subhead title="Entering the filename">
 
-Enter the filename to you are looking for into the <icon>File name</icon> field. The filename criteria should be left as <menu>is equal to</menu> &ndash; see <link ref="Advanced">Advanced Use</link> for more details.
+Enter the filename to you are looking for into the <icon>Object name</icon> field. The filename criteria should be left as <menu>is equal to</menu> &ndash; see <link ref="Advanced">Advanced Use</link> for more details.
 
 Names are matched exactly: <code>Report</code> would match <code>report</code> but not <code>Reporter</code>.  For more flexibility, wildcards are allowed.  <code>#</code> will match any single character, so <code>Reporte#</code> would match <code>Reporter</code> and <code>Reported</code> but not <code>Reporters</code>.  <code>*</code> will match any zero or more characters, so <code>Report*</code> would match <code>Report</code>, <code>Reported</code> etc.  Wildcards can appear anywhere in the name.  To search for a substring (in the same way that the Filer's search option does), put an asterisk at each end of the name (for example <code>*SubStr*</code>).
 
@@ -236,9 +236,6 @@ It is possible to make <cite>Locate</cite> check more than just the filename of 
 </list>
 
 Notice that all the sections (Filename, Size, Date, Type, Attributes and Contents) are always active; it's not just the one that is visible when you click on <icon>Search</icon>.  This allows you to (say) search for "all text files between 1Kb and 10Kb in size, created before 27th January 1996, which are locked"; it can also be confusing if you forget that you set an option.
-
-Note that if you don't care what filename is found, it is quicker to leave the <icon>File name</icon> field blank than to search on a <code>*</code> wildcard.  This is because a blank field causes the whole wildcard search to be skipped, rather than checking each name against the <code>*</code> term.
-
 
 
 
@@ -427,7 +424,7 @@ If you manage to corrupt the <file>Choices</file> file, it can be deleted and <c
 
 <cite>Locate</cite> acts as a Filer Action Plugin under RISC OS <cite>Select</cite>, so that the <menu>Find</menu> option in the Filer menu causes <cite>Locate</cite> to be used instead of the standard search.
 
-For this to work, click the mouse or press <key>return</key> over the text field of the <menu>Find</menu> option.  Any text that is entered will be put into the <icon>File name</icon> field of the search window, and selected applications and directories are put into the <icon>Search in</icon> field.  Any files selected at the time will be ignored, as <cite>Locate</cite> can not search for files <em>in</em> files; if the current selection consists entirely of files, the parent directory is used instead.
+For this to work, click the mouse or press <key>return</key> over the text field of the <menu>Find</menu> option.  Any text that is entered will be put into the <icon>Object name</icon> field of the search window, and selected applications and directories are put into the <icon>Search in</icon> field.  Any files selected at the time will be ignored, as <cite>Locate</cite> can not search for files <em>in</em> files; if the current selection consists entirely of files, the parent directory is used instead.
 
 This feature can be disabled if required.  <key>Shift</key>-double-click on <file>!Locate</file> and load the <file>!Boot</file> and <file>!Run</file> files into a text editor (<key>shift</key>-double-click on them).  Find the line in each file that reads:
 
@@ -671,7 +668,7 @@ Public Beta release.
 Public Beta release.
 
 <list>
-<li>Fixed bug that caused corrption of search options when <icon>File name</icon> field was left blank.
+<li>Fixed bug that caused corrption of search options when <icon>Object name</icon> field was left blank.
 <li>Added <icon>Website</icon> button to <window>Program Info</window> window.
 <li>Potential problem with aborted RAM transfers fixed.
 </list>

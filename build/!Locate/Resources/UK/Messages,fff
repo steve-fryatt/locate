@@ -27,7 +27,7 @@ TaskSpr:!locate
 
 SupportURL:http://www.stevefryatt.org.uk/software/locate/
 
-ResWindTitle:Files found named '%0' (%1)
+ResWindTitle:Objects found named '%0' (%1)
 SizeFlag:S
 DateFlag:D
 AgeFlag:A
