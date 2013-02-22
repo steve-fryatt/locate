@@ -57,6 +57,7 @@ NoMemSearchCreate:There was not enough free memory available to create the searc
 NoMemResultsCreate:There was not enough free memory available to create the results window.
 NoMemStoreParams:There was not enough free memory available to store the search parameters.
 BadFiletype:Type %0 was not recognised.
+BadDate:%0 is not a valid date.
 
 
 

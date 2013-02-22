@@ -1439,6 +1439,7 @@ static void dialogue_write_filetype_list(char *buffer, size_t length, unsigned t
 
 static osbool dialogue_read_window(struct dialogue_block *dialogue)
 {
+	char		error[128];
 	osbool		success = TRUE;
 
 	if (dialogue == NULL)
@@ -1482,6 +1483,18 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 			dialogue->date_min);
 	dialogue->date_max_status = datetime_read_date(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
 			dialogue->date_max);
+
+	if (success && dialogue->date_min_status == DATETIME_DATE_INVALID) {
+		msgs_param_lookup("BadDate", error, sizeof(error), icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM), NULL, NULL, NULL);
+		error_report_info(error);
+		success = FALSE;
+	}
+
+	if (success && dialogue->date_max_status == DATETIME_DATE_INVALID) {
+		msgs_param_lookup("BadDate", error, sizeof(error), icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO), NULL, NULL, NULL);
+		error_report_info(error);
+		success = FALSE;
+	}
 
 	dialogue->age_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MODE_MENU);
 	dialogue->age_min_unit = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN_UNIT_MENU);
@@ -1649,7 +1662,9 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 		switch ((int) pointer->i) {
 		case DIALOGUE_ICON_SEARCH:
 			if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
-				dialogue_read_window(dialogue_data);
+				if (!dialogue_read_window(dialogue_data))
+					break;
+
 				dialogue_start_search(dialogue_data);
 
 				if (pointer->buttons == wimp_CLICK_SELECT) {
@@ -1716,7 +1731,8 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 	switch (key->c) {
 	case wimp_KEY_RETURN:
 		settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
-		dialogue_read_window(dialogue_data);
+		if (!dialogue_read_window(dialogue_data))
+			break;
 		dialogue_start_search(dialogue_data);
 		dialogue_close_window();
 		break;
