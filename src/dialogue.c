@@ -1490,13 +1490,13 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 	dialogue->date_max_status = datetime_read_date(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO),
 			dialogue->date_max);
 
-	if (success && dialogue->date_min_status == DATETIME_DATE_INVALID) {
+	if (success && dialogue->date_mode != DIALOGUE_DATE_AT_ANY_TIME && dialogue->date_min_status == DATETIME_DATE_INVALID) {
 		msgs_param_lookup("BadDate", error, sizeof(error), icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM), NULL, NULL, NULL);
 		error_report_info(error);
 		success = FALSE;
 	}
 
-	if (success && dialogue->date_max_status == DATETIME_DATE_INVALID) {
+	if (success && (dialogue->date_mode == DIALOGUE_DATE_BETWEEN || dialogue->date_mode == DIALOGUE_DATE_NOT_BETWEEN) && dialogue->date_max_status == DATETIME_DATE_INVALID) {
 		msgs_param_lookup("BadDate", error, sizeof(error), icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO), NULL, NULL, NULL);
 		error_report_info(error);
 		success = FALSE;
