@@ -1942,7 +1942,7 @@ static osbool dialogue_icon_drop_handler(wimp_message *message)
 		while (*insert != '\0' && insert < end)
 			insert++;
 
-		if (insert < end)
+		if (insert != icons_get_indirected_text_addr(datasave->w, datasave->i) && insert < end)
 			*insert++ = ',';
 
 		*insert = '\0';
