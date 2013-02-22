@@ -1431,10 +1431,12 @@ static void dialogue_write_filetype_list(char *buffer, size_t length, unsigned t
 
 
 /**
- * Update the search settings from the values in the Search Dialogue window.
+ * Update the search settings from the values in the Search Dialogue window. If
+ * an error occurs (either in parsing data, or in allocating memory), it will be
+ * reported to the user before the call returns.
  *
  * \param *dialogue		The dialogue data block to write the settings to.
- * \return			TRUE if successful; else FALSE.
+ * \return			TRUE if successful; else FALSE if a parsing error occurred.
  */
 
 static osbool dialogue_read_window(struct dialogue_block *dialogue)
