@@ -191,5 +191,18 @@ osbool search_is_active(struct search_block *search);
 
 void search_poll_all(void);
 
+
+/**
+ * Validate a list of pathnames, checking that each is not null and that it
+ * exists as a directory or an image file. Testing stops on an error, and
+ * detals are reported to the user.
+ *
+ * \param *paths		Pointer to the list of paths to test.
+ * \return			TRUE if all paths are valid; FALSE if an error
+ *				was found.
+ */
+
+osbool search_validate_paths(char *paths);
+
 #endif
 

@@ -1051,3 +1051,62 @@ static unsigned search_drop_stack(struct search_block *search)
 	return (search->stack_level == 0) ? SEARCH_NULL : search->stack_level - 1;
 }
 
+
+/**
+ * Validate a list of pathnames, checking that each is not null and that it
+ * exists as a directory or an image file. Testing stops on an error, and
+ * detals are reported to the user.
+ *
+ * \param *paths		Pointer to the list of paths to test.
+ * \return			TRUE if all paths are valid; FALSE if an error
+ *				was found.
+ */
+
+osbool search_validate_paths(char *paths)
+{
+	char			*copy, *path, *path_end, errbuf[256];
+	osbool			done = FALSE, success = TRUE;
+	fileswitch_object_type	type;
+	os_error		*error;
+
+	copy = strdup(paths);
+	if (copy == NULL)
+		return FALSE;
+
+	path = copy;
+
+	while (!done && success) {
+		for (path_end = path; *path_end != '\0' && *path_end != ','; path_end++);
+
+		if (*path_end == '\0')
+			done = TRUE;
+		else
+			*path_end = '\0';
+
+		debug_printf("Testing path '%s'", path);
+
+		if (*path != '\0') {
+			error = xosfile_read_no_path(path, &type, NULL, NULL, NULL, NULL);
+			if (error != NULL) {
+				error_report_error(error->errmess);
+				success = FALSE;
+			} else if (type == fileswitch_NOT_FOUND || type == fileswitch_IS_FILE) {
+				if (strlen(path) > 200)
+					strcpy(path + 197, "...");
+				msgs_param_lookup("BadPath", errbuf, sizeof(errbuf), path, NULL, NULL, NULL);
+				error_report_info(errbuf);
+				success = FALSE;
+			}
+		} else {
+			error_msgs_report_info("EmptyPath");
+			success = FALSE;
+		}
+
+		path = path_end + 1;
+	}
+
+	free(copy);
+
+	return success;
+}
+

@@ -1458,6 +1458,10 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 		success = FALSE;
 	}
 
+	if (success && !search_validate_paths(dialogue->path)) {
+		success = FALSE;
+	}
+
 	if (!flexutils_store_string((flex_ptr) &(dialogue->filename), icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_FILENAME))) {
 		if (success)
 			error_msgs_report_error("NoMemStoreParams");
