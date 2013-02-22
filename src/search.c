@@ -175,6 +175,10 @@ static unsigned		search_drop_stack(struct search_block *search);
 /**
  * Create a new search.
  *
+ * The list of paths is assumed to have been passed to search_validate_paths()
+ * before this call is made; no further tests are done on the constituent
+ * parts.
+ *
  * \param *file			The file block to which the search belongs.
  * \param *objects		The object database to store information in.
  * \param *results		The results window to which output should be
@@ -1082,8 +1086,6 @@ osbool search_validate_paths(char *paths)
 			done = TRUE;
 		else
 			*path_end = '\0';
-
-		debug_printf("Testing path '%s'", path);
 
 		if (*path != '\0') {
 			error = xosfile_read_no_path(path, &type, NULL, NULL, NULL, NULL);
