@@ -260,6 +260,8 @@ enum dialogue_contents {
 struct dialogue_block {
 	struct file_block		*file;					/**< The file to which the dialogue data belongs.	*/
 
+	enum dialogue_client		clients;				/**< Clients which are using the dialogue.		*/
+
 	unsigned			pane;					/**< The pane which is visible.				*/
 
 	/* The Search Path. */
@@ -563,6 +565,8 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
 	if (new == NULL)
 		mem_ok = FALSE;
 
+	new->clients = DIALOGUE_CLIENT_NONE;
+
 	if (mem_ok) {
 		new->path = NULL;
 		new->filename = NULL;
@@ -584,7 +588,7 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
 	}
 
 	if (!mem_ok) {
-		dialogue_destroy(new);
+		dialogue_destroy(new, DIALOGUE_CLIENT_ALL);
 		return NULL;
 	}
 
@@ -672,15 +676,31 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
 
 
 /**
- * Destroy a dialogue and its data.
+ * Destroy a dialogue and its data. The client will be removed from the list
+ * of users for the dialogue, but it will only be destroyed if there are no
+ * other clients registered.
  *
  * \param *dialogue		The dialogue to be destroyed.
+ * \param client		The client trying to destroy the dialogue.
  */
 
-void dialogue_destroy(struct dialogue_block *dialogue)
+void dialogue_destroy(struct dialogue_block *dialogue, enum dialogue_client client)
 {
 	if (dialogue == NULL)
 		return;
+
+	/* Check if there are any other registered users of the dialogue data. */
+
+	debug_printf("Dialogue in use by 0x%x; deletion requested by 0x%x", dialogue->clients, client);
+
+	dialogue->clients &= ~client;
+
+	if (dialogue->clients != DIALOGUE_CLIENT_NONE)
+		return;
+
+	debug_printf("Deleting dialogue!");
+
+	/* Free the memory used and exit. */
 
 	if (dialogue->path != NULL)
 		flex_free((flex_ptr) &(dialogue->path));
@@ -692,6 +712,20 @@ void dialogue_destroy(struct dialogue_block *dialogue)
 		flex_free((flex_ptr) &(dialogue->contents_text));
 
 	heap_free(dialogue);
+}
+
+
+/**
+ * Add a client to a dialogue, so that dialogue_destroy knows that it is
+ * being used.
+ */
+
+void dialogue_add_client(struct dialogue_block *dialogue, enum dialogue_client client)
+{
+	if (dialogue == NULL)
+		return;
+
+	dialogue->clients |= client;
 }
 
 
@@ -812,7 +846,7 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 		return NULL;
 
 	if (!discfile_open_section(load, DISCFILE_SECTION_DIALOGUE) || !discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
-		dialogue_destroy(dialogue);
+		dialogue_destroy(dialogue, DIALOGUE_CLIENT_ALL);
 		return NULL;
 	}
 
@@ -922,7 +956,7 @@ static struct dialogue_block *dialogue_load_legacy_file(struct file_block *file,
 		return NULL;
 
 	if (!discfile_legacy_open_section(load, DISCFILE_LEGACY_SECTION_DIALOGUE)) {
-		dialogue_destroy(dialogue);
+		dialogue_destroy(dialogue, DIALOGUE_CLIENT_ALL);
 		return NULL;
 	}
 

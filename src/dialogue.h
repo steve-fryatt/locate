@@ -36,6 +36,19 @@ struct dialogue_block;
 #include "file.h"
 
 /**
+ * Dialogue client details: flags are set to indicate that users have a
+ * dialogue data block in use.
+ */
+
+enum dialogue_client {
+	DIALOGUE_CLIENT_NONE = 0,						/**< No flags indicates that nothing is using the dialogue.	*/
+	DIALOGUE_CLIENT_FILE = 1,						/**< The dialogue is being used by a file.			*/
+	DIALOGUE_CLIENT_LAST = 2,						/**< The dialogue is being used by the last search.		*/
+	DIALOGUE_CLIENT_HOTLIST = 4,						/**< The dialogue is being used by the hotlist.			*/
+	DIALOGUE_CLIENT_ALL = 0xffffffffu					/**< All flags indicates that all clients shoul be cleared.	*/
+};
+
+/**
  * Initialise the Dialogue module.
  */
 
@@ -56,12 +69,23 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
 
 
 /**
- * Destroy a dialogue and its data.
+ * Destroy a dialogue and its data. The client will be removed from the list
+ * of users for the dialogue, but it will only be destroyed if there are no
+ * other clients registered.
  *
  * \param *dialogue		The dialogue to be destroyed.
+ * \param client		The client trying to destroy the dialogue.
  */
 
-void dialogue_destroy(struct dialogue_block *dialogue);
+void dialogue_destroy(struct dialogue_block *dialogue, enum dialogue_client client);
+
+
+/**
+ * Add a client to a dialogue, so that dialogue_destroy knows that it is
+ * being used.
+ */
+
+void dialogue_add_client(struct dialogue_block *dialogue, enum dialogue_client client);
 
 
 /**

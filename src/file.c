@@ -171,6 +171,8 @@ void file_create_dialogue(wimp_pointer *pointer, char *path, struct file_block *
 		return;
 	}
 
+	dialogue_add_client(new->dialogue, DIALOGUE_CLIENT_FILE);
+
 	dialogue_open_window(new->dialogue, pointer);
 }
 
@@ -245,6 +247,9 @@ void file_create_from_saved(char *filename)
 
 	new->dialogue = dialogue_load_file(new, load);
 
+	if (new->dialogue != NULL)
+		dialogue_add_client(new->dialogue, DIALOGUE_CLIENT_FILE);
+
 	hourglass_off();
 
 	/* If an error is raised when the file closes, or none of the items
@@ -267,13 +272,18 @@ void file_create_from_saved(char *filename)
 
 		wimp_get_pointer_info(&pointer);
 
-		if (new->dialogue == NULL)
+		if (new->dialogue == NULL) {
 			new->dialogue = dialogue_create(new, NULL, NULL);
 
-		if (new->dialogue != NULL)
+			if (new->dialogue != NULL)
+				dialogue_add_client(new->dialogue, DIALOGUE_CLIENT_FILE);
+		}
+
+		if (new->dialogue != NULL) {
 			dialogue_open_window(new->dialogue, &pointer);
-		else
+		}else {
 			file_destroy(new);
+		}
 	}
 }
 
@@ -380,7 +390,7 @@ void file_destroy(struct file_block *block)
 		objdb_destroy(block->objects);
 
 	if (block->dialogue != NULL)
-		dialogue_destroy(block->dialogue);
+		dialogue_destroy(block->dialogue, DIALOGUE_CLIENT_FILE);
 
 	/* Free the block. */
 
