@@ -30,9 +30,10 @@
 #ifndef LOCATE_FILE
 #define LOCATE_FILE
 
-#include "oslib/wimp.h"
-
 struct file_block;
+
+#include "oslib/wimp.h"
+#include "dialogue.h"
 
 /**
  * Create a new file with no data associated to it.
@@ -62,7 +63,7 @@ void file_create_dialogue_at(char *coords);
  * \param *template		A template to use, or NULL for the default.
  */
 
-void file_create_dialogue(wimp_pointer *pointer, char *path, struct file_block *template);
+void file_create_dialogue(wimp_pointer *pointer, char *path, struct dialogue_block *template);
 
 
 /**
@@ -136,13 +137,14 @@ osbool file_search_active(struct file_block *file);
 
 
 /**
- * Identify whether a file has a set of dialogue data associated with it.
+ * Return the dialogue data associated with a file, or NULL if there is not
+ * any.
  *
  * \param *file			The file to be tested.
- * \return			TRUE if there is dialogue data; FALSE if not.
+ * \return			The file's dialogue handle, or NULL if none.
  */
 
-osbool file_has_dialogue(struct file_block *file);
+struct dialogue_block *file_get_dialogue(struct file_block *file);
 
 
 /**

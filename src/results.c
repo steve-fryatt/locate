@@ -877,7 +877,7 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 	menus_shade_entry(results_window_menu, RESULTS_MENU_OBJECT_INFO, handle->selection_count != 1);
 	menus_shade_entry(results_window_menu, RESULTS_MENU_OPEN_PARENT, handle->selection_count != 1);
 	menus_shade_entry(results_window_menu, RESULTS_MENU_COPY_NAMES, handle->selection_count == 0);
-	menus_shade_entry(results_window_menu, RESULTS_MENU_MODIFY_SEARCH, dialogue_window_is_open() || !file_has_dialogue(handle->file));
+	menus_shade_entry(results_window_menu, RESULTS_MENU_MODIFY_SEARCH, dialogue_window_is_open() || file_get_dialogue(handle->file) == NULL);
 	menus_shade_entry(results_window_menu, RESULTS_MENU_STOP_SEARCH, !file_search_active(handle->file));
 
 	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_PATH_ONLY, !handle->full_info);
@@ -981,7 +981,7 @@ static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 		break;
 
 	case RESULTS_MENU_MODIFY_SEARCH:
-		file_create_dialogue(&pointer, NULL, handle->file);
+		file_create_dialogue(&pointer, NULL, file_get_dialogue(handle->file));
 		break;
 
 	case RESULTS_MENU_STOP_SEARCH:

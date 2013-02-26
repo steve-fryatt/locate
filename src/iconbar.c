@@ -86,8 +86,9 @@ static osbool	iconbar_proginfo_web_click(wimp_pointer *pointer);
 static osbool	iconbar_icon_drop_handler(wimp_message *message);
 static osbool	iconbar_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
-static wimp_menu	*iconbar_menu = NULL;					/**< The iconbar menu handle.			*/
-static wimp_w		iconbar_info_window = NULL;				/**< The iconbar menu info window handle.	*/
+static wimp_menu		*iconbar_menu = NULL;				/**< The iconbar menu handle.					*/
+static wimp_w			iconbar_info_window = NULL;			/**< The iconbar menu info window handle.			*/
+static struct dialogue_block	*iconbar_last_search_dialogue = NULL;		/**< The handle of the last search dialogue, or NULL if none.	*/
 
 
 /**
@@ -146,7 +147,7 @@ static void iconbar_click_handler(wimp_pointer *pointer)
 		break;
 
 	case wimp_CLICK_ADJUST:
-//		convert_open_queue_window(pointer);
+		file_create_dialogue(pointer, NULL, iconbar_last_search_dialogue);
 		break;
 	}
 }
@@ -282,5 +283,24 @@ static osbool iconbar_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, ch
 	file_create_from_saved(filename);
 
 	return TRUE;
+}
+
+
+/**
+ * Set a dialogue as the data for the last search. The existing last search
+ * dialogue will be discarded.
+ *
+ * \param *dialogue		The handle of the dialogue to set.
+ */
+
+void iconbar_set_last_search_dialogue(struct dialogue_block *dialogue)
+{
+	if (iconbar_last_search_dialogue != NULL)
+		dialogue_destroy(iconbar_last_search_dialogue, DIALOGUE_CLIENT_LAST);
+
+	iconbar_last_search_dialogue = dialogue;
+
+	if (dialogue != NULL)
+		dialogue_add_client(dialogue, DIALOGUE_CLIENT_LAST);
 }
 

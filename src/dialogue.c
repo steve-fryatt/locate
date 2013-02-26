@@ -68,6 +68,7 @@
 #include "datetime.h"
 #include "discfile.h"
 #include "flexutils.h"
+#include "iconbar.h"
 #include "ihelp.h"
 #include "saveas.h"
 #include "search.h"
@@ -2261,6 +2262,8 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 	/* Tidy up and start the search. */
 
 	heap_free(buffer);
+
+	iconbar_set_last_search_dialogue(dialogue);
 
 	search_start(search);
 }

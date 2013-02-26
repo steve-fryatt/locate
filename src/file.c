@@ -157,7 +157,7 @@ void file_create_dialogue_at(char *coords)
  * \param *template		A template to use, or NULL for the default.
  */
 
-void file_create_dialogue(wimp_pointer *pointer, char *path, struct file_block *template)
+void file_create_dialogue(wimp_pointer *pointer, char *path, struct dialogue_block *template)
 {
 	struct file_block *new;
 
@@ -165,7 +165,7 @@ void file_create_dialogue(wimp_pointer *pointer, char *path, struct file_block *
 	if (new == NULL)
 		return;
 
-	new->dialogue = dialogue_create(new, path, (template != NULL) ? template->dialogue : NULL);
+	new->dialogue = dialogue_create(new, path, template);
 	if (new->dialogue == NULL) {
 		file_destroy(new);
 		return;
@@ -426,18 +426,19 @@ osbool file_search_active(struct file_block *file)
 
 
 /**
- * Identify whether a file has a set of dialogue data associated with it.
+ * Return the dialogue data associated with a file, or NULL if there is not
+ * any.
  *
  * \param *file			The file to be tested.
- * \return			TRUE if there is dialogue data; FALSE if not.
+ * \return			The file's dialogue handle, or NULL if none.
  */
 
-osbool file_has_dialogue(struct file_block *file)
+struct dialogue_block *file_get_dialogue(struct file_block *file)
 {
 	if (file == NULL)
-		return FALSE;
+		return NULL;
 
-	return (file->dialogue == NULL) ? FALSE : TRUE;
+	return file->dialogue;
 }
 
 

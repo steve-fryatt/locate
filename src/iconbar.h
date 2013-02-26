@@ -30,12 +30,24 @@
 #ifndef LOCATE_ICONBAR
 #define LOCATE_ICONBAR
 
+#include "dialogue.h"
+
 
 /**
  * Initialise the iconbar icon and its associated menus and dialogues.
  */
 
 void iconbar_initialise(void);
+
+
+/**
+ * Set a dialogue as the data for the last search. The existing last search
+ * dialogue will be discarded.
+ *
+ * \param *dialogue		The handle of the dialogue to set.
+ */
+
+void iconbar_set_last_search_dialogue(struct dialogue_block *dialogue);
 
 #endif
 
