@@ -329,7 +329,8 @@ Help.ResultsMenu.04:\Rto see information about the selected object.
 Help.ResultsMenu.05:\Sopen the parent of the selected object.|MThis can also be done by an \a double-click on the object itself.
 Help.ResultsMenu.06:\Scopy the filenames (all or those currently selected) to the global clipboard.
 Help.ResultsMenu.07:\Sopen a new search window with the same search options.
-Help.ResultsMenu.08:\Sstop the current search, while keeping those results that have already been found.
+Help.ResultsMenu.08:\Ssave the options of the current search in the hotlist.
+Help.ResultsMenu.09:\Sstop the current search, while keeping those results that have already been found.
 
 Help.NameModeMenu.00:\Signore the filename when matching objects.
 Help.NameModeMenu.01:\Smatch objects whose names exactly match a given string.

@@ -76,6 +76,7 @@
 #include "dialogue.h"
 #include "file.h"
 #include "fileicon.h"
+#include "hotlist.h"
 #include "iconbar.h"
 #include "ihelp.h"
 #include "objdb.h"
@@ -254,6 +255,7 @@ static void main_initialise(void)
 	settime_initialise();
 	dialogue_initialise();
 	results_initialise(sprites);
+	hotlist_initialise();
 	iconbar_initialise();
 	url_initialise();
 

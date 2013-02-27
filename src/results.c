@@ -71,6 +71,7 @@
 #include "discfile.h"
 #include "file.h"
 #include "fileicon.h"
+#include "hotlist.h"
 #include "ihelp.h"
 #include "objdb.h"
 #include "saveas.h"
@@ -137,7 +138,8 @@
 #define RESULTS_MENU_OPEN_PARENT 5
 #define RESULTS_MENU_COPY_NAMES 6
 #define RESULTS_MENU_MODIFY_SEARCH 7
-#define RESULTS_MENU_STOP_SEARCH 8
+#define RESULTS_MENU_ADD_TO_HOTLIST 8
+#define RESULTS_MENU_STOP_SEARCH 9
 
 #define RESULTS_MENU_DISPLAY_PATH_ONLY 0
 #define RESULTS_MENU_DISPLAY_FULL_INFO 1
@@ -982,6 +984,10 @@ static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 
 	case RESULTS_MENU_MODIFY_SEARCH:
 		file_create_dialogue(&pointer, NULL, file_get_dialogue(handle->file));
+		break;
+
+	case RESULTS_MENU_ADD_TO_HOTLIST:
+		hotlist_add_dialogue(file_get_dialogue(handle->file));
 		break;
 
 	case RESULTS_MENU_STOP_SEARCH:

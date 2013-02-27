@@ -83,6 +83,7 @@ menu(results_window_menu, "Locate") {
 		dotted;
 	}
 	item("Modify search...");
+	item("Add to hotlist...");
 	item("Stop search");
 }
 

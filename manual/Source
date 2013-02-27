@@ -215,6 +215,8 @@ The <menu>Display</menu> submenu, which leads to the options <menu>Path only</me
 
 <menu>Modify search...</menu> opens a search window containing the parameters used before (clicking <mouse>select</mouse> on the icon-bar icon always opens a blank <link ref="Simple">search window</link>, although <mouse>adjust</mouse> will recall the last search parameters used).  Note that you can only ever have one search window open at a time (but as many results windows as you have the free memory for - up to the application space limit of 28Kb or course...).
 
+<menu>Add to hotlist...</menu> will add the parameters used for the search to the hotlist, opening a dialogue so that a name can be supplied for the new entry.
+
 <menu>Stop search</menu> will halt a search that is continuing in the background, keeping the window open with the results that have been found so far.  You cannot re-start a stopped search.
 
 </chapter>
