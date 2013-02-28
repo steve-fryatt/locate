@@ -726,7 +726,6 @@ This version of <cite>Locate</cite> is still not finished and several intended f
 
 <list>
 <li>'Hotlist' type search history, allowing searches to be bookmarked and accessed quickly (do we need, since we can save searches anyway?).
-<li>Allow single-tasking searches to be paused.
 <li>Cache search results or file locations in a file for faster searching.
 <li>Correctly measure icon sprite widths when laying out the results window.
 <li>Improve memory management, by reducing heap fragmentation (may not be possible, since several Wimp features require static data).
@@ -736,11 +735,10 @@ This version of <cite>Locate</cite> is still not finished and several intended f
 <li>Allow Regular Expressions to be used in file contents search.
 <li>Allow searches of search results.
 <li>Add stop/modify search buttons to the status bar (or toolbar).
-<li>Add a hotkey to open the <window>search window</window>.
 <li>Make <window>search window</window> opening configurable, so that any pane can be opened by default.
 </list>
 
-Some of these are very much 'internal' features that won't show up much to the user.  They are only listed here to keep one singe list of things still to be done.
+Some of these are very much 'internal' features that won't show up much to the user.  They are only listed here to keep one single list of things still to be done.
 
 </chapter>
 
