@@ -42,13 +42,13 @@
 
 //#include "sflib/debug.h"
 //#include "sflib/errors.h"
-//#include "sflib/event.h"
+#include "sflib/event.h"
 //#include "sflib/icons.h"
 //#include "sflib/menus.h"
 //#include "sflib/msgs.h"
 //#include "sflib/string.h"
 //#include "sflib/url.h"
-//#include "sflib/windows.h"
+#include "sflib/windows.h"
 
 /* Application header files */
 
@@ -64,33 +64,21 @@
 #include "templates.h"
 
 
-/* Iconbar menu */
+/* Hotlist Add Window */
 
-#define ICONBAR_MENU_INFO 0
-#define ICONBAR_MENU_HELP 1
-#define ICONBAR_MENU_HISTORY 2
-#define ICONBAR_MENU_CHOICES 3
-#define ICONBAR_MENU_QUIT 4
-
-/* Program Info Window */
-
-#define ICON_PROGINFO_AUTHOR  4
-#define ICON_PROGINFO_VERSION 6
-#define ICON_PROGINFO_WEBSITE 8
-
-#if 0
-static void	iconbar_click_handler(wimp_pointer *pointer);
-static void	iconbar_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
-static void	iconbar_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
-static osbool	iconbar_proginfo_web_click(wimp_pointer *pointer);
-static osbool	iconbar_icon_drop_handler(wimp_message *message);
-static osbool	iconbar_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
-#endif
+#define HOTLIST_ADD_ICON_NAME 1
+#define HOTLIST_ADD_ICON_CANCEL 2
+#define HOTLIST_ADD_ICON_ADD 3
 
 
-static wimp_menu		*hotlist_menu = NULL;				/**< The hotlist menu handle.					*/
-static wimp_w			hotlist_add_window = NULL;			/**< The add to hotlist window handle.			*/
-//static struct dialogue_block	*iconbar_last_search_dialogue = NULL;		/**< The handle of the last search dialogue, or NULL if none.	*/
+static void	hotlist_add_click_handler(wimp_pointer *pointer);
+static osbool	hotlist_add_keypress_handler(wimp_key *key);
+
+
+
+static wimp_menu		*hotlist_menu = NULL;				/**< The hotlist menu handle.							*/
+static wimp_w			hotlist_add_window = NULL;			/**< The add to hotlist window handle.						*/
+static struct dialogue_block	*hotlist_add_dialogue_handle = NULL;		/**< The handle of the dialogue to be added to the hotlist, or NULL if none.	*/
 
 
 /**
@@ -107,6 +95,8 @@ void hotlist_initialise(void)
 	hotlist_add_window = templates_create_window("HotlistAdd");
 	//templates_link_menu_dialogue("ProgInfo", iconbar_info_window);
 	ihelp_add_window(hotlist_add_window, "HotlistAdd", NULL);
+	event_add_window_mouse_event(hotlist_add_window, hotlist_add_click_handler);
+	event_add_window_key_event(hotlist_add_window, hotlist_add_keypress_handler);
 }
 
 
@@ -118,6 +108,101 @@ void hotlist_initialise(void)
 
 void hotlist_add_dialogue(struct dialogue_block *dialogue)
 {
+	wimp_pointer	pointer;
 
+	hotlist_add_dialogue_handle = dialogue;
+
+	wimp_get_pointer_info(&pointer);
+	windows_open_centred_at_pointer(hotlist_add_window, &pointer);
+}
+
+
+/**
+ * Identify whether the Hotlist Add Dialogue window is currently open.
+ *
+ * \return		TRUE if the window is open; else FALSE.
+ */
+
+osbool hotlist_add_window_is_open(void)
+{
+	return windows_get_open(hotlist_add_window);
+}
+
+
+
+
+
+
+/**
+ * Process mouse clicks in the Hotlist Add dialogue.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void hotlist_add_click_handler(wimp_pointer *pointer)
+{
+	if (pointer == NULL)
+		return;
+
+	switch ((int) pointer->i) {
+	case HOTLIST_ADD_ICON_ADD:
+		if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
+/*			if (!dialogue_read_window(dialogue_data))
+				break;
+
+			dialogue_start_search(dialogue_data);
+
+			if (pointer->buttons == wimp_CLICK_SELECT) {
+				settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
+				dialogue_close_window();
+			}*/
+		}
+		break;
+
+	case HOTLIST_ADD_ICON_CANCEL:
+		if (pointer->buttons == wimp_CLICK_SELECT) {
+			wimp_close_window(hotlist_add_window);
+			hotlist_add_dialogue_handle = NULL;
+		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+			//dialogue_set_window(dialogue_data);
+			//dialogue_redraw_window();
+		}
+		break;
+	}
+}
+
+
+/**
+ * Process keypresses in the Hotlist Add window.
+ *
+ * \param *key			The keypress event block to handle.
+ * \return			TRUE if the event was handled; else FALSE.
+ */
+
+static osbool hotlist_add_keypress_handler(wimp_key *key)
+{
+	if (key == NULL)
+		return FALSE;
+
+	switch (key->c) {
+	case wimp_KEY_RETURN:
+/*		settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
+		if (!dialogue_read_window(dialogue_data))
+			break;
+		dialogue_start_search(dialogue_data);
+		dialogue_close_window();*/
+		break;
+
+	case wimp_KEY_ESCAPE:
+		wimp_close_window(hotlist_add_window);
+		hotlist_add_dialogue_handle = NULL;
+		break;
+
+	default:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
 }
 

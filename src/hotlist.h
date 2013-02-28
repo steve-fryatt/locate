@@ -48,5 +48,14 @@ void hotlist_initialise(void);
 
 void hotlist_add_dialogue(struct dialogue_block *dialogue);
 
+
+/**
+ * Identify whether the Hotlist Add Dialogue window is currently open.
+ *
+ * \return		TRUE if the window is open; else FALSE.
+ */
+
+osbool hotlist_add_window_is_open(void);
+
 #endif
 
