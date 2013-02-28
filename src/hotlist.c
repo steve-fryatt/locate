@@ -70,15 +70,28 @@
 #define HOTLIST_ADD_ICON_CANCEL 2
 #define HOTLIST_ADD_ICON_ADD 3
 
-
-static void	hotlist_add_click_handler(wimp_pointer *pointer);
-static osbool	hotlist_add_keypress_handler(wimp_key *key);
+#define HOTLIST_NAME_LENGTH 48
 
 
+/**
+ * The structure to contain details of a hotlist entry.
+ */
+
+struct hotlist_data {
+	char			name[HOTLIST_NAME_LENGTH];			/**< The name of the hotlist entry.						*/
+	struct dialogue_block	*dialogue;					/**< The data associated with the hotlist entry.				*/
+};
+
+/* Global variables. */
 
 static wimp_menu		*hotlist_menu = NULL;				/**< The hotlist menu handle.							*/
 static wimp_w			hotlist_add_window = NULL;			/**< The add to hotlist window handle.						*/
 static struct dialogue_block	*hotlist_add_dialogue_handle = NULL;		/**< The handle of the dialogue to be added to the hotlist, or NULL if none.	*/
+
+/* Function prototypes. */
+
+static void	hotlist_add_click_handler(wimp_pointer *pointer);
+static osbool	hotlist_add_keypress_handler(wimp_key *key);
 
 
 /**
@@ -111,6 +124,7 @@ void hotlist_add_dialogue(struct dialogue_block *dialogue)
 	wimp_pointer	pointer;
 
 	hotlist_add_dialogue_handle = dialogue;
+	dialogue_add_client(dialogue, DIALOGUE_CLIENT_HOTLIST);
 
 	wimp_get_pointer_info(&pointer);
 	windows_open_centred_at_pointer(hotlist_add_window, &pointer);
@@ -162,6 +176,7 @@ static void hotlist_add_click_handler(wimp_pointer *pointer)
 	case HOTLIST_ADD_ICON_CANCEL:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
 			wimp_close_window(hotlist_add_window);
+			dialogue_destroy(hotlist_add_dialogue_handle, DIALOGUE_CLIENT_HOTLIST);
 			hotlist_add_dialogue_handle = NULL;
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			//dialogue_set_window(dialogue_data);
@@ -195,6 +210,7 @@ static osbool hotlist_add_keypress_handler(wimp_key *key)
 
 	case wimp_KEY_ESCAPE:
 		wimp_close_window(hotlist_add_window);
+		dialogue_destroy(hotlist_add_dialogue_handle, DIALOGUE_CLIENT_HOTLIST);
 		hotlist_add_dialogue_handle = NULL;
 		break;
 
