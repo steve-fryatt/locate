@@ -131,8 +131,8 @@ PKGCTRL := Control
 
 OBJS := choices.o clipboard.o contents.o dataxfer.o datetime.o dialogue.o	\
 	discfile.o file.o fileicon.o flexutils.o hotlist.o iconbar.o ihelp.o	\
-	main.o objdb.o results.o saveas.o search.o settime.o templates.o	\
-	textdump.o typemenu.o
+	main.o objdb.o plugin.o results.o saveas.o search.o settime.o		\
+	templates.o textdump.o typemenu.o
 
 
 # Build everything, but don't package it for release.

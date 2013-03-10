@@ -80,6 +80,7 @@
 #include "iconbar.h"
 #include "ihelp.h"
 #include "objdb.h"
+#include "plugin.h"
 #include "results.h"
 #include "saveas.h"
 #include "search.h"
@@ -258,6 +259,7 @@ static void main_initialise(void)
 	hotlist_initialise();
 	iconbar_initialise();
 	url_initialise();
+	plugin_initialise();
 
 	templates_close();
 
@@ -282,6 +284,8 @@ static void main_parse_command_line(int argc, char *argv[])
 				file_create_from_saved(argv[i + 1]);
 			else if (strcmp(argv[i], "-open") == 0 && (i + 1) < argc)
 				file_create_dialogue_at(argv[i + 1]);
+			else if (strcmp(argv[i], "-plugin") == 0)
+				plugin_filer_launched();
 		}
 	}
 }
