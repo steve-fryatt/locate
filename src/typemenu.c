@@ -201,7 +201,7 @@ wimp_menu *typemenu_build(void)
 
 		/* Set the menu and icon flags up. */
 
-		typemenu_menu->entries[line].menu_flags = 0;
+		typemenu_menu->entries[line].menu_flags = NONE;
 
 		typemenu_menu->entries[line].sub_menu = (wimp_menu *) -1;
 		typemenu_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_SPRITE |
@@ -222,7 +222,7 @@ wimp_menu *typemenu_build(void)
 
 	typemenu_menu->entries[line - 1].menu_flags |= wimp_MENU_LAST;
 
-	msgs_lookup ("FileMenu", typemenu_menu->title_data.text, 12);
+	msgs_lookup("FileMenu", typemenu_menu->title_data.text, 12);
 	typemenu_menu->title_fg = wimp_COLOUR_BLACK;
 	typemenu_menu->title_bg = wimp_COLOUR_LIGHT_GREY;
 	typemenu_menu->work_fg = wimp_COLOUR_BLACK;
