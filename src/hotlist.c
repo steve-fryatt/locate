@@ -43,9 +43,10 @@
 //#include "sflib/debug.h"
 //#include "sflib/errors.h"
 #include "sflib/event.h"
+#include "sflib/heap.h"
 //#include "sflib/icons.h"
 //#include "sflib/menus.h"
-//#include "sflib/msgs.h"
+#include "sflib/msgs.h"
 //#include "sflib/string.h"
 //#include "sflib/url.h"
 #include "sflib/windows.h"
@@ -221,4 +222,115 @@ static osbool hotlist_add_keypress_handler(wimp_key *key)
 
 	return TRUE;
 }
+
+
+/**
+ * Build a hotlist menu and return a pointer to it.
+ *
+ * \return			A pointer to the menu block.
+ */
+
+wimp_menu *hotlist_build_menu(void)
+{
+	int			length, context = 0, line, width = 0;
+	//char			buffer[TYPEMENU_NAME_LENGTH], *sprite_base, *validation, *var_name;
+	os_var_type		type;
+	os_error		*error;
+
+
+	/* Allocate space for the Wimp menu block. */
+
+	if (hotlist_menu != NULL)
+		heap_free(hotlist_menu);
+
+	hotlist_menu = heap_alloc(28 + 24 * 1);
+
+	if (hotlist_menu == NULL)
+		return NULL;
+
+	/* Build the menu from the collected types. */
+
+//	if (strlen(typemenu_types[line].name) > width)
+//		width = strlen(typemenu_types[line].name);
+
+	/* Set the menu and icon flags up. */
+
+	line = 0;
+
+	hotlist_menu->entries[line].menu_flags = NONE;
+
+	hotlist_menu->entries[line].sub_menu = (wimp_menu *) -1;
+	hotlist_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED |
+			wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
+			wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
+
+	/* Set the menu icon contents up. */
+
+	msgs_lookup("HotlistEdit", hotlist_menu->entries[line].data.text, 12);
+	//hotlist_menu->entries[line].data.indirected_text.validation = typemenu_types[line].validation;
+	//hotlist_menu->entries[line].data.indirected_text.size = TYPEMENU_NAME_LENGTH;
+
+
+	#if 0
+
+	for (line = 0; line < typemenu_entries; line++) {
+		if (strlen(typemenu_types[line].name) > width)
+			width = strlen(typemenu_types[line].name);
+
+		/* Set the menu and icon flags up. */
+
+		hotlist_menu->entries[line].menu_flags = NONE;
+
+		hotlist_menu->entries[line].sub_menu = (wimp_menu *) -1;
+		hotlist_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
+				wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
+				wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
+
+		/* Set the menu icon contents up. */
+
+		hotlist_menu->entries[line].data.indirected_text.text = typemenu_types[line].name;
+		hotlist_menu->entries[line].data.indirected_text.validation = typemenu_types[line].validation;
+		hotlist_menu->entries[line].data.indirected_text.size = TYPEMENU_NAME_LENGTH;
+	}
+	#endif
+	
+	line++;
+
+	//if (typemenu_entries > 1)
+	//	typemenu_menu->entries[0].menu_flags |= wimp_MENU_SEPARATE;
+
+	hotlist_menu->entries[line - 1].menu_flags |= wimp_MENU_LAST;
+
+	msgs_lookup("Hotlist", hotlist_menu->title_data.text, 12);
+	hotlist_menu->title_fg = wimp_COLOUR_BLACK;
+	hotlist_menu->title_bg = wimp_COLOUR_LIGHT_GREY;
+	hotlist_menu->work_fg = wimp_COLOUR_BLACK;
+	hotlist_menu->work_bg = wimp_COLOUR_WHITE;
+
+	hotlist_menu->width = 40 + (width + 1) * 16;
+	hotlist_menu->height = 44;
+	hotlist_menu->gap = 0;
+
+	return hotlist_menu;
+}
+
+
+/**
+ * Process a selection from the hotlist menu.
+ *
+ * \param selection		The menu selection.
+ */
+
+void hotlist_process_menu_selection(int selection)
+{
+	unsigned	*types;
+	int		entries = 0;
+	osbool		found = FALSE;
+
+	if (selection < 0 || selection >= 1 /*typemenu_entries*/)
+		return;
+		
+	debug_printf("Selected hotlist menu item %d", selection);
+}
+
 

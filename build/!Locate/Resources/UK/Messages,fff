@@ -93,6 +93,11 @@ NoPaths:There were no paths specified to search.
 TypeBufFull:There was not enough space in the filetype field to add the new type.
 URLFailed:Could not find an application to launch the given URL.
 
+# Hotlist Menu.
+
+Hotlist:Hotlist
+HotlistEdit:Edit...
+
 # Filename window menus.
 
 NameMode0:is not important

@@ -59,6 +59,7 @@
 #include "dialogue.h"
 #include "discfile.h"
 #include "file.h"
+#include "hotlist.h"
 #include "ihelp.h"
 #include "main.h"
 #include "templates.h"
@@ -68,7 +69,7 @@
 
 #define ICONBAR_MENU_INFO 0
 #define ICONBAR_MENU_HELP 1
-#define ICONBAR_MENU_HISTORY 2
+#define ICONBAR_MENU_HOTLIST 2
 #define ICONBAR_MENU_CHOICES 3
 #define ICONBAR_MENU_QUIT 4
 
@@ -80,7 +81,7 @@
 
 
 static void	iconbar_click_handler(wimp_pointer *pointer);
-static void	iconbar_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+static void	iconbar_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void	iconbar_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static osbool	iconbar_proginfo_web_click(wimp_pointer *pointer);
 static osbool	iconbar_icon_drop_handler(wimp_message *message);
@@ -121,7 +122,7 @@ void iconbar_initialise(void)
 
 	event_add_window_mouse_event(wimp_ICON_BAR, iconbar_click_handler);
 	event_add_window_menu(wimp_ICON_BAR, iconbar_menu);
-	event_add_window_menu_prepare(wimp_ICON_BAR, iconbar_menu_prepare);
+	event_add_window_menu_warning(wimp_ICON_BAR, iconbar_menu_warning);
 	event_add_window_menu_selection(wimp_ICON_BAR, iconbar_menu_selection);
 
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, iconbar_icon_drop_handler);
@@ -154,16 +155,25 @@ static void iconbar_click_handler(wimp_pointer *pointer)
 
 
 /**
- * Prepare the iconbar menu for (re)-opening.
+ * Process submenu warning events for the iconbar menu.
  *
- * \param  w			The handle of the menu's parent window.
- * \param  *menu		Pointer to the menu being opened.
- * \param  *pointer		Pointer to the Wimp Pointer event block.
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *warning	The submenu warning message data.
  */
 
-static void iconbar_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
+static void iconbar_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
 {
-//	menus_shade_entry(iconbar_menu, ICONBAR_MENU_CHOICES, convert_pdf_conversion_in_progress());
+	wimp_menu	*hotlist;
+
+	switch (warning->selection.items[0]) {
+	case ICONBAR_MENU_HOTLIST:
+		hotlist = hotlist_build_menu();
+		
+		if (hotlist != NULL)
+			wimp_create_sub_menu(hotlist, warning->pos.x, warning->pos.y);
+		break;
+	}
 }
 
 
@@ -187,6 +197,10 @@ static void iconbar_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 		error = xos_cli("%Filer_Run <Locate$Dir>.!Help");
 		if (error != NULL)
 			error_report_os_error(error, wimp_ERROR_BOX_OK_ICON);
+		break;
+
+	case ICONBAR_MENU_HOTLIST:
+		hotlist_process_menu_selection(selection->items[1]);
 		break;
 
 	case ICONBAR_MENU_CHOICES:

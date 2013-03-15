@@ -57,5 +57,23 @@ void hotlist_add_dialogue(struct dialogue_block *dialogue);
 
 osbool hotlist_add_window_is_open(void);
 
+
+/**
+ * Build a hotlist menu.
+ *
+ * \return			A pointer to the menu block.
+ */
+
+wimp_menu *hotlist_build_menu(void);
+
+
+/**
+ * Process a selection from the hotlist menu.
+ *
+ * \param selection		The menu selection.
+ */
+
+void hotlist_process_menu_selection(int selection);
+
 #endif
 
