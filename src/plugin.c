@@ -86,10 +86,11 @@ void plugin_initialise(void)
 
 void plugin_filer_launched(void)
 {
-	if (plugin_current_state == PLUGIN_STATE_IDLE)
-		plugin_current_state = PLUGIN_STATE_WAITING;
+	if (plugin_current_state != PLUGIN_STATE_IDLE)
+		return;
 	
-	debug_printf("Launched by Filer_Action");
+	plugin_current_state = PLUGIN_STATE_WAITING;
+	
 }
 
 
