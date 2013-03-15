@@ -1,4 +1,4 @@
-/* Copyright 2013, Stephen Fryatt
+/* Copyright 2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * Wildcard search based on code by Alessandro Cantatore:
  * http://xoomer.virgilio.it/acantato/dev/wildcard/wildmatch.html
