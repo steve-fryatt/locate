@@ -29,6 +29,7 @@
 
 /* ANSI C header files */
 
+#include <stdio.h>
 #include <string.h>
 
 /* Acorn C header files */
@@ -40,7 +41,7 @@
 
 /* SF-Lib header files. */
 
-//#include "sflib/debug.h"
+#include "sflib/debug.h"
 //#include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
@@ -88,6 +89,9 @@ struct hotlist_data {
 static wimp_menu		*hotlist_menu = NULL;				/**< The hotlist menu handle.							*/
 static wimp_w			hotlist_add_window = NULL;			/**< The add to hotlist window handle.						*/
 static struct dialogue_block	*hotlist_add_dialogue_handle = NULL;		/**< The handle of the dialogue to be added to the hotlist, or NULL if none.	*/
+
+static struct hotlist_data	hotlist[10];					/**< The hotlist entries -- \TODO -- Fix allocation!				*/
+static int			hotlist_entries = 0;				/**< The number of entries in the hotlist.					*/
 
 /* Function prototypes. */
 
@@ -162,6 +166,9 @@ static void hotlist_add_click_handler(wimp_pointer *pointer)
 	switch ((int) pointer->i) {
 	case HOTLIST_ADD_ICON_ADD:
 		if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
+			sprintf(hotlist[hotlist_entries].name, "Entry %d", hotlist_entries + 1);
+			hotlist_entries++;
+		
 /*			if (!dialogue_read_window(dialogue_data))
 				break;
 
@@ -232,10 +239,7 @@ static osbool hotlist_add_keypress_handler(wimp_key *key)
 
 wimp_menu *hotlist_build_menu(void)
 {
-	int			length, context = 0, line, width = 0;
-	//char			buffer[TYPEMENU_NAME_LENGTH], *sprite_base, *validation, *var_name;
-	os_var_type		type;
-	os_error		*error;
+	int			line, width = 0;
 
 
 	/* Allocate space for the Wimp menu block. */
@@ -243,17 +247,12 @@ wimp_menu *hotlist_build_menu(void)
 	if (hotlist_menu != NULL)
 		heap_free(hotlist_menu);
 
-	hotlist_menu = heap_alloc(28 + 24 * 1);
+	hotlist_menu = heap_alloc(28 + 24 * (hotlist_entries + 1));
 
 	if (hotlist_menu == NULL)
 		return NULL;
 
-	/* Build the menu from the collected types. */
-
-//	if (strlen(typemenu_types[line].name) > width)
-//		width = strlen(typemenu_types[line].name);
-
-	/* Set the menu and icon flags up. */
+	/* Enter the default Edit entry at the top of the menu. */
 
 	line = 0;
 
@@ -264,18 +263,16 @@ wimp_menu *hotlist_build_menu(void)
 			wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
 			wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
 
-	/* Set the menu icon contents up. */
-
 	msgs_lookup("HotlistEdit", hotlist_menu->entries[line].data.text, 12);
-	//hotlist_menu->entries[line].data.indirected_text.validation = typemenu_types[line].validation;
-	//hotlist_menu->entries[line].data.indirected_text.size = TYPEMENU_NAME_LENGTH;
 
+	if (strlen(hotlist_menu->entries[line].data.text) > width)
+		width = strlen(hotlist_menu->entries[line].data.text);
 
-	#if 0
+	/* Add any hotlist entries that have been defined. */
 
-	for (line = 0; line < typemenu_entries; line++) {
-		if (strlen(typemenu_types[line].name) > width)
-			width = strlen(typemenu_types[line].name);
+	for (line++; line <= hotlist_entries; line++) {
+		if (strlen(hotlist[line - 1].name) > width)
+			width = strlen(hotlist[line - 1].name);
 
 		/* Set the menu and icon flags up. */
 
@@ -288,16 +285,15 @@ wimp_menu *hotlist_build_menu(void)
 
 		/* Set the menu icon contents up. */
 
-		hotlist_menu->entries[line].data.indirected_text.text = typemenu_types[line].name;
-		hotlist_menu->entries[line].data.indirected_text.validation = typemenu_types[line].validation;
-		hotlist_menu->entries[line].data.indirected_text.size = TYPEMENU_NAME_LENGTH;
+		hotlist_menu->entries[line].data.indirected_text.text = hotlist[line - 1].name;
+		hotlist_menu->entries[line].data.indirected_text.validation = "";
+		hotlist_menu->entries[line].data.indirected_text.size = HOTLIST_NAME_LENGTH;
 	}
-	#endif
-	
-	line++;
 
-	//if (typemenu_entries > 1)
-	//	typemenu_menu->entries[0].menu_flags |= wimp_MENU_SEPARATE;
+	/* Finish off the menu definition. */
+
+	if (hotlist_entries >= 1)
+		hotlist_menu->entries[0].menu_flags |= wimp_MENU_SEPARATE;
 
 	hotlist_menu->entries[line - 1].menu_flags |= wimp_MENU_LAST;
 
@@ -327,7 +323,7 @@ void hotlist_process_menu_selection(int selection)
 	int		entries = 0;
 	osbool		found = FALSE;
 
-	if (selection < 0 || selection >= 1 /*typemenu_entries*/)
+	if (selection < 0 || selection > hotlist_entries)
 		return;
 		
 	debug_printf("Selected hotlist menu item %d", selection);
