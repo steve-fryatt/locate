@@ -60,7 +60,7 @@
 //#include "dataxfer.h"
 #include "dialogue.h"
 //#include "discfile.h"
-//#include "file.h"
+#include "file.h"
 #include "ihelp.h"
 //#include "main.h"
 #include "templates.h"
@@ -72,9 +72,15 @@
 #define HOTLIST_ADD_ICON_CANCEL 2
 #define HOTLIST_ADD_ICON_ADD 3
 
-#define HOTLIST_NAME_LENGTH 48
+/* Hotlist Menu */
 
-#define HOTLIST_ALLOCATION 10
+#define HOTLIST_MENU_EDIT 0
+
+/* Hotlist memory allocation. */
+
+#define HOTLIST_NAME_LENGTH 48							/**< The maximum length of a hotlist entry name.				*/
+
+#define HOTLIST_ALLOCATION 10							/**< The number of hotlist entries to be allocated in one go.			*/
 
 
 /**
@@ -383,14 +389,19 @@ wimp_menu *hotlist_build_menu(void)
 
 void hotlist_process_menu_selection(int selection)
 {
-	unsigned	*types;
-	int		entries = 0;
-	osbool		found = FALSE;
+	wimp_pointer	pointer;
 
 	if (selection < 0 || selection > hotlist_entries)
 		return;
 		
 	debug_printf("Selected hotlist menu item %d", selection);
+	
+	if (selection == HOTLIST_MENU_EDIT) {
+		/* Start editing the hotlist. */
+	} else if (selection > 0 && hotlist[selection - 1].dialogue != NULL) {
+		if (xwimp_get_pointer_info(&pointer) == NULL)
+			file_create_dialogue(&pointer, NULL, hotlist[selection - 1].dialogue);
+	}
 }
 
 
