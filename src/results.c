@@ -777,7 +777,7 @@ static void results_click_handler(wimp_pointer *pointer)
 	unsigned		row;
 	osbool			ctrl_pressed;
 
-	if (handle == NULL || pointer== NULL)
+	if (handle == NULL || pointer == NULL)
 		return;
 
 	ctrl_pressed = ((osbyte1(osbyte_IN_KEY, 0xf0, 0xff) == 0xff) || (osbyte1(osbyte_IN_KEY, 0xfb, 0xff) == 0xff)) ? TRUE : FALSE;
