@@ -404,4 +404,3 @@ void hotlist_process_menu_selection(int selection)
 	}
 }
 
-
