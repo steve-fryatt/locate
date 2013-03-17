@@ -18,3 +18,7 @@ Locate 2 Issues List
 * Loading saved results from Locate 1.
 
 * What does Suppress Errors option actually do?!
+
+* What does the Message_PreQuit handler do?!
+
+* Adjust-click on the Hotlist menu drops the submenu.
