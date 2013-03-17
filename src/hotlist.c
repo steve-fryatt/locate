@@ -722,7 +722,8 @@ static void hotlist_redraw_add_window(void)
 
 static osbool hotlist_read_add_window(void)
 {
-	char	*new_name;
+	char			*new_name;
+	wimp_window_state	window;
 
 	new_name = icons_get_indirected_text_addr(hotlist_add_window, HOTLIST_ADD_ICON_NAME);
 	string_ctrl_zero_terminate(new_name);
@@ -743,6 +744,13 @@ static osbool hotlist_read_add_window(void)
 	strncpy(hotlist[hotlist_entries].name, new_name, HOTLIST_NAME_LENGTH);
 	hotlist[hotlist_entries].dialogue = hotlist_add_dialogue_handle;
 	hotlist[hotlist_entries].flags = HOTLIST_FLAG_SELECTABLE;
+
+	window.w = hotlist_window;
+	if (xwimp_get_window_state(&window) == NULL) {
+		wimp_force_redraw(window.w, window.xscroll, LINE_BASE(hotlist_entries),
+				window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(hotlist_entries));
+	}
+
 	hotlist_entries++;
 	hotlist_update_extent();
 
