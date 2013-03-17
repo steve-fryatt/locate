@@ -321,19 +321,16 @@ static void hotlist_click_handler(wimp_pointer *pointer)
 
 	switch(pointer->buttons) {
 	case wimp_SINGLE_SELECT:
-		debug_printf("Select click on row %d", row);
 		if (!ctrl_pressed)
 			hotlist_select_click_select(row);
 		break;
 
 	case wimp_SINGLE_ADJUST:
-		debug_printf("Adjust click on row %d", row);
 		if (!ctrl_pressed)
 			hotlist_select_click_adjust(row);
 		break;
 
 	case wimp_DOUBLE_SELECT:
-		debug_printf("Select double-click on row %d", row);
 		if (!ctrl_pressed) {
 			hotlist_select_none();
 			hotlist_open_entry(row);
@@ -341,7 +338,6 @@ static void hotlist_click_handler(wimp_pointer *pointer)
 		break;
 
 	case wimp_DOUBLE_ADJUST:
-		debug_printf("Adjust double-click on row %d", row);
 		if (!ctrl_pressed) {
 			hotlist_select_click_adjust(row);
 			/* Start the search directly... */
@@ -350,7 +346,6 @@ static void hotlist_click_handler(wimp_pointer *pointer)
 
 	case wimp_DRAG_SELECT:
 	case wimp_DRAG_ADJUST:
-		debug_printf("Drag from row %d", row);
 		//results_drag_select(handle, row, pointer, &state, ctrl_pressed);
 		break;
 	}
