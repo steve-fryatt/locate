@@ -20,6 +20,8 @@ Locate 2 Issues List
 
 * What does Suppress Errors option actually do?!
 
+* More generally, remove options that are no longer applicable.
+
 * What does the Message_PreQuit handler do?!
 
 * Adjust-click on the Hotlist menu drops the submenu.
