@@ -87,15 +87,15 @@
  * The structure to contain details of a hotlist entry.
  */
 
-struct hotlist_data {
+struct hotlist_block {
 	char			name[HOTLIST_NAME_LENGTH];			/**< The name of the hotlist entry.						*/
 	struct dialogue_block	*dialogue;					/**< The data associated with the hotlist entry.				*/
 };
 
 /* Global variables. */
 
-static struct hotlist_data	hotlist[HOTLIST_ALLOCATION];			/**< The hotlist entries -- \TODO -- Fix allocation!				*/
-static int			hotlist_allocation = HOTLIST_ALLOCATION;	/**< The number of entries for which hotlist memory is allocated.		*/
+static struct hotlist_block	*hotlist = NULL;				/**< The hotlist entries -- \TODO -- Fix allocation!				*/
+static int			hotlist_allocation = 0;				/**< The number of entries for which hotlist memory is allocated.		*/
 static int			hotlist_entries = 0;				/**< The number of entries in the hotlist.					*/
 
 static wimp_menu		*hotlist_menu = NULL;				/**< The hotlist menu handle.							*/
@@ -111,6 +111,7 @@ static osbool	hotlist_add_keypress_handler(wimp_key *key);
 static void	hotlist_set_add_window(int entry);
 static void	hotlist_redraw_add_window(void);
 static osbool	hotlist_read_add_window(void);
+static osbool	hotlist_extend(int allocation);
 
 
 /**
@@ -123,6 +124,12 @@ void hotlist_initialise(void)
 	//wimp_icon_create	icon_bar;
 
 	//iconbar_menu = templates_get_menu(TEMPLATES_MENU_ICONBAR);
+	
+	/* Allocate some memory for the initial hotlist entries. */
+	
+	hotlist = heap_alloc(sizeof(struct hotlist_block) * HOTLIST_ALLOCATION);
+	if (hotlist != NULL)
+		hotlist_allocation = HOTLIST_ALLOCATION;
 
 	hotlist_add_window = templates_create_window("HotlistAdd");
 	//templates_link_menu_dialogue("ProgInfo", iconbar_info_window);
@@ -288,6 +295,9 @@ static osbool hotlist_read_add_window(void)
 		return FALSE;
 	}
 	
+	if (hotlist_entries >= hotlist_allocation)
+		hotlist_extend(hotlist_allocation + HOTLIST_ALLOCATION);
+	
 	if (hotlist_entries >= hotlist_allocation) {
 		error_msgs_report_error("HotlistNoMem");
 		return FALSE;
@@ -402,5 +412,33 @@ void hotlist_process_menu_selection(int selection)
 		if (xwimp_get_pointer_info(&pointer) == NULL)
 			file_create_dialogue(&pointer, NULL, hotlist[selection - 1].dialogue);
 	}
+}
+
+
+/**
+ * Extend the memory allocaton for the hotlist to the given number of entries.
+ *
+ * \param allocation		The required number of entries in the hotlist.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+static osbool hotlist_extend(int allocation)
+{
+	struct hotlist_block	*new;
+
+	if (hotlist == NULL)
+		return FALSE;
+
+	if (hotlist_allocation > allocation)
+		return TRUE;
+
+	new = heap_extend(hotlist, allocation * sizeof(struct hotlist_block));
+	if (new == NULL)
+		return FALSE;
+	
+	hotlist = new;
+	hotlist_allocation = allocation;
+
+	return TRUE;
 }
 
