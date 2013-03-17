@@ -36,7 +36,7 @@
 
 /* OSLib header files */
 
-//#include "oslib/os.h"
+#include "oslib/osbyte.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib header files. */
@@ -99,9 +99,17 @@
  * The structure to contain details of a hotlist entry.
  */
 
+enum hotlist_block_flags {
+	HOTLIST_FLAG_NONE = 0,
+	HOTLIST_FLAG_SELECTABLE = 1,						/**< Indicates that the hotlist line can be selected.				*/
+	HOTLIST_FLAG_SELECTED = 2						/**< Indicates that the hotlist line is selected.				*/
+};
+
 struct hotlist_block {
-	char			name[HOTLIST_NAME_LENGTH];			/**< The name of the hotlist entry.						*/
-	struct dialogue_block	*dialogue;					/**< The data associated with the hotlist entry.				*/
+	char				name[HOTLIST_NAME_LENGTH];		/**< The name of the hotlist entry.						*/
+	struct dialogue_block		*dialogue;				/**< The data associated with the hotlist entry.				*/
+	enum hotlist_block_flags	flags;					/**< The flags for the hotlist entry.						*/
+
 };
 
 /* Global variables. */
@@ -119,6 +127,8 @@ static wimp_menu		*hotlist_menu = NULL;				/**< The hotlist menu handle.							*
 static wimp_window		*hotlist_window_def = NULL;			/**< The definition of the hotlist window.					*/
 static wimp_w			hotlist_window = NULL;				/**< The hotlist window handle.							*/
 static wimp_w			hotlist_window_pane = NULL;			/**< The hotlist window toolbar pane handle.					*/
+static int			hotlist_selection_count = 0;			/**< The number of items selected in the hotlist window.			*/
+static int			hotlist_selection_row = -1;			/**< The selected row, if there is only one.					*/
 
 /* Add/Edit Window. */
 
@@ -129,7 +139,13 @@ static int			hotlist_add_entry = -1;				/**< The hotlist entry associated with t
 /* Function prototypes. */
 
 static void	hotlist_redraw_handler(wimp_draw *redraw);
+static void	hotlist_click_handler(wimp_pointer *pointer);
 static void	hotlist_update_extent(void);
+static void	hotlist_select_click_select(int row);
+static void	hotlist_select_click_adjust(int row);
+static void	hotlist_select_all(void);
+static void	hotlist_select_none(void);
+static int	hotlist_calculate_window_click_row(os_coord *pos, wimp_window_state *state);
 static void	hotlist_add_click_handler(wimp_pointer *pointer);
 static osbool	hotlist_add_keypress_handler(wimp_key *key);
 static void	hotlist_set_add_window(int entry);
@@ -172,9 +188,9 @@ void hotlist_initialise(void)
 	//wimp_icon_create	icon_bar;
 
 	//iconbar_menu = templates_get_menu(TEMPLATES_MENU_ICONBAR);
-	
+
 	/* Allocate some memory for the initial hotlist entries. */
-	
+
 	hotlist = heap_alloc(sizeof(struct hotlist_block) * HOTLIST_ALLOCATION);
 	if (hotlist != NULL)
 		hotlist_allocation = HOTLIST_ALLOCATION;
@@ -188,9 +204,10 @@ void hotlist_initialise(void)
 	hotlist_window = wimp_create_window(hotlist_window_def);
 	ihelp_add_window(hotlist_window, "Hotlist", NULL);
 	event_add_window_redraw_event(hotlist_window, hotlist_redraw_handler);
-	
+	event_add_window_mouse_event(hotlist_window, hotlist_click_handler);
+
 	/* Initialise the hotlist pane window. */
-	
+
 	hotlist_window_pane = templates_create_window("HotlistPane");
 	ihelp_add_window(hotlist_window_pane, "HotlistPane", NULL);
 
@@ -257,13 +274,13 @@ static void hotlist_redraw_handler(wimp_draw *redraw)
 //			case RESULTS_LINE_FILENAME:
 				icon[HOTLIST_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[HOTLIST_ICON_FILE].extent.y1 = LINE_Y1(y);
-				
+
 				icon[HOTLIST_ICON_FILE].data.indirected_text.text = hotlist[y].name;
 
-				/*if (handle->redraw[i].flags & RESULTS_FLAG_SELECTED)
-					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SELECTED;
+				if (hotlist[y].flags & HOTLIST_FLAG_SELECTED)
+					icon[HOTLIST_ICON_FILE].flags |= wimp_ICON_SELECTED;
 				else
-					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_SELECTED;*/
+					icon[HOTLIST_ICON_FILE].flags &= ~wimp_ICON_SELECTED;
 
 				wimp_plot_icon(&(icon[HOTLIST_ICON_FILE]));
 			//	break;
@@ -274,6 +291,67 @@ static void hotlist_redraw_handler(wimp_draw *redraw)
 		}
 
 		more = wimp_get_rectangle(redraw);
+	}
+}
+
+
+/**
+ * Process mouse clicks in the hotlist window.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void hotlist_click_handler(wimp_pointer *pointer)
+{
+	wimp_window_state	state;
+	int			row;
+	osbool			ctrl_pressed;
+
+	if (pointer == NULL)
+		return;
+
+	ctrl_pressed = ((osbyte1(osbyte_IN_KEY, 0xf0, 0xff) == 0xff) || (osbyte1(osbyte_IN_KEY, 0xfb, 0xff) == 0xff)) ? TRUE : FALSE;
+
+	state.w = pointer->w;
+	if (xwimp_get_window_state(&state) != NULL)
+		return;
+
+	row = hotlist_calculate_window_click_row(&(pointer->pos), &state);
+
+	switch(pointer->buttons) {
+	case wimp_SINGLE_SELECT:
+		debug_printf("Select click on row %d", row);
+		if (!ctrl_pressed)
+			hotlist_select_click_select(row);
+		break;
+
+	case wimp_SINGLE_ADJUST:
+		debug_printf("Adjust click on row %d", row);
+		if (!ctrl_pressed)
+			hotlist_select_click_adjust(row);
+		break;
+
+	case wimp_DOUBLE_SELECT:
+		debug_printf("Select double-click on row %d", row);
+		if (!ctrl_pressed) {
+			hotlist_select_none();
+		//	results_run_object(handle, row);
+		}
+		break;
+
+	case wimp_DOUBLE_ADJUST:
+		debug_printf("Adjust double-click on row %d", row);
+		if (!ctrl_pressed) {
+			hotlist_select_click_adjust(row);
+		//	results_open_parent(handle, row);
+		}
+		break;
+
+	case wimp_DRAG_SELECT:
+	case wimp_DRAG_ADJUST:
+		debug_printf("Drag from row %d", row);
+		//results_drag_select(handle, row, pointer, &state, ctrl_pressed);
+		break;
 	}
 }
 
@@ -313,6 +391,191 @@ static void hotlist_update_extent(void)
 
 
 /**
+ * Update the current selection based on a select click over a row of the
+ * hotlist.
+ *
+ * \param row			The row under the click, or -1.
+ */
+
+static void hotlist_select_click_select(int row)
+{
+	wimp_window_state	window;
+
+	/* If the click is on a selection, nothing changes. */
+
+	if ((row != -1) && (row < hotlist_entries) && (hotlist[row].flags & HOTLIST_FLAG_SELECTED))
+		return;
+
+	/* Clear everything and then try to select the clicked line. */
+
+	hotlist_select_none();
+
+	window.w = hotlist_window;
+	if (xwimp_get_window_state(&window) != NULL)
+		return;
+
+	if ((row < hotlist_entries) && (hotlist[row].flags & HOTLIST_FLAG_SELECTABLE)) {
+		hotlist[row].flags |= HOTLIST_FLAG_SELECTED;
+		hotlist_selection_count++;
+		if (hotlist_selection_count == 1)
+			hotlist_selection_row = row;
+
+		wimp_force_redraw(window.w, window.xscroll, LINE_BASE(row),
+				window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(row));
+	}
+}
+
+
+/**
+ * Update the current selection based on an adjust click over a row of the
+ * hotlist.
+ *
+ * \param row			The row under the click, or -1.
+ */
+
+static void hotlist_select_click_adjust(int row)
+{
+	int			i;
+	wimp_window_state	window;
+
+	if (row == -1 || row >= hotlist_entries || (hotlist[row].flags & HOTLIST_FLAG_SELECTABLE) == 0)
+		return;
+
+	window.w = hotlist_window;
+	if (xwimp_get_window_state(&window) != NULL)
+		return;
+
+	if (hotlist[row].flags & HOTLIST_FLAG_SELECTED) {
+		hotlist[row].flags &= ~HOTLIST_FLAG_SELECTED;
+		hotlist_selection_count--;
+		if (hotlist_selection_count == 1) {
+			for (i = 0; i < hotlist_entries; i++) {
+				if (hotlist[i].flags & HOTLIST_FLAG_SELECTED) {
+					hotlist_selection_row = i;
+					break;
+				}
+			}
+		}
+	} else {
+		hotlist[row].flags |= HOTLIST_FLAG_SELECTED;
+		hotlist_selection_count++;
+		if (hotlist_selection_count == 1)
+			hotlist_selection_row = row;
+	}
+
+	wimp_force_redraw(window.w, window.xscroll, LINE_BASE(row),
+			window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(row));
+}
+
+
+/**
+ * Select all of the rows in the hotlist window.
+ */
+
+static void hotlist_select_all(void)
+{
+	int			i;
+	wimp_window_state	window;
+
+	if (hotlist_selection_count == hotlist_entries)
+		return;
+
+	window.w = hotlist_window;
+	if (xwimp_get_window_state(&window) != NULL)
+		return;
+
+	for (i = 0; i < hotlist_entries; i++) {
+		if ((hotlist[i].flags & (HOTLIST_FLAG_SELECTABLE | HOTLIST_FLAG_SELECTED)) == HOTLIST_FLAG_SELECTABLE) {
+			hotlist[i].flags |= HOTLIST_FLAG_SELECTED;
+
+			hotlist_selection_count++;
+			if (hotlist_selection_count == 1)
+				hotlist_selection_row = i;
+
+			wimp_force_redraw(window.w, window.xscroll, LINE_BASE(i),
+					window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(i));
+		}
+	}
+}
+
+
+/**
+ * Clear the selection in the hotlist window.
+ */
+
+static void hotlist_select_none(void)
+{
+	int			i;
+	wimp_window_state	window;
+
+	if (hotlist_selection_count == 0)
+		return;
+
+	window.w = hotlist_window;
+	if (xwimp_get_window_state(&window) != NULL)
+		return;
+
+	/* If there's just one row selected, we can avoid looping through the lot
+	 * by just clearing that one line.
+	 */
+
+	if (hotlist_selection_count == 1) {
+		if (hotlist_selection_row < hotlist_entries)
+			hotlist[hotlist_selection_row].flags &= ~HOTLIST_FLAG_SELECTED;
+		hotlist_selection_count = 0;
+
+		wimp_force_redraw(window.w, window.xscroll, LINE_BASE(hotlist_selection_row),
+				window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(hotlist_selection_row));
+
+		return;
+	}
+
+	/* If there is more than one row selected, we must loop through the lot
+	 * to clear them all.
+	 */
+
+	for (i = 0; i < hotlist_entries; i++) {
+		if (hotlist[i].flags & HOTLIST_FLAG_SELECTED) {
+			hotlist[i].flags &= ~HOTLIST_FLAG_SELECTED;
+
+			wimp_force_redraw(window.w, window.xscroll, LINE_BASE(i),
+					window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(i));
+		}
+	}
+
+	hotlist_selection_count = 0;
+}
+
+
+/**
+ * Calculate the row that the mouse was clicked over in the hotlist window.
+ *
+ * \param  *pointer		The Wimp pointer data.
+ * \param  *state		The results window state.
+ * \return			The row (from 0) or -1 if none.
+ */
+
+static int hotlist_calculate_window_click_row(os_coord *pos, wimp_window_state *state)
+{
+	int		y, row_y_pos;
+	unsigned	row;
+
+	if (state == NULL)
+		return -1;
+
+	y = pos->y - state->visible.y1 + state->yscroll;
+
+	row = ROW(y);
+	row_y_pos = ROW_Y_POS(y);
+
+	if (row >= hotlist_entries || ROW_ABOVE(row_y_pos) || ROW_BELOW(row_y_pos))
+		row = -1;
+
+	return row;
+}
+
+
+/**
  * Add a dialogue to the hotlist.
  *
  * \param *dialogue		The handle of the dialogue to be added.
@@ -324,7 +587,7 @@ void hotlist_add_dialogue(struct dialogue_block *dialogue)
 
 	hotlist_add_dialogue_handle = dialogue;
 	dialogue_add_client(dialogue, DIALOGUE_CLIENT_HOTLIST);
-	
+
 	hotlist_set_add_window(-1);
 
 	wimp_get_pointer_info(&pointer);
@@ -430,7 +693,7 @@ static void hotlist_set_add_window(int entry)
 		return;
 
 	hotlist_add_entry = entry;
-	
+
 	if (entry == -1)
 		icons_msgs_lookup(hotlist_add_window, HOTLIST_ADD_ICON_NAME, "HotlistNew");
 	else
@@ -459,18 +722,18 @@ static void hotlist_redraw_add_window(void)
 static osbool hotlist_read_add_window(void)
 {
 	char	*new_name;
-	
+
 	new_name = icons_get_indirected_text_addr(hotlist_add_window, HOTLIST_ADD_ICON_NAME);
 	string_ctrl_zero_terminate(new_name);
-	
+
 	if (new_name == NULL || strlen(new_name) == 0) {
 		error_msgs_report_info("HotlistNoName");
 		return FALSE;
 	}
-	
+
 	if (hotlist_entries >= hotlist_allocation)
 		hotlist_extend(hotlist_allocation + HOTLIST_ALLOCATION);
-	
+
 	if (hotlist_entries >= hotlist_allocation) {
 		error_msgs_report_error("HotlistNoMem");
 		return FALSE;
@@ -478,6 +741,7 @@ static osbool hotlist_read_add_window(void)
 
 	strncpy(hotlist[hotlist_entries].name, new_name, HOTLIST_NAME_LENGTH);
 	hotlist[hotlist_entries].dialogue = hotlist_add_dialogue_handle;
+	hotlist[hotlist_entries].flags = HOTLIST_FLAG_SELECTABLE;
 	hotlist_entries++;
 	hotlist_update_extent();
 
@@ -577,9 +841,9 @@ void hotlist_process_menu_selection(int selection)
 
 	if (selection < 0 || selection > hotlist_entries)
 		return;
-		
+
 	debug_printf("Selected hotlist menu item %d", selection);
-	
+
 	if (selection == HOTLIST_MENU_EDIT) {
 		windows_open(hotlist_window);
 		windows_open_nested_as_toolbar(hotlist_window_pane, hotlist_window, HOTLIST_TOOLBAR_HEIGHT);
@@ -610,7 +874,7 @@ static osbool hotlist_extend(int allocation)
 	new = heap_extend(hotlist, allocation * sizeof(struct hotlist_block));
 	if (new == NULL)
 		return FALSE;
-	
+
 	hotlist = new;
 	hotlist_allocation = allocation;
 
