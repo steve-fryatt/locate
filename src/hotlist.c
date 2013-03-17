@@ -152,6 +152,7 @@ static void	hotlist_set_add_window(int entry);
 static void	hotlist_redraw_add_window(void);
 static osbool	hotlist_read_add_window(void);
 static osbool	hotlist_extend(int allocation);
+static void	hotlist_open_entry(int entry);
 
 
 /* Line position calculations.
@@ -335,7 +336,7 @@ static void hotlist_click_handler(wimp_pointer *pointer)
 		debug_printf("Select double-click on row %d", row);
 		if (!ctrl_pressed) {
 			hotlist_select_none();
-		//	results_run_object(handle, row);
+			hotlist_open_entry(row);
 		}
 		break;
 
@@ -343,7 +344,7 @@ static void hotlist_click_handler(wimp_pointer *pointer)
 		debug_printf("Adjust double-click on row %d", row);
 		if (!ctrl_pressed) {
 			hotlist_select_click_adjust(row);
-		//	results_open_parent(handle, row);
+			/* Start the search directly... */
 		}
 		break;
 
@@ -848,8 +849,7 @@ void hotlist_process_menu_selection(int selection)
 		windows_open(hotlist_window);
 		windows_open_nested_as_toolbar(hotlist_window_pane, hotlist_window, HOTLIST_TOOLBAR_HEIGHT);
 	} else if (selection > 0 && hotlist[selection - 1].dialogue != NULL) {
-		if (xwimp_get_pointer_info(&pointer) == NULL)
-			file_create_dialogue(&pointer, NULL, hotlist[selection - 1].dialogue);
+		hotlist_open_entry(selection - 1);
 	}
 }
 
@@ -879,5 +879,23 @@ static osbool hotlist_extend(int allocation)
 	hotlist_allocation = allocation;
 
 	return TRUE;
+}
+
+
+/**
+ * Open a hotlist entry in a new search dialogue.
+ *
+ * \param entry			The hotlist entry to open.
+ */
+
+static void hotlist_open_entry(int entry)
+{
+	wimp_pointer	pointer;
+
+	if (entry < 0 || entry >= hotlist_entries || hotlist[entry].dialogue == NULL)
+		return;
+
+	if (xwimp_get_pointer_info(&pointer) == NULL)
+		file_create_dialogue(&pointer, NULL, hotlist[entry].dialogue);
 }
 
