@@ -66,6 +66,18 @@
 #include "templates.h"
 
 
+/* Hotlist Window */
+
+#define HOTLIST_TOOLBAR_HEIGHT 60						/**< The height of the toolbar in OS units.				*/
+#define HOTLIST_LINE_HEIGHT 56							/**< The height of a results line, in OS units.				*/
+#define HOTLIST_WINDOW_MARGIN 4							/**< The margin around the edge of the window, in OS units.		*/
+#define HOTLIST_LINE_OFFSET 4							/**< The offset from the base of a line to the base of the icon.	*/
+#define HOTLIST_ICON_HEIGHT 52							/**< The height of an icon in the results window, in OS units.		*/
+
+#define HOTLIST_MIN_LINES 10							/**< The minimum number of lines to show in the hotlist window.		*/
+
+#define HOTLIST_ICON_FILE 0
+
 /* Hotlist Add Window */
 
 #define HOTLIST_ADD_ICON_NAME 1
@@ -104,6 +116,7 @@ static wimp_menu		*hotlist_menu = NULL;				/**< The hotlist menu handle.							*
 
 /* Hotlist Window. */
 
+static wimp_window		*hotlist_window_def = NULL;			/**< The definition of the hotlist window.					*/
 static wimp_w			hotlist_window = NULL;				/**< The hotlist window handle.							*/
 static wimp_w			hotlist_window_pane = NULL;			/**< The hotlist window toolbar pane handle.					*/
 
@@ -115,12 +128,38 @@ static int			hotlist_add_entry = -1;				/**< The hotlist entry associated with t
 
 /* Function prototypes. */
 
+static void	hotlist_redraw_handler(wimp_draw *redraw);
+static void	hotlist_update_extent(void);
 static void	hotlist_add_click_handler(wimp_pointer *pointer);
 static osbool	hotlist_add_keypress_handler(wimp_key *key);
 static void	hotlist_set_add_window(int entry);
 static void	hotlist_redraw_add_window(void);
 static osbool	hotlist_read_add_window(void);
 static osbool	hotlist_extend(int allocation);
+
+
+/* Line position calculations.
+ *
+ * NB: These can be called with lines < 0 to give lines off the top of the window!
+ */
+
+#define LINE_BASE(x) (-((x)+1) * HOTLIST_LINE_HEIGHT - HOTLIST_TOOLBAR_HEIGHT - HOTLIST_WINDOW_MARGIN)
+#define LINE_Y0(x) (LINE_BASE(x) + HOTLIST_LINE_OFFSET)
+#define LINE_Y1(x) (LINE_BASE(x) + HOTLIST_LINE_OFFSET + HOTLIST_ICON_HEIGHT)
+
+/* Row calculations: taking a positive offset from the top of the window, return
+ * the raw row number and the position within a row.
+ */
+
+#define ROW(y) (((-(y)) - HOTLIST_TOOLBAR_HEIGHT - HOTLIST_WINDOW_MARGIN) / HOTLIST_LINE_HEIGHT)
+#define ROW_Y_POS(y) (((-(y)) - HOTLIST_TOOLBAR_HEIGHT - HOTLIST_WINDOW_MARGIN) % HOTLIST_LINE_HEIGHT)
+
+/* Return true or false if a ROW_Y_POS() value is above or below the icon
+ * area of the row.
+ */
+
+#define ROW_ABOVE(y) ((y) < (HOTLIST_LINE_HEIGHT - (HOTLIST_LINE_OFFSET + HOTLIST_ICON_HEIGHT)))
+#define ROW_BELOW(y) ((y) > (HOTLIST_LINE_HEIGHT - HOTLIST_LINE_OFFSET))
 
 
 /**
@@ -139,18 +178,137 @@ void hotlist_initialise(void)
 	hotlist = heap_alloc(sizeof(struct hotlist_block) * HOTLIST_ALLOCATION);
 	if (hotlist != NULL)
 		hotlist_allocation = HOTLIST_ALLOCATION;
-		
-	hotlist_window = templates_create_window("Hotlist");
+
+	/* Initialise the hotlist window. */
+
+	hotlist_window_def = templates_load_window("Hotlist");
+	hotlist_window_def->extent.y1 = 0;
+	hotlist_window_def->extent.y0 = -((HOTLIST_MIN_LINES * HOTLIST_LINE_HEIGHT) + HOTLIST_TOOLBAR_HEIGHT);
+	hotlist_window_def->icon_count = 0;
+	hotlist_window = wimp_create_window(hotlist_window_def);
 	ihelp_add_window(hotlist_window, "Hotlist", NULL);
+	event_add_window_redraw_event(hotlist_window, hotlist_redraw_handler);
+	
+	/* Initialise the hotlist pane window. */
 	
 	hotlist_window_pane = templates_create_window("HotlistPane");
 	ihelp_add_window(hotlist_window_pane, "HotlistPane", NULL);
+
+	/* Initialise the add/edit window. */
 
 	hotlist_add_window = templates_create_window("HotlistAdd");
 	//templates_link_menu_dialogue("ProgInfo", iconbar_info_window);
 	ihelp_add_window(hotlist_add_window, "HotlistAdd", NULL);
 	event_add_window_mouse_event(hotlist_add_window, hotlist_add_click_handler);
 	event_add_window_key_event(hotlist_add_window, hotlist_add_keypress_handler);
+}
+
+
+/**
+ * Callback to handle redraw events on a hotlist window.
+ *
+ * \param  *redraw		The Wimp redraw event block.
+ */
+
+static void hotlist_redraw_handler(wimp_draw *redraw)
+{
+	int			ox, oy, top, bottom, y, i;
+	osbool			more;
+	wimp_icon		*icon;
+	char			validation[255];
+	char			*truncation, *size, *attributes, *date;
+	size_t			truncation_len;
+
+
+	icon = hotlist_window_def->icons;
+
+	/* Set up the validation string buffer for text+sprite icons. */
+
+	//*validation = 'S';
+	//icon[HOTLIST_ICON_FILE].data.indirected_text.validation = validation;
+
+	/* Set up the truncation line. */
+
+	//if (truncation != NULL)
+	//	strcpy(truncation, "...");
+
+	/* Redraw the window. */
+
+	more = wimp_redraw_window(redraw);
+
+	ox = redraw->box.x0 - redraw->xscroll;
+	oy = redraw->box.y1 - redraw->yscroll;
+
+	while (more) {
+		icon[HOTLIST_ICON_FILE].extent.x1 = 1000 - HOTLIST_WINDOW_MARGIN; // \TODO -- 1000 ought to be window width.
+
+		top = (oy - redraw->clip.y1 - HOTLIST_TOOLBAR_HEIGHT) / HOTLIST_LINE_HEIGHT;
+		if (top < 0)
+			top = 0;
+
+                bottom = ((HOTLIST_LINE_HEIGHT * 1.5) + oy - redraw->clip.y0 - HOTLIST_TOOLBAR_HEIGHT) / HOTLIST_LINE_HEIGHT;
+		if (bottom > hotlist_entries)
+			bottom = hotlist_entries;
+
+		for (y = top; y < bottom; y++) {
+			//i = handle->redraw[y].index;
+
+//			switch (handle->redraw[i].type) {
+//			case RESULTS_LINE_FILENAME:
+				icon[HOTLIST_ICON_FILE].extent.y0 = LINE_Y0(y);
+				icon[HOTLIST_ICON_FILE].extent.y1 = LINE_Y1(y);
+				
+				icon[HOTLIST_ICON_FILE].data.indirected_text.text = hotlist[y].name;
+
+				/*if (handle->redraw[i].flags & RESULTS_FLAG_SELECTED)
+					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SELECTED;
+				else
+					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_SELECTED;*/
+
+				wimp_plot_icon(&(icon[HOTLIST_ICON_FILE]));
+			//	break;
+
+//			default:
+//				break;
+//			}
+		}
+
+		more = wimp_get_rectangle(redraw);
+	}
+}
+
+
+/**
+ * Update the window extent to hold all of the hotlist entries.
+ */
+
+static void hotlist_update_extent(void)
+{
+	wimp_window_info	info;
+	unsigned		lines;
+	int			new_y_extent;
+	osbool			reopen = TRUE;
+
+	lines = (hotlist_entries > HOTLIST_MIN_LINES) ? hotlist_entries : HOTLIST_MIN_LINES;
+	new_y_extent = -((lines * HOTLIST_LINE_HEIGHT) + HOTLIST_TOOLBAR_HEIGHT);
+
+	info.w = hotlist_window;
+	if (xwimp_get_window_info_header_only(&info) != NULL)
+		return;
+
+	if (new_y_extent > (info.visible.y0 - info.visible.y1))
+		info.visible.y0 = info.visible.y1 + new_y_extent;
+	else if ((new_y_extent > (info.visible.y0 - info.visible.y1 + info.yscroll)))
+		info.yscroll = new_y_extent - (info.visible.y0 - info.visible.y1);
+	else
+		reopen = FALSE;
+
+	if (reopen && (xwimp_open_window((wimp_open *) &info) != NULL))
+		return;
+
+	info.extent.y0 = info.extent.y1 + new_y_extent;
+
+	xwimp_set_extent(hotlist_window, &(info.extent));
 }
 
 
@@ -321,6 +479,7 @@ static osbool hotlist_read_add_window(void)
 	strncpy(hotlist[hotlist_entries].name, new_name, HOTLIST_NAME_LENGTH);
 	hotlist[hotlist_entries].dialogue = hotlist_add_dialogue_handle;
 	hotlist_entries++;
+	hotlist_update_extent();
 
 	return TRUE;
 }
@@ -423,7 +582,7 @@ void hotlist_process_menu_selection(int selection)
 	
 	if (selection == HOTLIST_MENU_EDIT) {
 		windows_open(hotlist_window);
-		windows_open_nested_as_toolbar(hotlist_window_pane, hotlist_window, 100);
+		windows_open_nested_as_toolbar(hotlist_window_pane, hotlist_window, HOTLIST_TOOLBAR_HEIGHT);
 	} else if (selection > 0 && hotlist[selection - 1].dialogue != NULL) {
 		if (xwimp_get_pointer_info(&pointer) == NULL)
 			file_create_dialogue(&pointer, NULL, hotlist[selection - 1].dialogue);
