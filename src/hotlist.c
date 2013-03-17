@@ -186,6 +186,7 @@ static void hotlist_add_click_handler(wimp_pointer *pointer)
 			wimp_close_window(hotlist_add_window);
 			dialogue_destroy(hotlist_add_dialogue_handle, DIALOGUE_CLIENT_HOTLIST);
 			hotlist_add_dialogue_handle = NULL;
+			hotlist_add_entry = -1;
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
 			hotlist_set_add_window(hotlist_add_entry);
 			hotlist_redraw_add_window();
@@ -218,6 +219,7 @@ static osbool hotlist_add_keypress_handler(wimp_key *key)
 		wimp_close_window(hotlist_add_window);
 		dialogue_destroy(hotlist_add_dialogue_handle, DIALOGUE_CLIENT_HOTLIST);
 		hotlist_add_dialogue_handle = NULL;
+		hotlist_add_entry = -1;
 		break;
 
 	default:
