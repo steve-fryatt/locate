@@ -98,7 +98,16 @@ static struct hotlist_block	*hotlist = NULL;				/**< The hotlist entries -- \TOD
 static int			hotlist_allocation = 0;				/**< The number of entries for which hotlist memory is allocated.		*/
 static int			hotlist_entries = 0;				/**< The number of entries in the hotlist.					*/
 
+/* Hotlist Menu. */
+
 static wimp_menu		*hotlist_menu = NULL;				/**< The hotlist menu handle.							*/
+
+/* Hotlist Window. */
+
+static wimp_w			hotlist_window = NULL;				/**< The hotlist window handle.							*/
+static wimp_w			hotlist_window_pane = NULL;			/**< The hotlist window toolbar pane handle.					*/
+
+/* Add/Edit Window. */
 
 static wimp_w			hotlist_add_window = NULL;			/**< The add to hotlist window handle.						*/
 static struct dialogue_block	*hotlist_add_dialogue_handle = NULL;		/**< The handle of the dialogue to be added to the hotlist, or NULL if none.	*/
@@ -130,6 +139,12 @@ void hotlist_initialise(void)
 	hotlist = heap_alloc(sizeof(struct hotlist_block) * HOTLIST_ALLOCATION);
 	if (hotlist != NULL)
 		hotlist_allocation = HOTLIST_ALLOCATION;
+		
+	hotlist_window = templates_create_window("Hotlist");
+	ihelp_add_window(hotlist_window, "Hotlist", NULL);
+	
+	hotlist_window_pane = templates_create_window("HotlistPane");
+	ihelp_add_window(hotlist_window_pane, "HotlistPane", NULL);
 
 	hotlist_add_window = templates_create_window("HotlistAdd");
 	//templates_link_menu_dialogue("ProgInfo", iconbar_info_window);
@@ -407,7 +422,8 @@ void hotlist_process_menu_selection(int selection)
 	debug_printf("Selected hotlist menu item %d", selection);
 	
 	if (selection == HOTLIST_MENU_EDIT) {
-		/* Start editing the hotlist. */
+		windows_open(hotlist_window);
+		windows_open_nested_as_toolbar(hotlist_window_pane, hotlist_window, 100);
 	} else if (selection > 0 && hotlist[selection - 1].dialogue != NULL) {
 		if (xwimp_get_pointer_info(&pointer) == NULL)
 			file_create_dialogue(&pointer, NULL, hotlist[selection - 1].dialogue);
