@@ -74,6 +74,8 @@
 
 #define HOTLIST_NAME_LENGTH 48
 
+#define HOTLIST_ALLOCATION 10
+
 
 /**
  * The structure to contain details of a hotlist entry.
@@ -86,7 +88,8 @@ struct hotlist_data {
 
 /* Global variables. */
 
-static struct hotlist_data	hotlist[10];					/**< The hotlist entries -- \TODO -- Fix allocation!				*/
+static struct hotlist_data	hotlist[HOTLIST_ALLOCATION];			/**< The hotlist entries -- \TODO -- Fix allocation!				*/
+static int			hotlist_allocation = HOTLIST_ALLOCATION;	/**< The number of entries for which hotlist memory is allocated.		*/
 static int			hotlist_entries = 0;				/**< The number of entries in the hotlist.					*/
 
 static wimp_menu		*hotlist_menu = NULL;				/**< The hotlist menu handle.							*/
@@ -273,6 +276,11 @@ static osbool hotlist_read_add_window(void)
 	
 	if (new_name == NULL || strlen(new_name) == 0) {
 		error_msgs_report_info("HotlistNoName");
+		return FALSE;
+	}
+	
+	if (hotlist_entries >= hotlist_allocation) {
+		error_msgs_report_error("HotlistNoMem");
 		return FALSE;
 	}
 

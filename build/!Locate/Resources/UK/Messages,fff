@@ -99,6 +99,7 @@ Hotlist:Hotlist
 HotlistEdit:Edit...
 HotlistNew:Saved Search
 HotlistNoName:You must enter a name for the hotlist entry.
+HotlistNoMem:Unable to allocate memory for the new hotlist entry.
 
 # Filename window menus.
 
