@@ -143,6 +143,7 @@ void hotlist_add_dialogue(struct dialogue_block *dialogue)
 
 	wimp_get_pointer_info(&pointer);
 	windows_open_centred_at_pointer(hotlist_add_window, &pointer);
+	icons_put_caret_at_end(hotlist_add_window, HOTLIST_ADD_ICON_NAME);
 }
 
 
