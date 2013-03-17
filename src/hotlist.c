@@ -42,13 +42,13 @@
 /* SF-Lib header files. */
 
 #include "sflib/debug.h"
-//#include "sflib/errors.h"
+#include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
-//#include "sflib/icons.h"
+#include "sflib/icons.h"
 //#include "sflib/menus.h"
 #include "sflib/msgs.h"
-//#include "sflib/string.h"
+#include "sflib/string.h"
 //#include "sflib/url.h"
 #include "sflib/windows.h"
 
@@ -86,17 +86,22 @@ struct hotlist_data {
 
 /* Global variables. */
 
-static wimp_menu		*hotlist_menu = NULL;				/**< The hotlist menu handle.							*/
-static wimp_w			hotlist_add_window = NULL;			/**< The add to hotlist window handle.						*/
-static struct dialogue_block	*hotlist_add_dialogue_handle = NULL;		/**< The handle of the dialogue to be added to the hotlist, or NULL if none.	*/
-
 static struct hotlist_data	hotlist[10];					/**< The hotlist entries -- \TODO -- Fix allocation!				*/
 static int			hotlist_entries = 0;				/**< The number of entries in the hotlist.					*/
+
+static wimp_menu		*hotlist_menu = NULL;				/**< The hotlist menu handle.							*/
+
+static wimp_w			hotlist_add_window = NULL;			/**< The add to hotlist window handle.						*/
+static struct dialogue_block	*hotlist_add_dialogue_handle = NULL;		/**< The handle of the dialogue to be added to the hotlist, or NULL if none.	*/
+static int			hotlist_add_entry = -1;				/**< The hotlist entry associated with the add window, or -1 for none.		*/
 
 /* Function prototypes. */
 
 static void	hotlist_add_click_handler(wimp_pointer *pointer);
 static osbool	hotlist_add_keypress_handler(wimp_key *key);
+static void	hotlist_set_add_window(int entry);
+static void	hotlist_redraw_add_window(void);
+static osbool	hotlist_read_add_window(void);
 
 
 /**
@@ -130,6 +135,8 @@ void hotlist_add_dialogue(struct dialogue_block *dialogue)
 
 	hotlist_add_dialogue_handle = dialogue;
 	dialogue_add_client(dialogue, DIALOGUE_CLIENT_HOTLIST);
+	
+	hotlist_set_add_window(-1);
 
 	wimp_get_pointer_info(&pointer);
 	windows_open_centred_at_pointer(hotlist_add_window, &pointer);
@@ -148,10 +155,6 @@ osbool hotlist_add_window_is_open(void)
 }
 
 
-
-
-
-
 /**
  * Process mouse clicks in the Hotlist Add dialogue.
  *
@@ -166,18 +169,11 @@ static void hotlist_add_click_handler(wimp_pointer *pointer)
 	switch ((int) pointer->i) {
 	case HOTLIST_ADD_ICON_ADD:
 		if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
-			sprintf(hotlist[hotlist_entries].name, "Entry %d", hotlist_entries + 1);
-			hotlist_entries++;
-		
-/*			if (!dialogue_read_window(dialogue_data))
+			if (!hotlist_read_add_window())
 				break;
 
-			dialogue_start_search(dialogue_data);
-
-			if (pointer->buttons == wimp_CLICK_SELECT) {
-				settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
-				dialogue_close_window();
-			}*/
+			if (pointer->buttons == wimp_CLICK_SELECT)
+				wimp_close_window(hotlist_add_window);
 		}
 		break;
 
@@ -187,8 +183,8 @@ static void hotlist_add_click_handler(wimp_pointer *pointer)
 			dialogue_destroy(hotlist_add_dialogue_handle, DIALOGUE_CLIENT_HOTLIST);
 			hotlist_add_dialogue_handle = NULL;
 		} else if (pointer->buttons == wimp_CLICK_ADJUST) {
-			//dialogue_set_window(dialogue_data);
-			//dialogue_redraw_window();
+			hotlist_set_add_window(hotlist_add_entry);
+			hotlist_redraw_add_window();
 		}
 		break;
 	}
@@ -209,11 +205,9 @@ static osbool hotlist_add_keypress_handler(wimp_key *key)
 
 	switch (key->c) {
 	case wimp_KEY_RETURN:
-/*		settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
-		if (!dialogue_read_window(dialogue_data))
+		if (!hotlist_read_add_window())
 			break;
-		dialogue_start_search(dialogue_data);
-		dialogue_close_window();*/
+		wimp_close_window(hotlist_add_window);
 		break;
 
 	case wimp_KEY_ESCAPE:
@@ -226,6 +220,65 @@ static osbool hotlist_add_keypress_handler(wimp_key *key)
 		return FALSE;
 		break;
 	}
+
+	return TRUE;
+}
+
+
+/**
+ * Set the contents of the hotlist add window to either the given hotlist entry
+ * or the default settings for a new entry.
+ *
+ * \param entry			The hotlist entry to use, or -1 for none.
+ */
+
+static void hotlist_set_add_window(int entry)
+{
+	if (entry < -1 || entry >= hotlist_entries)
+		return;
+
+	hotlist_add_entry = entry;
+	
+	if (entry == -1)
+		icons_msgs_lookup(hotlist_add_window, HOTLIST_ADD_ICON_NAME, "HotlistNew");
+	else
+		icons_printf(hotlist_add_window, HOTLIST_ADD_ICON_NAME, "%s", hotlist[entry].name);
+}
+
+
+/**
+ * Refresh the hotlist add window to reflect any changes in state.
+ */
+
+static void hotlist_redraw_add_window(void)
+{
+	wimp_set_icon_state(hotlist_add_window, HOTLIST_ADD_ICON_NAME, 0, 0);
+	icons_replace_caret_in_window(hotlist_add_window);
+}
+
+
+/**
+ * Process the contents of the hotlist add window, either updating an entry or
+ * creating a new one.
+ *
+ * \return			TRUE if successful; FALSE if errors occurred.
+ */
+
+static osbool hotlist_read_add_window(void)
+{
+	char	*new_name;
+	
+	new_name = icons_get_indirected_text_addr(hotlist_add_window, HOTLIST_ADD_ICON_NAME);
+	string_ctrl_zero_terminate(new_name);
+	
+	if (new_name == NULL || strlen(new_name) == 0) {
+		error_msgs_report_info("HotlistNoName");
+		return FALSE;
+	}
+
+	strncpy(hotlist[hotlist_entries].name, new_name, HOTLIST_NAME_LENGTH);
+	hotlist[hotlist_entries].dialogue = hotlist_add_dialogue_handle;
+	hotlist_entries++;
 
 	return TRUE;
 }

@@ -97,6 +97,8 @@ URLFailed:Could not find an application to launch the given URL.
 
 Hotlist:Hotlist
 HotlistEdit:Edit...
+HotlistNew:Saved Search
+HotlistNoName:You must enter a name for the hotlist entry.
 
 # Filename window menus.
 
