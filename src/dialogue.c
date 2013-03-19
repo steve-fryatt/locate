@@ -533,7 +533,8 @@ void dialogue_initialise(void)
 /**
  * Create a new set of dialogue data with the default values.
  *
- * \param *file			The file to which the dialogue belongs.
+ * \param *file			The file to which the dialogue belongs, or NULL
+ *				for none.
  * \param *path			The search path to use, or NULL for default.
  * \param *template		A dialogue to copy the settings from, or NULL for
  *				default values.
@@ -545,9 +546,6 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
 	struct dialogue_block	*new;
 	osbool			mem_ok = TRUE;
 	int			i;
-
-	if (file == NULL)
-		return NULL;
 
 	if (path == NULL)
 		path = config_str_read("SearchPath");
@@ -690,7 +688,16 @@ void dialogue_destroy(struct dialogue_block *dialogue, enum dialogue_client clie
 	if (dialogue == NULL)
 		return;
 
-	/* Check if there are any other registered users of the dialogue data. */
+	/* If one of the disowning clients is a file, remove the parent file
+	 * reference.
+	 */
+
+	if ((client & DIALOGUE_CLIENT_FILE) != 0)
+		dialogue->file = NULL;
+
+	/* Check if there still are any other registered users of the dialogue
+	 * data.
+	 */
 
 	debug_printf("Dialogue in use by 0x%x; deletion requested by 0x%x", dialogue->clients, client);
 
@@ -836,7 +843,7 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 {
 	struct dialogue_block	*dialogue;
 
-	if (file == NULL || load == NULL)
+	if (load == NULL)
 		return NULL;
 
 	if (discfile_read_format(load) != DISCFILE_LOCATE2)
@@ -946,7 +953,7 @@ static struct dialogue_block *dialogue_load_legacy_file(struct file_block *file,
 	unsigned		flags;
 	char			buffer[4095];
 
-	if (file == NULL || load == NULL)
+	if (load == NULL)
 		return NULL;
 
 	if (discfile_read_format(load) != DISCFILE_LOCATE0 && discfile_read_format(load) != DISCFILE_LOCATE1)
@@ -1717,7 +1724,7 @@ static void dialogue_click_handler(wimp_pointer *pointer)
 
 		case DIALOGUE_ICON_CANCEL:
 			if (pointer->buttons == wimp_CLICK_SELECT) {
-				if (dialogue_data != NULL)
+				if (dialogue_data != NULL && dialogue_data->file != NULL)
 					file_destroy(dialogue_data->file);
 				settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
 				dialogue_close_window();
@@ -1780,7 +1787,7 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 
 	case wimp_KEY_ESCAPE:
 		settime_close(dialogue_panes[DIALOGUE_PANE_DATE]);
-		if (dialogue_data != NULL)
+		if (dialogue_data != NULL && dialogue_data->file != NULL)
 			file_destroy(dialogue_data->file);
 		dialogue_close_window();
 		break;
@@ -2027,7 +2034,8 @@ static osbool dialogue_icon_drop_handler(wimp_message *message)
 /**
  * Take a set of dialogue settings and create a search from them.  This converts
  * the "human-friendly" details from the dialogue into the details used by the
- * search routines.
+ * search routines. The dialogue must have a parent file, otherwise the function
+ * will return immediately.
  *
  * \param *dialogue		The dialogue settings to use.
  */
@@ -2038,6 +2046,9 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 	size_t				buffer_size = 0;
 	char				*buffer;
 
+
+	if (dialogue == NULL || dialogue->file == NULL)
+		return;
 
 	/* Dump the settings to Reporter for debugging. */
 
@@ -2371,7 +2382,7 @@ static osbool dialogue_save_settings(char *filename, osbool selection, void *dat
 {
 	struct dialogue_block *dialogue = data;
 
-	if (dialogue == NULL)
+	if (dialogue == NULL || dialogue->file == NULL)
 		return FALSE;
 
 	return file_dialogue_save(dialogue->file, filename);

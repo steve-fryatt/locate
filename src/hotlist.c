@@ -36,6 +36,7 @@
 
 /* OSLib header files */
 
+#include "oslib/hourglass.h"
 #include "oslib/osbyte.h"
 #include "oslib/wimp.h"
 
@@ -57,9 +58,9 @@
 #include "iconbar.h"
 
 //#include "choices.h"
-//#include "dataxfer.h"
+#include "dataxfer.h"
 #include "dialogue.h"
-//#include "discfile.h"
+#include "discfile.h"
 #include "file.h"
 #include "ihelp.h"
 //#include "main.h"
@@ -156,11 +157,13 @@ static void	hotlist_select_click_adjust(int row);
 static void	hotlist_select_all(void);
 static void	hotlist_select_none(void);
 static int	hotlist_calculate_window_click_row(os_coord *pos, wimp_window_state *state);
+static osbool	hotlist_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 static void	hotlist_add_click_handler(wimp_pointer *pointer);
 static osbool	hotlist_add_keypress_handler(wimp_key *key);
 static void	hotlist_set_add_window(int entry);
 static void	hotlist_redraw_add_window(void);
 static osbool	hotlist_read_add_window(void);
+static osbool	hotlist_add_new_entry(char *name, struct dialogue_block *dialogue);
 static osbool	hotlist_extend(int allocation);
 static void	hotlist_open_entry(int entry);
 
@@ -223,6 +226,8 @@ void hotlist_initialise(void)
 	event_add_window_menu_selection(hotlist_window, hotlist_menu_selection);
 	event_add_window_menu_close(hotlist_window, hotlist_menu_close);
 
+	dataxfer_set_load_target(DISCFILE_LOCATE_FILETYPE, hotlist_window, -1, hotlist_load_locate_file, NULL);
+
 	/* Initialise the hotlist pane window. */
 
 	hotlist_window_pane = templates_create_window("HotlistPane");
@@ -233,6 +238,8 @@ void hotlist_initialise(void)
 	//event_add_window_menu_warning(hotlist_window_pane, hotlist_menu_warning);
 	event_add_window_menu_selection(hotlist_window_pane, hotlist_menu_selection);
 	event_add_window_menu_close(hotlist_window_pane, hotlist_menu_close);
+
+	dataxfer_set_load_target(DISCFILE_LOCATE_FILETYPE, hotlist_window_pane, -1, hotlist_load_locate_file, NULL);
 
 	/* Initialise the add/edit window. */
 
@@ -705,6 +712,51 @@ static int hotlist_calculate_window_click_row(os_coord *pos, wimp_window_state *
 
 
 /**
+ * Handle attempts to load Locate files to the hotlist window.
+ *
+ * \param w			The target window handle.
+ * \param i			The target icon handle.
+ * \param filetype		The filetype being loaded.
+ * \param *filename		The name of the file being loaded.
+ * \param *data			Unused NULL pointer.
+ * \return			TRUE on loading; FALSE on passing up.
+ */
+
+static osbool hotlist_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data)
+{
+	struct dialogue_block	*dialogue;
+	struct discfile_block	*load;
+
+	if (filetype != DISCFILE_LOCATE_FILETYPE)
+		return FALSE;
+
+	load = discfile_open_read(filename);
+
+	hourglass_on();
+
+	dialogue = dialogue_load_file(NULL, load);
+
+	hourglass_off();
+
+	/* If an error is raised when the file closes, or there wasn't any
+	 * dialogue data in the file, give up.
+	 */
+
+	if (discfile_close(load) || dialogue == NULL) {
+		dialogue_destroy(dialogue, DIALOGUE_CLIENT_HOTLIST);
+		return;
+	}
+
+	dialogue_add_client(dialogue, DIALOGUE_CLIENT_HOTLIST);
+
+	if (!hotlist_add_new_entry(string_find_leafname(filename), dialogue))
+		dialogue_destroy(dialogue, DIALOGUE_CLIENT_HOTLIST);
+
+	return TRUE;
+}
+
+
+/**
  * Add a dialogue to the hotlist.
  *
  * \param *dialogue		The handle of the dialogue to be added.
@@ -851,7 +903,6 @@ static void hotlist_redraw_add_window(void)
 static osbool hotlist_read_add_window(void)
 {
 	char			*new_name;
-	wimp_window_state	window;
 
 	new_name = icons_get_indirected_text_addr(hotlist_add_window, HOTLIST_ADD_ICON_NAME);
 	string_ctrl_zero_terminate(new_name);
@@ -861,6 +912,22 @@ static osbool hotlist_read_add_window(void)
 		return FALSE;
 	}
 
+	return hotlist_add_new_entry(new_name, hotlist_add_dialogue_handle);
+}
+
+
+/**
+ * Add a new entry to the hotlist.
+ *
+ * \param *name			The name to give the entry.
+ * \param *dialogue		The dialogue data to associate with the entry.
+ * \return			TRUE if successful; FALSE if errors occurred.
+ */
+
+static osbool hotlist_add_new_entry(char *name, struct dialogue_block *dialogue)
+{
+	wimp_window_state	window;
+
 	if (hotlist_entries >= hotlist_allocation)
 		hotlist_extend(hotlist_allocation + HOTLIST_ALLOCATION);
 
@@ -869,8 +936,8 @@ static osbool hotlist_read_add_window(void)
 		return FALSE;
 	}
 
-	strncpy(hotlist[hotlist_entries].name, new_name, HOTLIST_NAME_LENGTH);
-	hotlist[hotlist_entries].dialogue = hotlist_add_dialogue_handle;
+	strncpy(hotlist[hotlist_entries].name, name, HOTLIST_NAME_LENGTH);
+	hotlist[hotlist_entries].dialogue = dialogue;
 	hotlist[hotlist_entries].flags = HOTLIST_FLAG_SELECTABLE;
 
 	window.w = hotlist_window;

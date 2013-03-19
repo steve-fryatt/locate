@@ -58,7 +58,8 @@ void dialogue_initialise(void);
 /**
  * Create a new set of dialogue data with the default values.
  *
- * \param *file			The file to which the dialogue belongs.
+ * \param *file			The file to which the dialogue belongs, or NULL
+ *				for none.
  * \param *path			The search path to use, or NULL for default.
  * \param *template		A dialogue to copy the settings from, or NULL for
  *				default values.
