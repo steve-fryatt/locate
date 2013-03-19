@@ -552,7 +552,7 @@ static osbool dataxfer_message_data_load_ack(wimp_message *message)
  * Double-clicked files (Message_DataOpen) will be passed to a generic type
  * handler or a type handler for a window with the handle wimp_ICON_BAR.
  *
- * \param filetype		The window to register as a target.
+ * \param filetype		The filetype to register as a target.
  * \param w			The target window, or NULL.
  * \param i			The target icon, or -1.
  * \param *callback		The load callback function.
