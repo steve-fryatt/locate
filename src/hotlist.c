@@ -46,7 +46,7 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
-//#include "sflib/menus.h"
+#include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/string.h"
 //#include "sflib/url.h"
@@ -77,6 +77,11 @@
 #define HOTLIST_MIN_LINES 10							/**< The minimum number of lines to show in the hotlist window.		*/
 
 #define HOTLIST_ICON_FILE 0
+
+/* Hotlist Window Menu */
+
+#define HOTLIST_MENU_SELECT_ALL 0
+#define HOTLIST_MENU_CLEAR_SELECTION 1
 
 /* Hotlist Add Window */
 
@@ -129,6 +134,8 @@ static wimp_w			hotlist_window = NULL;				/**< The hotlist window handle.							
 static wimp_w			hotlist_window_pane = NULL;			/**< The hotlist window toolbar pane handle.					*/
 static int			hotlist_selection_count = 0;			/**< The number of items selected in the hotlist window.			*/
 static int			hotlist_selection_row = -1;			/**< The selected row, if there is only one.					*/
+static osbool			hotlist_selection_from_menu = FALSE;		/**< TRUE if the hotlist selection came via the menu opening; else FALSE.	*/
+static wimp_menu		*hotlist_window_menu = NULL;			/**< The hotlist window menu handle.						*/
 
 /* Add/Edit Window. */
 
@@ -140,6 +147,9 @@ static int			hotlist_add_entry = -1;				/**< The hotlist entry associated with t
 
 static void	hotlist_redraw_handler(wimp_draw *redraw);
 static void	hotlist_click_handler(wimp_pointer *pointer);
+static void	hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+static void	hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
+static void	hotlist_menu_close(wimp_w w, wimp_menu *menu);
 static void	hotlist_update_extent(void);
 static void	hotlist_select_click_select(int row);
 static void	hotlist_select_click_adjust(int row);
@@ -188,7 +198,7 @@ void hotlist_initialise(void)
 	//char*			date = BUILD_DATE;
 	//wimp_icon_create	icon_bar;
 
-	//iconbar_menu = templates_get_menu(TEMPLATES_MENU_ICONBAR);
+	hotlist_window_menu = templates_get_menu(TEMPLATES_MENU_HOTLIST);
 
 	/* Allocate some memory for the initial hotlist entries. */
 
@@ -207,10 +217,22 @@ void hotlist_initialise(void)
 	event_add_window_redraw_event(hotlist_window, hotlist_redraw_handler);
 	event_add_window_mouse_event(hotlist_window, hotlist_click_handler);
 
+	event_add_window_menu(hotlist_window, hotlist_window_menu);
+	event_add_window_menu_prepare(hotlist_window, hotlist_menu_prepare);
+	//event_add_window_menu_warning(hotlist_window, hotlist_menu_warning);
+	event_add_window_menu_selection(hotlist_window, hotlist_menu_selection);
+	event_add_window_menu_close(hotlist_window, hotlist_menu_close);
+
 	/* Initialise the hotlist pane window. */
 
 	hotlist_window_pane = templates_create_window("HotlistPane");
 	ihelp_add_window(hotlist_window_pane, "HotlistPane", NULL);
+
+	event_add_window_menu(hotlist_window_pane, hotlist_window_menu);
+	event_add_window_menu_prepare(hotlist_window_pane, hotlist_menu_prepare);
+	//event_add_window_menu_warning(hotlist_window_pane, hotlist_menu_warning);
+	event_add_window_menu_selection(hotlist_window_pane, hotlist_menu_selection);
+	event_add_window_menu_close(hotlist_window_pane, hotlist_menu_close);
 
 	/* Initialise the add/edit window. */
 
@@ -349,6 +371,117 @@ static void hotlist_click_handler(wimp_pointer *pointer)
 		//results_drag_select(handle, row, pointer, &state, ctrl_pressed);
 		break;
 	}
+}
+
+
+/**
+ * Prepare the hotlist menu for (re)-opening.
+ *
+ * \param  w			The handle of the menu's parent window.
+ * \param  *menu		Pointer to the menu being opened.
+ * \param  *pointer		Pointer to the Wimp Pointer event block.
+ */
+
+static void hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
+{
+	wimp_window_state	state;
+	unsigned		row;
+
+	if (pointer != NULL) {
+		state.w = pointer->w;
+		if (xwimp_get_window_state(&state) != NULL)
+			return;
+
+		row = hotlist_calculate_window_click_row(&(pointer->pos), &state);
+		if (hotlist_selection_count == 0) {
+			hotlist_select_click_select(row);
+			hotlist_selection_from_menu = TRUE;
+		} else {
+			hotlist_selection_from_menu = FALSE;
+		}
+	}
+
+	menus_shade_entry(hotlist_window_menu, HOTLIST_MENU_CLEAR_SELECTION, hotlist_selection_count == 0);
+//	menus_shade_entry(results_window_menu, RESULTS_MENU_OBJECT_INFO, handle->selection_count != 1);
+//	menus_shade_entry(results_window_menu, RESULTS_MENU_OPEN_PARENT, handle->selection_count != 1);
+//	menus_shade_entry(results_window_menu, RESULTS_MENU_COPY_NAMES, handle->selection_count == 0);
+//	menus_shade_entry(results_window_menu, RESULTS_MENU_MODIFY_SEARCH, dialogue_window_is_open() || file_get_dialogue(handle->file) == NULL);
+//	menus_shade_entry(results_window_menu, RESULTS_MENU_ADD_TO_HOTLIST, hotlist_add_window_is_open() || file_get_dialogue(handle->file) == NULL);
+//	menus_shade_entry(results_window_menu, RESULTS_MENU_STOP_SEARCH, !file_search_active(handle->file));
+
+//	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_PATH_ONLY, !handle->full_info);
+//	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_FULL_INFO, handle->full_info);
+
+//	saveas_initialise_dialogue(results_save_results, "FileName", NULL, TRUE, FALSE, handle);
+//	saveas_initialise_dialogue(results_save_paths, "ExptName", "SelectName", handle->selection_count > 0, handle->selection_count > 0, handle);
+//	saveas_initialise_dialogue(results_save_options, "SrchName", NULL, FALSE, FALSE, handle);
+}
+
+
+/**
+ * Handle selections from the hotlist menu.
+ *
+ * \param  w			The window to which the menu belongs.
+ * \param  *menu		Pointer to the menu itself.
+ * \param  *selection		Pointer to the Wimp menu selction block.
+ */
+
+static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection)
+{
+	wimp_pointer		pointer;
+
+	wimp_get_pointer_info(&pointer);
+
+	switch(selection->items[0]) {
+	case HOTLIST_MENU_SELECT_ALL:
+		hotlist_select_all();
+		hotlist_selection_from_menu = FALSE;
+		break;
+
+	case HOTLIST_MENU_CLEAR_SELECTION:
+		hotlist_select_none();
+		hotlist_selection_from_menu = FALSE;
+		break;
+/*
+	case RESULTS_MENU_OPEN_PARENT:
+		if (handle->selection_count == 1)
+			results_open_parent(handle, handle->selection_row);
+		break;
+
+	case RESULTS_MENU_COPY_NAMES:
+		results_clipboard_copy_filenames(handle);
+		break;
+
+	case RESULTS_MENU_MODIFY_SEARCH:
+		file_create_dialogue(&pointer, NULL, file_get_dialogue(handle->file));
+		break;
+
+	case RESULTS_MENU_ADD_TO_HOTLIST:
+		hotlist_add_dialogue(file_get_dialogue(handle->file));
+		break;
+
+	case RESULTS_MENU_STOP_SEARCH:
+		file_stop_search(handle->file);
+		break;
+*/
+	}
+}
+
+
+/**
+ * Handle the closure of a menu.
+ *
+ * \param  w			The handle of the menu's parent window.
+ * \param  *menu		Pointer to the menu being closee.
+ */
+
+static void hotlist_menu_close(wimp_w w, wimp_menu *menu)
+{
+	if (hotlist_selection_from_menu == FALSE)
+		return;
+
+	hotlist_select_none();
+	hotlist_selection_from_menu = FALSE;
 }
 
 

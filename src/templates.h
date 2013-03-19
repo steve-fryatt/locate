@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2013, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -41,6 +41,7 @@ enum templates_menus {
 	TEMPLATES_MENU_RESULTS,							/**< The Results Window Menu.			*/
 	TEMPLATES_MENU_RESULTS_DISPLAY,
 	TEMPLATES_MENU_RESULTS_SAVE,
+	TEMPLATES_MENU_HOTLIST,							/**< The Hotlist Window Menu.			*/
 	TEMPLATES_MENU_NAME_MODE,						/**< The Name Mode PopUp Menu.			*/
 	TEMPLATES_MENU_SIZE_MODE,						/**< The Size Mode PopUp Menu.			*/
 	TEMPLATES_MENU_SIZE_UNIT,						/**< The Size Unit PopUp Menu.			*/

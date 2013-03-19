@@ -242,6 +242,8 @@ char *templates_get_current_menu_name(char *buffer)
 		strcpy(buffer, "SearchMenu");
 	else if (menu_up == templates_menu_list[TEMPLATES_MENU_RESULTS])
 		strcpy(buffer, "ResultsMenu");
+	else if (menu_up == templates_menu_list[TEMPLATES_MENU_HOTLIST])
+		strcpy(buffer, "HotlistMenu");
 	else if (menu_up == templates_menu_list[TEMPLATES_MENU_NAME_MODE])
 		strcpy(buffer, "NameModeMenu");
 	else if (menu_up == templates_menu_list[TEMPLATES_MENU_SIZE_MODE])
