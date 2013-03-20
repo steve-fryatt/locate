@@ -28,3 +28,6 @@ Locate 2 Issues List
 
 * objbd_allocate() seems to return FALSE (ie. failed) if required allocation is
   smaller than that already available! Same may be true for results_allocate()?
+
+* Running searches in r1507 seems to pick up all filenames even if we don't
+  collect all of the data?
