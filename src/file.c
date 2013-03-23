@@ -309,7 +309,7 @@ osbool file_full_save(struct file_block *block, char *filename)
 
 	objdb_save_file(block->objects, out);
 	results_save_file(block->results, out);
-	dialogue_save_file(block->dialogue, out);
+	dialogue_save_file(block->dialogue, out, NULL);
 
 	hourglass_off();
 
@@ -340,7 +340,7 @@ osbool file_dialogue_save(struct file_block *block, char *filename)
 
 	hourglass_on();
 
-	dialogue_save_file(block->dialogue, out);
+	dialogue_save_file(block->dialogue, out, NULL);
 
 	hourglass_off();
 

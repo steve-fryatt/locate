@@ -738,22 +738,33 @@ void dialogue_add_client(struct dialogue_block *dialogue, enum dialogue_client c
 
 
 /**
- * Save a dialogue's settings to an open disc file.
+ * Save a dialogue's settings to an open disc file. This can either be a dialogue
+ * block, if the name is NULL, or a hotlist entry, if a pointer to a name is
+ * supplied.
  *
  * \param *dialogue		The dialogue to be saved.
  * \param *out			The handle of the file to save to.
+ * \param *name			A name for a hotlist entry, or NULL.
  */
 
-void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *out)
+void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *out, char *name)
 {
 	if (dialogue == NULL || out == NULL)
 		return;
 
-	discfile_start_section(out, DISCFILE_SECTION_DIALOGUE);
-
+	discfile_start_section(out, (name == NULL) ? DISCFILE_SECTION_DIALOGUE : DISCFILE_SECTION_HOTLIST);
+	
 	/* Write out the dialogue options. */
 
 	discfile_start_chunk(out, DISCFILE_CHUNK_OPTIONS);
+	
+	/* Hotlist name, if required. */
+	
+	if (name != NULL)
+		discfile_write_option_string(out, "HNM", name);
+
+	/* Pane setting */
+	
 	discfile_write_option_unsigned(out, "PAN", dialogue->pane);
 
 	/* The Search Path. */

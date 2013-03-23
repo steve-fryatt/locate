@@ -42,6 +42,7 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/config.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
@@ -83,6 +84,7 @@
 
 #define HOTLIST_MENU_SELECT_ALL 0
 #define HOTLIST_MENU_CLEAR_SELECTION 1
+#define HOTLIST_MENU_SAVE 2
 
 /* Hotlist Add Window */
 
@@ -164,6 +166,7 @@ static void	hotlist_set_add_window(int entry);
 static void	hotlist_redraw_add_window(void);
 static osbool	hotlist_read_add_window(void);
 static osbool	hotlist_add_new_entry(char *name, struct dialogue_block *dialogue);
+static osbool	hotlist_save(void);
 static osbool	hotlist_extend(int allocation);
 static void	hotlist_open_entry(int entry);
 
@@ -448,6 +451,10 @@ static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 	case HOTLIST_MENU_CLEAR_SELECTION:
 		hotlist_select_none();
 		hotlist_selection_from_menu = FALSE;
+		break;
+		
+	case HOTLIST_MENU_SAVE:
+		hotlist_save();
 		break;
 /*
 	case RESULTS_MENU_OPEN_PARENT:
@@ -948,6 +955,41 @@ static osbool hotlist_add_new_entry(char *name, struct dialogue_block *dialogue)
 
 	hotlist_entries++;
 	hotlist_update_extent();
+
+	return TRUE;
+}
+
+
+/**
+ * Save the hotlist to a hotlist file in the default location.
+ *
+ * \return			TRUE if successful; FALSE if errors occurred.
+ */
+
+static osbool hotlist_save(void)
+{
+	struct discfile_block		*out;
+	int				entry;
+	char				filename[1024];
+	
+	config_find_save_file(filename, 1024, "Hotlist");
+	
+	debug_printf("Saving hotlist to '%s'", filename);
+
+	out = discfile_open_write(filename);
+	if (out == NULL)
+		return FALSE;
+
+	hourglass_on();
+
+	for (entry = 0; entry < hotlist_entries; entry++)
+		dialogue_save_file(hotlist[entry].dialogue, out, hotlist[entry].name);
+
+	hourglass_off();
+
+	discfile_close(out);
+
+	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
 
 	return TRUE;
 }

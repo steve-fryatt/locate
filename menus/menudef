@@ -120,6 +120,7 @@ menu(save_menu, "Save") {
 menu(hotlist_window_menu, "Hotlist") {
 	item("Select all");
 	item("Clear selection");
+	item("Save hotlist");
 }
 
 
