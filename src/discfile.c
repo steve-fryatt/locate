@@ -152,12 +152,16 @@ struct discfile_section {
  * size plus the data size). Thus they might be up to three bytes less than the
  * rounded chunk size.
  */
+ 
+enum discfile_chunk_flags {
+	DISCFILE_CHUNK_FLAGS_NONE = 0,						/**< There are no chunk flags set				*/
+};
 
 struct discfile_chunk {
 	unsigned			magic_word;				/**< The chunk magic word.					*/
 	enum discfile_chunk_type	type;					/**< The chunk type identifier.					*/
 	unsigned			size;					/**< The unrounded chunk size (bytes), before rounding up.	*/
-	unsigned			flags;					/**< The overall chunk flags (reserved and always zero).	*/
+	enum discfile_chunk_flags	flags;					/**< The overall chunk flags.					*/
 };
 
 /**
@@ -371,7 +375,7 @@ void discfile_start_chunk(struct discfile_block *handle, enum discfile_chunk_typ
 	chunk.magic_word = DISCFILE_CHUNK_MAGIC_WORD;
 	chunk.type = type;
 	chunk.size = 0;
-	chunk.flags = 0;
+	chunk.flags = DISCFILE_CHUNK_FLAGS_NONE;
 
 	/* Get the curent file position. */
 
