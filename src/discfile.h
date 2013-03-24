@@ -47,6 +47,10 @@ enum discfile_format {
 	DISCFILE_UNKNOWN_FORMAT = 0xffffffffu					/**< The format has not been recognised.		*/
 };
 
+/**
+ * The types of section available in a Locate 2 format file.
+ */
+
 enum discfile_section_type {
 	DISCFILE_SECTION_UNKNOWN = 0,						/**< The section type is unknown.			*/
 	DISCFILE_SECTION_OBJECTDB = 1,						/**< The section contains an object database.		*/
@@ -55,6 +59,10 @@ enum discfile_section_type {
 	DISCFILE_SECTION_HOTLIST = 4						/**< The section contains hotlist dialogue settings.	*/
 };
 
+/**
+ * The types of chunk available in a Locate 2 format file.
+ */
+
 enum discfile_chunk_type {
 	DISCFILE_CHUNK_UNKNOWN = 0,						/**< The chunk type is unknown.				*/
 	DISCFILE_CHUNK_TEXTDUMP = 1,						/**< The chunk contains the contents of a textdump.	*/
@@ -62,6 +70,10 @@ enum discfile_chunk_type {
 	DISCFILE_CHUNK_RESULTS = 3,						/**< The chunk contains entries from a results window.	*/
 	DISCFILE_CHUNK_OPTIONS = 4						/**< The chunk contains a series of option values.	*/
 };
+
+/**
+ * The types of section defined in a Locate 1 format file.
+ */
 
 enum discfile_legacy_section_type {
 	DISCFILE_LEGACY_SECTION_UNKNOWN = 0,					/**< The section type is unknown.			*/
