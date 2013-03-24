@@ -752,7 +752,7 @@ void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *
 	if (dialogue == NULL || out == NULL)
 		return;
 
-	discfile_start_section(out, (name == NULL) ? DISCFILE_SECTION_DIALOGUE : DISCFILE_SECTION_HOTLIST);
+	discfile_start_section(out, (name == NULL) ? DISCFILE_SECTION_DIALOGUE : DISCFILE_SECTION_HOTLIST, FALSE);
 	
 	/* Write out the dialogue options. */
 

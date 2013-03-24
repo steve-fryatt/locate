@@ -89,9 +89,11 @@ struct discfile_block *discfile_open_write(char *filename);
  *
  * \param *handle		The discfile handle to be written to.
  * \param type			The section type for the new section.
+ * \param multile		TRUE if the section can appear multiple times;
+ *				FALSE if it can only appear once.
  */
 
-void discfile_start_section(struct discfile_block *handle, enum discfile_section_type type);
+void discfile_start_section(struct discfile_block *handle, enum discfile_section_type type, osbool multiple);
 
 
 /**

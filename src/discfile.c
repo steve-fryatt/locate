@@ -125,13 +125,23 @@ struct discfile_header {
  *
  * Section sizes are stored in the file as exact multiples of four, as sections
  * should always be multiples of four.
+ *
+ * If a section has DISCFILE_SECTION_FLAGS_MULTIPLE set then more than one copy
+ * can appear in a file: each copy MUST have this flag set, however. If a section
+ * does not have this flag set, then only one section of the type can be in the
+ * file.
  */
+
+enum discfile_section_flags {
+	DISCFILE_SECTION_FLAGS_NONE = 0,					/**< There are no section flags set				*/
+	DISCFILE_SECTION_FLAGS_MULTIPLE = 1					/**< This section can appear multiple times in the file.	*/
+};
 
 struct discfile_section {
 	unsigned			magic_word;				/**< The section magic word.					*/
 	enum discfile_section_type	type;					/**< The section type identifier.				*/
 	unsigned			size;					/**< The section size (bytes), always a multiple of four.	*/
-	unsigned			flags;					/**< The overall section flags (reserved and always zero).	*/
+	enum discfile_section_flags	flags;					/**< The overall section flags.					*/
 };
 
 /**
@@ -254,9 +264,11 @@ static void discfile_write_header(struct discfile_block *handle)
  *
  * \param *handle		The discfile handle to be written to.
  * \param type			The section type for the new section.
+ * \param multile		TRUE if the section can appear multiple times;
+ *				FALSE if it can only appear once.
  */
 
-void discfile_start_section(struct discfile_block *handle, enum discfile_section_type type)
+void discfile_start_section(struct discfile_block *handle, enum discfile_section_type type, osbool multiple)
 {
 	struct discfile_section		section;
 	int				ptr, unwritten;
@@ -270,7 +282,10 @@ void discfile_start_section(struct discfile_block *handle, enum discfile_section
 	section.magic_word = DISCFILE_SECTION_MAGIC_WORD;
 	section.type = type;
 	section.size = 0;
-	section.flags = 0;
+	section.flags = DISCFILE_SECTION_FLAGS_NONE;
+	
+	if (multiple == TRUE)
+		section.flags |= DISCFILE_SECTION_FLAGS_MULTIPLE;
 
 	/* Get the curent file position. */
 

@@ -588,7 +588,7 @@ osbool results_save_file(struct results_window *handle, struct discfile_block *o
 	if (title == NULL)
 		return FALSE;
 
-	discfile_start_section(out, DISCFILE_SECTION_RESULTS);
+	discfile_start_section(out, DISCFILE_SECTION_RESULTS, FALSE);
 
 	/* Write out the results options. */
 

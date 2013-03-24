@@ -682,7 +682,7 @@ osbool objdb_save_file(struct objdb_block *handle, struct discfile_block *file)
 
 	/* Open the database section of the file. */
 
-	discfile_start_section(file, DISCFILE_SECTION_OBJECTDB);
+	discfile_start_section(file, DISCFILE_SECTION_OBJECTDB, FALSE);
 
 	/* Write the database settings. */
 
