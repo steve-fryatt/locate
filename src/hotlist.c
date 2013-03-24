@@ -65,6 +65,7 @@
 #include "file.h"
 #include "ihelp.h"
 //#include "main.h"
+#include "saveas.h"
 #include "templates.h"
 
 
@@ -84,7 +85,7 @@
 
 #define HOTLIST_MENU_SELECT_ALL 0
 #define HOTLIST_MENU_CLEAR_SELECTION 1
-#define HOTLIST_MENU_SAVE 2
+#define HOTLIST_MENU_SAVE_HOTLIST 2
 
 /* Hotlist Add Window */
 
@@ -139,6 +140,7 @@ static int			hotlist_selection_count = 0;			/**< The number of items selected in
 static int			hotlist_selection_row = -1;			/**< The selected row, if there is only one.					*/
 static osbool			hotlist_selection_from_menu = FALSE;		/**< TRUE if the hotlist selection came via the menu opening; else FALSE.	*/
 static wimp_menu		*hotlist_window_menu = NULL;			/**< The hotlist window menu handle.						*/
+static struct saveas_block	*hotlist_saveas_hotlist = NULL;			/**< The Save Hotlist savebox data handle.					*/
 
 /* Add/Edit Window. */
 
@@ -152,6 +154,7 @@ static void	hotlist_redraw_handler(wimp_draw *redraw);
 static void	hotlist_click_handler(wimp_pointer *pointer);
 static void	hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void	hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
+static void	hotlist_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void	hotlist_menu_close(wimp_w w, wimp_menu *menu);
 static void	hotlist_update_extent(void);
 static void	hotlist_select_click_select(int row);
@@ -166,7 +169,9 @@ static void	hotlist_set_add_window(int entry);
 static void	hotlist_redraw_add_window(void);
 static osbool	hotlist_read_add_window(void);
 static osbool	hotlist_add_new_entry(char *name, struct dialogue_block *dialogue);
-static osbool	hotlist_save(void);
+static osbool	hotlist_save_hotlist(char *filename, osbool selection, void *data);
+static osbool	hotlist_save_choices(void);
+static osbool	hotlist_save(char *filename);
 static osbool	hotlist_extend(int allocation);
 static void	hotlist_open_entry(int entry);
 
@@ -206,6 +211,9 @@ void hotlist_initialise(void)
 
 	hotlist_window_menu = templates_get_menu(TEMPLATES_MENU_HOTLIST);
 
+	hotlist_saveas_hotlist = saveas_create_dialogue(FALSE, "file_1a1", hotlist_save_hotlist);
+
+
 	/* Allocate some memory for the initial hotlist entries. */
 
 	hotlist = heap_alloc(sizeof(struct hotlist_block) * HOTLIST_ALLOCATION);
@@ -225,7 +233,7 @@ void hotlist_initialise(void)
 
 	event_add_window_menu(hotlist_window, hotlist_window_menu);
 	event_add_window_menu_prepare(hotlist_window, hotlist_menu_prepare);
-	//event_add_window_menu_warning(hotlist_window, hotlist_menu_warning);
+	event_add_window_menu_warning(hotlist_window, hotlist_menu_warning);
 	event_add_window_menu_selection(hotlist_window, hotlist_menu_selection);
 	event_add_window_menu_close(hotlist_window, hotlist_menu_close);
 
@@ -238,7 +246,7 @@ void hotlist_initialise(void)
 
 	event_add_window_menu(hotlist_window_pane, hotlist_window_menu);
 	event_add_window_menu_prepare(hotlist_window_pane, hotlist_menu_prepare);
-	//event_add_window_menu_warning(hotlist_window_pane, hotlist_menu_warning);
+	event_add_window_menu_warning(hotlist_window_pane, hotlist_menu_warning);
 	event_add_window_menu_selection(hotlist_window_pane, hotlist_menu_selection);
 	event_add_window_menu_close(hotlist_window_pane, hotlist_menu_close);
 
@@ -397,6 +405,9 @@ static void hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 	wimp_window_state	state;
 	unsigned		row;
 
+	if (menu != hotlist_window_menu)
+		return;
+
 	if (pointer != NULL) {
 		state.w = pointer->w;
 		if (xwimp_get_window_state(&state) != NULL)
@@ -409,6 +420,8 @@ static void hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 		} else {
 			hotlist_selection_from_menu = FALSE;
 		}
+		
+		saveas_initialise_dialogue(hotlist_saveas_hotlist, "HotlistName", NULL, FALSE, FALSE, NULL);
 	}
 
 	menus_shade_entry(hotlist_window_menu, HOTLIST_MENU_CLEAR_SELECTION, hotlist_selection_count == 0);
@@ -429,6 +442,28 @@ static void hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 
 
 /**
+ * Process submenu warning events in the hotlist menu.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *warning	The submenu warning message data.
+ */
+
+static void hotlist_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
+{
+	if (menu != hotlist_window_menu)
+		return;
+
+	switch (warning->selection.items[0]) {
+	case HOTLIST_MENU_SAVE_HOTLIST:
+		saveas_prepare_dialogue(hotlist_saveas_hotlist);
+		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+		break;
+	}
+}
+
+
+/**
  * Handle selections from the hotlist menu.
  *
  * \param  w			The window to which the menu belongs.
@@ -439,6 +474,9 @@ static void hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
 	wimp_pointer		pointer;
+
+	if (menu != hotlist_window_menu)
+		return;
 
 	wimp_get_pointer_info(&pointer);
 
@@ -453,8 +491,8 @@ static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 		hotlist_selection_from_menu = FALSE;
 		break;
 		
-	case HOTLIST_MENU_SAVE:
-		hotlist_save();
+	case HOTLIST_MENU_SAVE_HOTLIST:
+		hotlist_save_choices();
 		break;
 /*
 	case RESULTS_MENU_OPEN_PARENT:
@@ -491,7 +529,7 @@ static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 
 static void hotlist_menu_close(wimp_w w, wimp_menu *menu)
 {
-	if (hotlist_selection_from_menu == FALSE)
+	if (menu != hotlist_window_menu || hotlist_selection_from_menu == FALSE)
 		return;
 
 	hotlist_select_none();
@@ -751,7 +789,7 @@ static osbool hotlist_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, ch
 
 	if (discfile_close(load) || dialogue == NULL) {
 		dialogue_destroy(dialogue, DIALOGUE_CLIENT_HOTLIST);
-		return;
+		return FALSE;
 	}
 
 	dialogue_add_client(dialogue, DIALOGUE_CLIENT_HOTLIST);
@@ -961,20 +999,52 @@ static osbool hotlist_add_new_entry(char *name, struct dialogue_block *dialogue)
 
 
 /**
+ * Save the current hotlist settings to file.  Used as a DataXfer callback, so
+ * must return TRUE on success or FALSE on failure.
+ *
+ * \param *filename		The filename to save to.
+ * \param selection		TRUE to save just the selection, else FALSE.
+ * \param *data			Context data: the handle of the parent dialogue.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+static osbool hotlist_save_hotlist(char *filename, osbool selection, void *data)
+{
+	return hotlist_save(filename);
+}
+
+
+/**
  * Save the hotlist to a hotlist file in the default location.
  *
  * \return			TRUE if successful; FALSE if errors occurred.
  */
 
-static osbool hotlist_save(void)
+static osbool hotlist_save_choices(void)
 {
-	struct discfile_block		*out;
-	int				entry;
 	char				filename[1024];
 	
 	config_find_save_file(filename, 1024, "Hotlist");
 	
 	debug_printf("Saving hotlist to '%s'", filename);
+
+	return hotlist_save(filename);
+}
+
+/**
+ * Save the hotlist to a hotlist file.
+ *
+ * \param *filename		Pointer to the filename to save the hotlist to.
+ * \return			TRUE if successful; FALSE if errors occurred.
+ */
+
+static osbool hotlist_save(char *filename)
+{
+	struct discfile_block		*out;
+	int				entry;
+
+	if (filename == NULL)
+		return FALSE;
 
 	out = discfile_open_write(filename);
 	if (out == NULL)
