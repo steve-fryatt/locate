@@ -231,6 +231,8 @@ void file_create_from_saved(char *filename)
 		return;
 
 	load = discfile_open_read(filename);
+	if (load == NULL)
+		return;
 
 	hourglass_on();
 
