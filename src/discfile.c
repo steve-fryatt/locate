@@ -95,6 +95,12 @@ enum discfile_mode {
 	DISCFILE_ERROR								/**< The file is probably open, but there has been an error.	*/
 };
 
+struct discfile_section_info {
+	int				ptr;					/**< Pointer to the last section found in the file.		*/
+	osbool				multiple;				/**< TRUE if the last section was set as multiple; else FALSE.	*/
+	unsigned			count;					/**< Count of the number of sections found.			*/
+};
+
 struct discfile_block {
 	os_fw				handle;					/**< The file handle of the file.				*/
 	enum discfile_mode		mode;					/**< The read-write mode of the file.				*/
@@ -103,6 +109,7 @@ struct discfile_block {
 	int				chunk;					/**< File ptr to the current chunk, or 0 for none.		*/
 	int				data_size;				/**< The size of the current chunk, or 0 for none.		*/
 	char				*error_token;				/**< Pointer to a MessageTrans token for an error, or NULL.	*/
+	struct discfile_section_info	section_info[DISCFILE_MAX_SECTIONS];	/**< Details of the different sections in a Locate 2 file.	*/
 };
 
 /**
@@ -134,7 +141,8 @@ struct discfile_header {
 
 enum discfile_section_flags {
 	DISCFILE_SECTION_FLAGS_NONE = 0,					/**< There are no section flags set				*/
-	DISCFILE_SECTION_FLAGS_MULTIPLE = 1					/**< This section can appear multiple times in the file.	*/
+	DISCFILE_SECTION_FLAGS_MULTIPLE = 1,					/**< This section can appear multiple times in the file.	*/
+	DISCFILE_SECTION_FLAGS_UNUSED = 0xfffffffeu				/**< Bitmask for all the unused flag bits which should be zero.	*/
 };
 
 struct discfile_section {
@@ -645,6 +653,7 @@ struct discfile_block *discfile_open_read(char *filename)
 {
 	struct discfile_block	*new;
 	os_error		*error;
+	int			i;
 
 	/* Allocate memory. */
 
@@ -664,6 +673,12 @@ struct discfile_block *discfile_open_read(char *filename)
 	new->mode = DISCFILE_READ;
 	new->format = DISCFILE_UNKNOWN_FORMAT;
 	new->error_token = NULL;
+	
+	for (i = 0; i < DISCFILE_MAX_SECTIONS; i++) {
+		new->section_info[i].ptr = 0;
+		new->section_info[i].multiple = FALSE;
+		new->section_info[i].count = 0;
+	}
 
 	discfile_read_header(new);
 
@@ -1213,11 +1228,27 @@ static void discfile_validate_structure(struct discfile_block *handle)
 			discfile_set_error(handle, "FileUnrec");
 			return;
 		}
-
-		if (section.flags != 0) {
+		
+		if (section.type < 0 || section.type >= DISCFILE_MAX_SECTIONS) {
 			discfile_set_error(handle, "FileUnrec");
 			return;
 		}
+
+		if ((section.flags & DISCFILE_SECTION_FLAGS_UNUSED) != 0) {
+			discfile_set_error(handle, "FileUnrec");
+			return;
+		}
+		
+		if (handle->section_info[section.type].count > 0 &&
+				(handle->section_info[section.type].multiple == FALSE || (section.flags & DISCFILE_SECTION_FLAGS_MULTIPLE) == 0)) {
+			discfile_set_error(handle, "FileUnrec");
+			return;
+		}
+		
+		handle->section_info[section.type].count++;
+		
+		if (section.flags & DISCFILE_SECTION_FLAGS_MULTIPLE)
+			handle->section_info[section.type].multiple = TRUE;
 
 		/* Walk through the chunks in the section, checking that all of
 		 * the sizes make sense.

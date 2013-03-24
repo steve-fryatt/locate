@@ -56,7 +56,8 @@ enum discfile_section_type {
 	DISCFILE_SECTION_OBJECTDB = 1,						/**< The section contains an object database.		*/
 	DISCFILE_SECTION_RESULTS = 2,						/**< The section contains a results window definition.	*/
 	DISCFILE_SECTION_DIALOGUE = 3,						/**< The section contains dialogue settings.		*/
-	DISCFILE_SECTION_HOTLIST = 4						/**< The section contains hotlist dialogue settings.	*/
+	DISCFILE_SECTION_HOTLIST = 4,						/**< The section contains hotlist dialogue settings.	*/
+	DISCFILE_MAX_SECTIONS							/**< The maximum number of section types defined.	*/
 };
 
 /**
