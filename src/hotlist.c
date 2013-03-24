@@ -172,7 +172,9 @@ static osbool	hotlist_read_add_window(void);
 static osbool	hotlist_add_new_entry(char *name, struct dialogue_block *dialogue);
 static osbool	hotlist_save_hotlist(char *filename, osbool selection, void *data);
 static osbool	hotlist_save_choices(void);
-static osbool	hotlist_save(char *filename, osbool selection);
+static osbool	hotlist_save_file(char *filename, osbool selection);
+static osbool	hotlist_load_choices(void);
+static osbool	hotlist_load_file(struct discfile_block *load);
 static osbool	hotlist_extend(int allocation);
 static void	hotlist_open_entry(int entry);
 
@@ -260,6 +262,10 @@ void hotlist_initialise(void)
 	ihelp_add_window(hotlist_add_window, "HotlistAdd", NULL);
 	event_add_window_mouse_event(hotlist_add_window, hotlist_add_click_handler);
 	event_add_window_key_event(hotlist_add_window, hotlist_add_keypress_handler);
+	
+	/* Load the hotlist from disc. */
+	
+	hotlist_load_choices();
 }
 
 
@@ -777,8 +783,12 @@ static osbool hotlist_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, ch
 		return FALSE;
 
 	load = discfile_open_read(filename);
+	if (load == NULL)
+		return FALSE;
 
 	hourglass_on();
+
+	hotlist_load_file(load);
 
 	dialogue = dialogue_load_file(NULL, load, NULL, 0);
 
@@ -1011,7 +1021,7 @@ static osbool hotlist_add_new_entry(char *name, struct dialogue_block *dialogue)
 
 static osbool hotlist_save_hotlist(char *filename, osbool selection, void *data)
 {
-	return hotlist_save(filename, selection);
+	return hotlist_save_file(filename, selection);
 }
 
 
@@ -1029,8 +1039,9 @@ static osbool hotlist_save_choices(void)
 	
 	debug_printf("Saving hotlist to '%s'", filename);
 
-	return hotlist_save(filename, FALSE);
+	return hotlist_save_file(filename, FALSE);
 }
+
 
 /**
  * Save the hotlist to a hotlist file.
@@ -1040,7 +1051,7 @@ static osbool hotlist_save_choices(void)
  * \return			TRUE if successful; FALSE if errors occurred.
  */
 
-static osbool hotlist_save(char *filename, osbool selection)
+static osbool hotlist_save_file(char *filename, osbool selection)
 {
 	struct discfile_block		*out;
 	int				entry;
@@ -1063,6 +1074,70 @@ static osbool hotlist_save(char *filename, osbool selection)
 	discfile_close(out);
 
 	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
+
+	return TRUE;
+}
+
+
+/**
+ * Load the hotlist from a hotlist file in the default location.
+ *
+ * \return			TRUE if successful; FALSE if errors occurred.
+ */
+
+static osbool hotlist_load_choices(void)
+{
+	struct discfile_block	*load;
+	char			filename[1024];
+	
+	config_find_load_file(filename, 1024, "Hotlist");
+
+	/* \TODO -- There's no check that this is a Locate filetype. */
+
+	load = discfile_open_read(filename);
+	if (load == NULL)
+		return FALSE;
+
+	hourglass_on();
+	
+	hotlist_load_file(load);
+
+	hourglass_off();
+
+	if (discfile_close(load))
+		return FALSE;
+
+	return TRUE;
+}
+
+
+/**
+ * Load any hotlist entries contained in an open file.
+ *
+ * \param *load			The handle of the file to load from.
+ * \return			TRUE if successful; FALSE if errors occurred.
+ */
+
+static osbool hotlist_load_file(struct discfile_block *load)
+{
+	struct dialogue_block	*dialogue;
+	char			name[HOTLIST_NAME_LENGTH];
+	
+
+	if (load == NULL)
+		return FALSE;
+
+	do {
+		dialogue = dialogue_load_file(NULL, load, name, HOTLIST_NAME_LENGTH);
+
+		if (dialogue == NULL)
+			continue;
+	
+		dialogue_add_client(dialogue, DIALOGUE_CLIENT_HOTLIST);
+	
+		if (!hotlist_add_new_entry(name, dialogue))
+			dialogue_destroy(dialogue, DIALOGUE_CLIENT_HOTLIST);
+	} while (dialogue != NULL);
 
 	return TRUE;
 }
