@@ -699,7 +699,7 @@ void dialogue_destroy(struct dialogue_block *dialogue, enum dialogue_client clie
 	 * data.
 	 */
 
-	debug_printf("Dialogue in use by 0x%x; deletion requested by 0x%x", dialogue->clients, client);
+	debug_printf("Dialogue 0x%x in use by 0x%x; deletion requested by 0x%x", dialogue, dialogue->clients, client);
 
 	dialogue->clients &= ~client;
 
