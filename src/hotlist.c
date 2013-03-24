@@ -780,7 +780,7 @@ static osbool hotlist_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, ch
 
 	hourglass_on();
 
-	dialogue = dialogue_load_file(NULL, load);
+	dialogue = dialogue_load_file(NULL, load, NULL, 0);
 
 	hourglass_off();
 

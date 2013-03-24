@@ -245,7 +245,7 @@ void file_create_from_saved(char *filename)
 
 	/* Load the search settings, if present. */
 
-	new->dialogue = dialogue_load_file(new, load);
+	new->dialogue = dialogue_load_file(new, load, NULL, 0);
 
 	if (new->dialogue != NULL)
 		dialogue_add_client(new->dialogue, DIALOGUE_CLIENT_FILE);

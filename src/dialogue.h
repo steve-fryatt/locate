@@ -108,10 +108,12 @@ void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *
  *
  * \param *file			The file to which the dialogue will belong.
  * \param *load			The handle of the file to load from.
+ * \param *name			A buffer to take a hotlist name, or NULL.
+ * \param length		The length of the hotlist buffer, or 0.
  * \return			The handle of the new dialogue, or NULL.
  */
 
-struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfile_block *load);
+struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfile_block *load, char *name, size_t length);
 
 
 /**

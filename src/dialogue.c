@@ -847,24 +847,31 @@ void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *
  *
  * \param *file			The file to which the dialogue will belong.
  * \param *load			The handle of the file to load from.
+ * \param *name			A buffer to take a hotlist name, or NULL.
+ * \param length		The length of the hotlist buffer, or 0.
  * \return			The handle of the new dialogue, or NULL.
  */
 
-struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfile_block *load)
+struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfile_block *load, char *name, size_t length)
 {
 	struct dialogue_block	*dialogue;
 
 	if (load == NULL)
 		return NULL;
 
-	if (discfile_read_format(load) != DISCFILE_LOCATE2)
+	if (discfile_read_format(load) != DISCFILE_LOCATE2) {
+		if (name != NULL)
+			return NULL;
+	
 		return dialogue_load_legacy_file(file, load);
+	}
 
 	dialogue = dialogue_create(file, NULL, NULL);
 	if (dialogue == NULL)
 		return NULL;
 
-	if (!discfile_open_section(load, DISCFILE_SECTION_DIALOGUE) || !discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
+	if (!discfile_open_section(load, (name == NULL) ? DISCFILE_SECTION_DIALOGUE : DISCFILE_SECTION_HOTLIST) ||
+			!discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
 		dialogue_destroy(dialogue, DIALOGUE_CLIENT_ALL);
 		return NULL;
 	}
@@ -872,6 +879,11 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 	/* Read in the dialogue options. */
 
 	discfile_read_option_unsigned(load, "PAN", &dialogue->pane);
+	
+	/* The hotlist name, if applicable. */
+	
+	if (name != NULL)
+		discfile_read_option_string(load, "HNM", name, length);
 
 	/* The Search Path. */
 

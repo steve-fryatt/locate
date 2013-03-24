@@ -674,8 +674,13 @@ struct discfile_block *discfile_open_read(char *filename)
 	new->format = DISCFILE_UNKNOWN_FORMAT;
 	new->error_token = NULL;
 	
+	/* Initialise the Locate 2 file section info blocks. Each pointer is set
+	 * to start from the first section, so that it will work for both multiple
+	 * and non-multiple sections.
+	 */
+	
 	for (i = 0; i < DISCFILE_MAX_SECTIONS; i++) {
-		new->section_info[i].ptr = 0;
+		new->section_info[i].ptr = sizeof(struct discfile_header);
 		new->section_info[i].multiple = FALSE;
 		new->section_info[i].count = 0;
 	}
@@ -1316,18 +1321,16 @@ osbool discfile_open_section(struct discfile_block *handle, enum discfile_sectio
 	int				ptr, extent, unread;
 	os_error			*error;
 
-
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			handle->format != DISCFILE_LOCATE2 ||
-			handle->section != 0 || handle->chunk != 0) {
+			handle->section != 0 || handle->chunk != 0 ||
+			type >= DISCFILE_MAX_SECTIONS) {
 		if (handle != NULL)
 			discfile_set_error(handle, "FileError");
 		return FALSE;
 	}
-
-	/* The first section starts immediately following the file header. */
-
-	ptr = sizeof(struct discfile_header);
+	
+	ptr = handle->section_info[type].ptr;
 
 	/* Get the file extent. */
 
@@ -1344,15 +1347,23 @@ osbool discfile_open_section(struct discfile_block *handle, enum discfile_sectio
 			return FALSE;
 		}
 
-		if (section.magic_word != DISCFILE_SECTION_MAGIC_WORD || section.flags != 0) {
+		if (section.magic_word != DISCFILE_SECTION_MAGIC_WORD || (section.flags & DISCFILE_SECTION_FLAGS_UNUSED) != 0) {
 			discfile_set_error(handle, "FileUnrec");
 			return FALSE;
 		}
 
-		if (section.type == type)
+		if (section.type == type) {
 			handle->section = ptr;
-		else
+			
+			/* If this is a "multiple" section, then on the next pass,
+			 * start looking from the next section in the file.
+			 */ 
+			
+			if (handle->section_info[type].multiple)
+				handle->section_info[type].ptr = ptr + section.size;
+		} else {
 			ptr += section.size;
+		}
 	}
 
 	return (handle->section == 0) ? FALSE : TRUE;
@@ -1415,7 +1426,7 @@ osbool discfile_open_chunk(struct discfile_block *handle, enum discfile_chunk_ty
 		return FALSE;
 	}
 
-	if (section.magic_word != DISCFILE_SECTION_MAGIC_WORD || section.flags != 0) {
+	if (section.magic_word != DISCFILE_SECTION_MAGIC_WORD || (section.flags & DISCFILE_SECTION_FLAGS_UNUSED) != 0) {
 		discfile_set_error(handle, "FileUnrec");
 		return FALSE;
 	}
