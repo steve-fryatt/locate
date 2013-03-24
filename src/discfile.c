@@ -140,7 +140,7 @@ struct discfile_header {
  */
 
 enum discfile_section_flags {
-	DISCFILE_SECTION_FLAGS_NONE = 0,					/**< There are no section flags set				*/
+	DISCFILE_SECTION_FLAGS_NONE = 0,					/**< There are no section flags set.				*/
 	DISCFILE_SECTION_FLAGS_MULTIPLE = 1,					/**< This section can appear multiple times in the file.	*/
 	DISCFILE_SECTION_FLAGS_UNUSED = 0xfffffffeu				/**< Bitmask for all the unused flag bits which should be zero.	*/
 };
@@ -162,7 +162,8 @@ struct discfile_section {
  */
  
 enum discfile_chunk_flags {
-	DISCFILE_CHUNK_FLAGS_NONE = 0,						/**< There are no chunk flags set				*/
+	DISCFILE_CHUNK_FLAGS_NONE = 0,						/**< There are no chunk flags set.				*/
+	DISCFILE_CHUNK_FLAGS_UNUSED = 0xffffffffu				/**< Bitmask for all the unused flag bits which should be zero.	*/
 };
 
 struct discfile_chunk {
@@ -1273,7 +1274,7 @@ static void discfile_validate_structure(struct discfile_block *handle)
 				return;
 			}
 
-			if (chunk.flags != 0) {
+			if ((chunk.flags & DISCFILE_CHUNK_FLAGS_UNUSED) != 0) {
 				discfile_set_error(handle, "FileUnrec");
 				return;
 			}
@@ -1440,7 +1441,7 @@ osbool discfile_open_chunk(struct discfile_block *handle, enum discfile_chunk_ty
 			return FALSE;
 		}
 
-		if (chunk.magic_word != DISCFILE_CHUNK_MAGIC_WORD || chunk.flags != 0) {
+		if (chunk.magic_word != DISCFILE_CHUNK_MAGIC_WORD || (chunk.flags & DISCFILE_CHUNK_FLAGS_UNUSED) != 0) {
 			discfile_set_error(handle, "FileUnrec");
 			return FALSE;
 		}
