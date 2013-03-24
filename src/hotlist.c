@@ -38,6 +38,7 @@
 
 #include "oslib/hourglass.h"
 #include "oslib/osbyte.h"
+#include "oslib/osfile.h"
 #include "oslib/wimp.h"
 
 /* SF-Lib header files. */
@@ -171,7 +172,7 @@ static osbool	hotlist_read_add_window(void);
 static osbool	hotlist_add_new_entry(char *name, struct dialogue_block *dialogue);
 static osbool	hotlist_save_hotlist(char *filename, osbool selection, void *data);
 static osbool	hotlist_save_choices(void);
-static osbool	hotlist_save(char *filename);
+static osbool	hotlist_save(char *filename, osbool selection);
 static osbool	hotlist_extend(int allocation);
 static void	hotlist_open_entry(int entry);
 
@@ -211,7 +212,7 @@ void hotlist_initialise(void)
 
 	hotlist_window_menu = templates_get_menu(TEMPLATES_MENU_HOTLIST);
 
-	hotlist_saveas_hotlist = saveas_create_dialogue(FALSE, "file_1a1", hotlist_save_hotlist);
+	hotlist_saveas_hotlist = saveas_create_dialogue(TRUE, "file_1a1", hotlist_save_hotlist);
 
 
 	/* Allocate some memory for the initial hotlist entries. */
@@ -421,7 +422,7 @@ static void hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 			hotlist_selection_from_menu = FALSE;
 		}
 		
-		saveas_initialise_dialogue(hotlist_saveas_hotlist, "HotlistName", NULL, FALSE, FALSE, NULL);
+		saveas_initialise_dialogue(hotlist_saveas_hotlist, "HotlistName", "SelectName", hotlist_selection_count > 0, hotlist_selection_count > 0, NULL);
 	}
 
 	menus_shade_entry(hotlist_window_menu, HOTLIST_MENU_CLEAR_SELECTION, hotlist_selection_count == 0);
@@ -1010,7 +1011,7 @@ static osbool hotlist_add_new_entry(char *name, struct dialogue_block *dialogue)
 
 static osbool hotlist_save_hotlist(char *filename, osbool selection, void *data)
 {
-	return hotlist_save(filename);
+	return hotlist_save(filename, selection);
 }
 
 
@@ -1028,17 +1029,18 @@ static osbool hotlist_save_choices(void)
 	
 	debug_printf("Saving hotlist to '%s'", filename);
 
-	return hotlist_save(filename);
+	return hotlist_save(filename, FALSE);
 }
 
 /**
  * Save the hotlist to a hotlist file.
  *
  * \param *filename		Pointer to the filename to save the hotlist to.
+ * \param selection		TRUE to save just selected items; FALSE to save all.
  * \return			TRUE if successful; FALSE if errors occurred.
  */
 
-static osbool hotlist_save(char *filename)
+static osbool hotlist_save(char *filename, osbool selection)
 {
 	struct discfile_block		*out;
 	int				entry;
@@ -1053,7 +1055,8 @@ static osbool hotlist_save(char *filename)
 	hourglass_on();
 
 	for (entry = 0; entry < hotlist_entries; entry++)
-		dialogue_save_file(hotlist[entry].dialogue, out, hotlist[entry].name);
+		if (!selection || (hotlist[entry].flags & HOTLIST_FLAG_SELECTED))
+			dialogue_save_file(hotlist[entry].dialogue, out, hotlist[entry].name);
 
 	hourglass_off();
 
