@@ -41,3 +41,6 @@ Locate 2 Issues List
 
 * Should hotlist keep an "altered" flag and only save if its contents have
   changed?
+  
+* Hotlist... in iconbar menu should open hotlist; lose the Edit... item at the
+  top of the submenu!
