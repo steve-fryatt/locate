@@ -41,6 +41,13 @@ void hotlist_initialise(void);
 
 
 /**
+ * Terminate the hotlist system.
+ */
+
+void hotlist_terminate(void);
+
+
+/**
  * Add a dialogue to the hotlist.
  *
  * \param *dialogue		The handle of the dialogue to be added.

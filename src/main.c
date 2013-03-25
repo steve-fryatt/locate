@@ -119,6 +119,7 @@ int main(int argc, char *argv[])
 
 	file_destroy_all();
 
+	hotlist_terminate();
 	fileicon_terminate();
 	msgs_terminate();
 	wimp_close_down(main_task_handle);

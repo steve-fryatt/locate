@@ -204,7 +204,7 @@ static void	hotlist_open_entry(int entry);
 
 
 /**
- * Initialise the iconbar icon and its associated menus and dialogues.
+ * Initialise the hotlist system and its associated menus and dialogues.
  */
 
 void hotlist_initialise(void)
@@ -266,6 +266,16 @@ void hotlist_initialise(void)
 	/* Load the hotlist from disc. */
 	
 	hotlist_load_choices();
+}
+
+
+/**
+ * Terminate the hotlist system.
+ */
+
+void hotlist_terminate(void)
+{
+	hotlist_save_choices();
 }
 
 
