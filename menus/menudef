@@ -55,6 +55,7 @@ menu(search_window_menu, "Locate") {
 			warning;
 		}
 	}
+	/*item("Add to hotlist..."); */
 }
 
 
