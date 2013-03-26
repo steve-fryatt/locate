@@ -84,9 +84,14 @@
 
 /* Hotlist Window Menu */
 
-#define HOTLIST_MENU_SELECT_ALL 0
-#define HOTLIST_MENU_CLEAR_SELECTION 1
-#define HOTLIST_MENU_SAVE_HOTLIST 2
+#define HOTLIST_MENU_ITEM 0
+#define HOTLIST_MENU_SELECT_ALL 1
+#define HOTLIST_MENU_CLEAR_SELECTION 2
+#define HOTLIST_MENU_SAVE_HOTLIST 3
+
+#define HOTLIST_MENU_ITEM_SAVE 0
+#define HOTLIST_MENU_ITEM_RENAME 1
+#define HOTLIST_MENU_ITEM_DELETE 2
 
 /* Hotlist Add Window */
 
@@ -141,6 +146,7 @@ static int			hotlist_selection_count = 0;			/**< The number of items selected in
 static int			hotlist_selection_row = -1;			/**< The selected row, if there is only one.					*/
 static osbool			hotlist_selection_from_menu = FALSE;		/**< TRUE if the hotlist selection came via the menu opening; else FALSE.	*/
 static wimp_menu		*hotlist_window_menu = NULL;			/**< The hotlist window menu handle.						*/
+static wimp_menu		*hotlist_window_menu_item = NULL;		/**< THe hotlist window menu's item submenu handle.				*/
 static struct saveas_block	*hotlist_saveas_hotlist = NULL;			/**< The Save Hotlist savebox data handle.					*/
 
 /* Add/Edit Window. */
@@ -213,6 +219,7 @@ void hotlist_initialise(void)
 	//wimp_icon_create	icon_bar;
 
 	hotlist_window_menu = templates_get_menu(TEMPLATES_MENU_HOTLIST);
+	hotlist_window_menu_item = templates_get_menu(TEMPLATES_MENU_HOTLIST_ITEM);
 
 	hotlist_saveas_hotlist = saveas_create_dialogue(TRUE, "file_1a1", hotlist_save_hotlist);
 
@@ -262,9 +269,9 @@ void hotlist_initialise(void)
 	ihelp_add_window(hotlist_add_window, "HotlistAdd", NULL);
 	event_add_window_mouse_event(hotlist_add_window, hotlist_add_click_handler);
 	event_add_window_key_event(hotlist_add_window, hotlist_add_keypress_handler);
-	
+
 	/* Load the hotlist from disc. */
-	
+
 	hotlist_load_choices();
 }
 
@@ -437,11 +444,17 @@ static void hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 		} else {
 			hotlist_selection_from_menu = FALSE;
 		}
-		
+
 		saveas_initialise_dialogue(hotlist_saveas_hotlist, "HotlistName", "SelectName", hotlist_selection_count > 0, hotlist_selection_count > 0, NULL);
 	}
 
+	menus_shade_entry(hotlist_window_menu, HOTLIST_MENU_ITEM, hotlist_selection_count == 0);
 	menus_shade_entry(hotlist_window_menu, HOTLIST_MENU_CLEAR_SELECTION, hotlist_selection_count == 0);
+
+	menus_shade_entry(hotlist_window_menu_item, HOTLIST_MENU_ITEM_SAVE, hotlist_selection_count != 1);
+	menus_shade_entry(hotlist_window_menu_item, HOTLIST_MENU_ITEM_RENAME, hotlist_selection_count != 1);
+	menus_shade_entry(hotlist_window_menu_item, HOTLIST_MENU_ITEM_DELETE, hotlist_selection_count == 0);
+
 //	menus_shade_entry(results_window_menu, RESULTS_MENU_OBJECT_INFO, handle->selection_count != 1);
 //	menus_shade_entry(results_window_menu, RESULTS_MENU_OPEN_PARENT, handle->selection_count != 1);
 //	menus_shade_entry(results_window_menu, RESULTS_MENU_COPY_NAMES, handle->selection_count == 0);
@@ -497,7 +510,24 @@ static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 
 	wimp_get_pointer_info(&pointer);
 
-	switch(selection->items[0]) {
+	switch (selection->items[0]) {
+	case HOTLIST_MENU_ITEM:
+		switch (selection->items[1]) {
+		case HOTLIST_MENU_ITEM_SAVE:
+
+			break;
+
+		case HOTLIST_MENU_ITEM_RENAME:
+
+			break;
+
+		case HOTLIST_MENU_ITEM_DELETE:
+
+			break;
+		}
+
+		break;
+
 	case HOTLIST_MENU_SELECT_ALL:
 		hotlist_select_all();
 		hotlist_selection_from_menu = FALSE;
@@ -507,7 +537,7 @@ static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 		hotlist_select_none();
 		hotlist_selection_from_menu = FALSE;
 		break;
-		
+
 	case HOTLIST_MENU_SAVE_HOTLIST:
 		hotlist_save_choices();
 		break;
@@ -1044,9 +1074,9 @@ static osbool hotlist_save_hotlist(char *filename, osbool selection, void *data)
 static osbool hotlist_save_choices(void)
 {
 	char				filename[1024];
-	
+
 	config_find_save_file(filename, 1024, "Hotlist");
-	
+
 	debug_printf("Saving hotlist to '%s'", filename);
 
 	return hotlist_save_file(filename, FALSE);
@@ -1099,7 +1129,7 @@ static osbool hotlist_load_choices(void)
 {
 	struct discfile_block	*load;
 	char			filename[1024];
-	
+
 	config_find_load_file(filename, 1024, "Hotlist");
 
 	/* \TODO -- There's no check that this is a Locate filetype. */
@@ -1109,7 +1139,7 @@ static osbool hotlist_load_choices(void)
 		return FALSE;
 
 	hourglass_on();
-	
+
 	hotlist_load_file(load);
 
 	hourglass_off();
@@ -1132,7 +1162,7 @@ static osbool hotlist_load_file(struct discfile_block *load)
 {
 	struct dialogue_block	*dialogue;
 	char			name[HOTLIST_NAME_LENGTH];
-	
+
 
 	if (load == NULL)
 		return FALSE;
@@ -1142,9 +1172,9 @@ static osbool hotlist_load_file(struct discfile_block *load)
 
 		if (dialogue == NULL)
 			continue;
-	
+
 		dialogue_add_client(dialogue, DIALOGUE_CLIENT_HOTLIST);
-	
+
 		if (!hotlist_add_new_entry(name, dialogue))
 			dialogue_destroy(dialogue, DIALOGUE_CLIENT_HOTLIST);
 	} while (dialogue != NULL);

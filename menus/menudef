@@ -118,6 +118,9 @@ menu(save_menu, "Save") {
  */
 
 menu(hotlist_window_menu, "Hotlist") {
+	item("Entry") {
+		submenu(entry_menu);
+	}
 	item("Select all");
 	item("Clear selection");
 	item("Save hotlist") {
@@ -127,6 +130,11 @@ menu(hotlist_window_menu, "Hotlist") {
 	}
 }
 
+menu(entry_menu, "Entry") {
+	item("Save search");
+	item("Rename");
+	item("Delete");
+}
 
 /**
  * Search Dialogue PopUp Menus.
