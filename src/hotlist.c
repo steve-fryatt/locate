@@ -1035,11 +1035,7 @@ static osbool hotlist_read_add_window(void)
 		return FALSE;
 	}
 
-	debug_printf("Hotlist handle = 0x%x, Entry = %d, Max Entries = %d", hotlist_add_dialogue_handle, hotlist_add_entry, hotlist_entries);
-
 	if (hotlist_add_dialogue_handle == NULL && hotlist_add_entry >= 0 && hotlist_add_entry < hotlist_entries) {
-		debug_printf("Updating name...");
-
 		strncpy(hotlist[hotlist_add_entry].name, new_name, HOTLIST_NAME_LENGTH);
 
 		window.w = hotlist_window;
