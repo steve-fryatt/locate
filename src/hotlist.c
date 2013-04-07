@@ -170,6 +170,7 @@ static void	hotlist_select_all(void);
 static void	hotlist_select_none(void);
 static int	hotlist_calculate_window_click_row(os_coord *pos, wimp_window_state *state);
 static osbool	hotlist_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
+static void	hotlist_rename_entry(int entry);
 static void	hotlist_add_click_handler(wimp_pointer *pointer);
 static osbool	hotlist_add_keypress_handler(wimp_key *key);
 static void	hotlist_set_add_window(int entry);
@@ -514,7 +515,8 @@ static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 	case HOTLIST_MENU_ITEM:
 		switch (selection->items[1]) {
 		case HOTLIST_MENU_ITEM_SAVE:
-
+			if (hotlist_selection_count == 1)
+				hotlist_rename_entry(hotlist_selection_row);
 			break;
 
 		case HOTLIST_MENU_ITEM_RENAME:
@@ -866,6 +868,26 @@ void hotlist_add_dialogue(struct dialogue_block *dialogue)
 	dialogue_add_client(dialogue, DIALOGUE_CLIENT_HOTLIST);
 
 	hotlist_set_add_window(-1);
+
+	wimp_get_pointer_info(&pointer);
+	windows_open_centred_at_pointer(hotlist_add_window, &pointer);
+	icons_put_caret_at_end(hotlist_add_window, HOTLIST_ADD_ICON_NAME);
+}
+
+
+/**
+ * Rename an entry in the hotlist.
+ *
+ * \param index			The index of the .
+ */
+
+static void hotlist_rename_entry(int entry)
+{
+	wimp_pointer	pointer;
+
+	hotlist_add_dialogue_handle = NULL;
+
+	hotlist_set_add_window(entry);
 
 	wimp_get_pointer_info(&pointer);
 	windows_open_centred_at_pointer(hotlist_add_window, &pointer);
