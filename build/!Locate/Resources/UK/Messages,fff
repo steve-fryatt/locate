@@ -49,6 +49,11 @@ SrchName:Search
 SelectName:Selection
 HotlistName:Hotlist
 
+HotlistAddT:Add search to hotlist
+HotlistRenameT:Rename hotlist entry
+HotlistAddB:Add
+HotlistRenameB:Rename
+
 DeftHistName:<untitled search>
 
 # Messages & Errors
@@ -68,6 +73,7 @@ BadFile:This file is not compatible with the version of Locate currently running
 FileError:There was an error while loading or saving the file: the operation has been aborted.
 FileUnrec:The file format was not understood: the operation has been aborted.
 FileMem:There was not enough memory to load the file: the operation has been aborted.
+
 
 
 

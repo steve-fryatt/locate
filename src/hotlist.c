@@ -515,16 +515,14 @@ static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 	case HOTLIST_MENU_ITEM:
 		switch (selection->items[1]) {
 		case HOTLIST_MENU_ITEM_SAVE:
+			break;
+
+		case HOTLIST_MENU_ITEM_RENAME:
 			if (hotlist_selection_count == 1)
 				hotlist_rename_entry(hotlist_selection_row);
 			break;
 
-		case HOTLIST_MENU_ITEM_RENAME:
-
-			break;
-
 		case HOTLIST_MENU_ITEM_DELETE:
-
 			break;
 		}
 
@@ -869,6 +867,9 @@ void hotlist_add_dialogue(struct dialogue_block *dialogue)
 
 	hotlist_set_add_window(-1);
 
+	windows_title_msgs_lookup(hotlist_add_window, "HotlistAddT");
+	icons_msgs_lookup(hotlist_add_window, HOTLIST_ADD_ICON_ADD, "HotlistAddB");
+
 	wimp_get_pointer_info(&pointer);
 	windows_open_centred_at_pointer(hotlist_add_window, &pointer);
 	icons_put_caret_at_end(hotlist_add_window, HOTLIST_ADD_ICON_NAME);
@@ -888,6 +889,9 @@ static void hotlist_rename_entry(int entry)
 	hotlist_add_dialogue_handle = NULL;
 
 	hotlist_set_add_window(entry);
+
+	windows_title_msgs_lookup(hotlist_add_window, "HotlistRenameT");
+	icons_msgs_lookup(hotlist_add_window, HOTLIST_ADD_ICON_ADD, "HotlistRenameB");
 
 	wimp_get_pointer_info(&pointer);
 	windows_open_centred_at_pointer(hotlist_add_window, &pointer);
@@ -1021,6 +1025,7 @@ static void hotlist_redraw_add_window(void)
 static osbool hotlist_read_add_window(void)
 {
 	char			*new_name;
+	wimp_window_state	window;
 
 	new_name = icons_get_indirected_text_addr(hotlist_add_window, HOTLIST_ADD_ICON_NAME);
 	string_ctrl_zero_terminate(new_name);
@@ -1030,7 +1035,26 @@ static osbool hotlist_read_add_window(void)
 		return FALSE;
 	}
 
-	return hotlist_add_new_entry(new_name, hotlist_add_dialogue_handle);
+	debug_printf("Hotlist handle = 0x%x, Entry = %d, Max Entries = %d", hotlist_add_dialogue_handle, hotlist_add_entry, hotlist_entries);
+
+	if (hotlist_add_dialogue_handle == NULL && hotlist_add_entry >= 0 && hotlist_add_entry < hotlist_entries) {
+		debug_printf("Updating name...");
+
+		strncpy(hotlist[hotlist_add_entry].name, new_name, HOTLIST_NAME_LENGTH);
+
+		window.w = hotlist_window;
+		if (xwimp_get_window_state(&window) == NULL) {
+			wimp_force_redraw(window.w, window.xscroll, LINE_BASE(hotlist_add_entry),
+				window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(hotlist_add_entry));
+		}
+
+		return TRUE;
+	} else if (hotlist_add_dialogue_handle == NULL && hotlist_add_entry != -1) {
+
+		return hotlist_add_new_entry(new_name, hotlist_add_dialogue_handle);
+	}
+
+	return FALSE;
 }
 
 
