@@ -124,7 +124,6 @@ struct hotlist_block {
 	char				name[HOTLIST_NAME_LENGTH];		/**< The name of the hotlist entry.						*/
 	struct dialogue_block		*dialogue;				/**< The data associated with the hotlist entry.				*/
 	enum hotlist_block_flags	flags;					/**< The flags for the hotlist entry.						*/
-
 };
 
 /* Global variables. */
@@ -170,6 +169,7 @@ static void	hotlist_select_all(void);
 static void	hotlist_select_none(void);
 static int	hotlist_calculate_window_click_row(os_coord *pos, wimp_window_state *state);
 static osbool	hotlist_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
+static void	hotlist_delete_selection(void);
 static void	hotlist_rename_entry(int entry);
 static void	hotlist_add_click_handler(wimp_pointer *pointer);
 static osbool	hotlist_add_keypress_handler(wimp_key *key);
@@ -177,6 +177,7 @@ static void	hotlist_set_add_window(int entry);
 static void	hotlist_redraw_add_window(void);
 static osbool	hotlist_read_add_window(void);
 static osbool	hotlist_add_new_entry(char *name, struct dialogue_block *dialogue);
+static void	hotlist_delete_entry(int entry);
 static osbool	hotlist_save_hotlist(char *filename, osbool selection, void *data);
 static osbool	hotlist_save_choices(void);
 static osbool	hotlist_save_file(char *filename, osbool selection);
@@ -523,6 +524,7 @@ static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 			break;
 
 		case HOTLIST_MENU_ITEM_DELETE:
+			hotlist_delete_selection();
 			break;
 		}
 
@@ -853,6 +855,26 @@ static osbool hotlist_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, ch
 
 
 /**
+ * Delete the selected items from the hotlist.
+ */
+
+static void hotlist_delete_selection(void)
+{
+
+	int i = 0;
+
+	while (i < hotlist_entries) {
+		if (hotlist[i].flags & HOTLIST_FLAG_SELECTED)
+			hotlist_delete_entry(i);
+		else
+			i++;
+	}
+
+	windows_redraw(hotlist_window);
+}
+
+
+/**
  * Add a dialogue to the hotlist.
  *
  * \param *dialogue		The handle of the dialogue to be added.
@@ -1088,6 +1110,25 @@ static osbool hotlist_add_new_entry(char *name, struct dialogue_block *dialogue)
 	hotlist_update_extent();
 
 	return TRUE;
+}
+
+
+/**
+ * Delete an entry from the hotlist. The entry is removed, but no memory is
+ * freed up.
+ *
+ * \param entry			The entry to be deleted.
+ */
+
+static void hotlist_delete_entry(int entry)
+{
+	if (entry < 0 || entry >=hotlist_entries)
+		return;
+
+	if (entry < (hotlist_entries - 1))
+		memmove(hotlist + entry, hotlist + entry + 1, sizeof(struct hotlist_block) * (hotlist_entries - entry - 1));
+
+	hotlist_entries--;
 }
 
 
