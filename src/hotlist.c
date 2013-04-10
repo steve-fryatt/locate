@@ -80,6 +80,8 @@
 
 #define HOTLIST_MIN_LINES 10							/**< The minimum number of lines to show in the hotlist window.		*/
 
+#define HOTLIST_AUTOSCROLL_BORDER 80						/**< The autoscroll border for the window, in OS units.			*/
+
 #define HOTLIST_ICON_FILE 0
 
 /* Hotlist Window Menu */
@@ -149,6 +151,10 @@ static wimp_menu		*hotlist_window_menu_item = NULL;		/**< THe hotlist window men
 static struct saveas_block	*hotlist_saveas_hotlist = NULL;			/**< The Save Hotlist savebox data handle.					*/
 static struct saveas_block	*hotlist_saveas_search = NULL;			/**< The Save Search savebox data handle.					*/
 
+static unsigned			hotlist_select_drag_row = -1		;	/**< The row in which the selection drag started.			*/
+static unsigned			hotlist_select_drag_pos = 0;			/**< The position within the row where the selection drag started.	*/
+static osbool			hotlist_select_drag_adjust = FALSE;		/**< TRUE if the selection drag is with Adjust; FALSE for Select.	*/
+
 /* Add/Edit Window. */
 
 static wimp_w			hotlist_add_window = NULL;			/**< The add to hotlist window handle.						*/
@@ -164,6 +170,8 @@ static void	hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 static void	hotlist_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void	hotlist_menu_close(wimp_w w, wimp_menu *menu);
 static void	hotlist_update_extent(void);
+static void	results_drag_select(unsigned row, wimp_pointer *pointer, wimp_window_state *state, osbool ctrl_pressed);
+static void	hotlist_select_drag_end_handler(wimp_dragged *drag, void *data);
 static void	hotlist_select_click_select(int row);
 static void	hotlist_select_click_adjust(int row);
 static void	hotlist_select_all(void);
@@ -414,7 +422,7 @@ static void hotlist_click_handler(wimp_pointer *pointer)
 
 	case wimp_DRAG_SELECT:
 	case wimp_DRAG_ADJUST:
-		//results_drag_select(handle, row, pointer, &state, ctrl_pressed);
+		results_drag_select(row, pointer, &state, ctrl_pressed);
 		break;
 	}
 }
@@ -593,6 +601,183 @@ static void hotlist_update_extent(void)
 	info.extent.y0 = info.extent.y1 + new_y_extent;
 
 	xwimp_set_extent(hotlist_window, &(info.extent));
+}
+
+
+/**
+ * Process drags in a hotlist window. Depending on whether the drag began on a
+ * selectable row or not, the drag will either start an object drag or start
+ * a selection dragbox.
+ *
+ * \param row			The row under the click, or RESULTS_ROW_NONE.
+ * \param *pointer		Pointer to the current mouse info.
+ * \param *state		Pointer to the current window state.
+ * \param ctrl_pressed		TRUE if a Ctrl key is down; else FALSE.
+ */
+
+static void results_drag_select(unsigned row, wimp_pointer *pointer, wimp_window_state *state, osbool ctrl_pressed)
+{
+	int			x, y;
+	os_box			extent;
+	wimp_drag		drag;
+	wimp_auto_scroll_info	scroll;
+	char			*sprite = NULL;
+
+	if (pointer == NULL || state == NULL)
+		return;
+
+	x = pointer->pos.x - state->visible.x0 + state->xscroll;
+	y = pointer->pos.y - state->visible.y1 + state->yscroll;
+
+	if ((row != -1) && (row < hotlist_entries) && (pointer->buttons == wimp_DRAG_SELECT) &&
+			(hotlist[row].flags & HOTLIST_FLAG_SELECTABLE) && !ctrl_pressed) {
+		extent.x0 = state->xscroll + HOTLIST_WINDOW_MARGIN;
+		extent.x1 = state->xscroll + (state->visible.x1 - state->visible.x0) - HOTLIST_WINDOW_MARGIN;
+		extent.y0 = LINE_Y0(row);
+		extent.y1 = LINE_Y1(row);
+
+		if (hotlist_selection_count == 1 && hotlist_selection_row == row)
+			sprite = "file_1a1";
+		else
+			sprite = "package";
+
+		//dataxfer_work_area_drag(handle->window, pointer, &extent, sprite, results_xfer_drag_end_handler, handle);
+	} else {
+		hotlist_select_drag_row = ROW(y);
+		hotlist_select_drag_pos = ROW_Y_POS(y);
+		hotlist_select_drag_adjust = (pointer->buttons == wimp_DRAG_ADJUST) ? TRUE : FALSE;
+
+		drag.w = hotlist_window;
+		drag.type = wimp_DRAG_USER_RUBBER;
+
+		drag.initial.x0 = pointer->pos.x;
+		drag.initial.y0 = pointer->pos.y;
+		drag.initial.x1 = pointer->pos.x;
+		drag.initial.y1 = pointer->pos.y;
+
+		drag.bbox.x0 = state->visible.x0;
+		drag.bbox.y0 = state->visible.y0 ;
+		drag.bbox.x1 = state->visible.x1;
+		drag.bbox.y1 = state->visible.y1 - HOTLIST_TOOLBAR_HEIGHT;
+
+		scroll.w = hotlist_window;
+
+		scroll.pause_zone_sizes.x0 = HOTLIST_AUTOSCROLL_BORDER;
+		scroll.pause_zone_sizes.y0 = HOTLIST_AUTOSCROLL_BORDER;
+		scroll.pause_zone_sizes.x1 = HOTLIST_AUTOSCROLL_BORDER;
+		scroll.pause_zone_sizes.y1 = HOTLIST_AUTOSCROLL_BORDER + HOTLIST_TOOLBAR_HEIGHT;
+
+		scroll.pause_duration = 0;
+		scroll.state_change = wimp_AUTO_SCROLL_DEFAULT_HANDLER;
+
+		wimp_drag_box_with_flags(&drag, wimp_DRAG_BOX_KEEP_IN_LINE | wimp_DRAG_BOX_CLIP);
+		wimp_auto_scroll(wimp_AUTO_SCROLL_ENABLE_VERTICAL, &scroll);
+
+		event_set_drag_handler(hotlist_select_drag_end_handler, NULL, NULL);
+	}
+}
+
+
+/**
+ * Process the termination of selection drags from a hotlist window.
+ *
+ * \param  *drag		The Wimp poll block from termination.
+ * \param  *data		NULL (unused).
+ */
+
+static void hotlist_select_drag_end_handler(wimp_dragged *drag, void *data)
+{
+	int			y, row_y_pos;
+	int			row, start, end;
+	wimp_pointer		pointer;
+	wimp_window_state	state;
+	os_error		*error;
+
+
+	/* Terminate the scroll process. */
+
+	error = xwimp_auto_scroll(NONE, NULL, NULL);
+	if (error != NULL)
+		return;
+
+	/* Get details of the position of the drag end. */
+
+	error = xwimp_get_pointer_info(&pointer);
+	if (error != NULL)
+		return;
+
+	state.w = hotlist_window;
+	error = xwimp_get_window_state(&state);
+	if (error != NULL)
+		return;
+
+	/* Calculate the row stats for the drag end. */
+
+	y = pointer.pos.y - state.visible.y1 + state.yscroll;
+
+	row = ROW(y);
+	row_y_pos = ROW_Y_POS(y);
+
+	/* Work out the range of rows to be affected. */
+
+	if (row > hotlist_select_drag_row) {
+		start = hotlist_select_drag_row;
+		if (ROW_BELOW(hotlist_select_drag_pos))
+			start++;
+
+		end = row;
+		if (ROW_ABOVE(row_y_pos))
+			end --;
+	} else if (row < hotlist_select_drag_row) {
+		start = row;
+		if (ROW_BELOW(row_y_pos))
+			start++;
+
+		end = hotlist_select_drag_row;
+		if (ROW_ABOVE(hotlist_select_drag_pos))
+			end --;
+	} else if (!((ROW_ABOVE(row_y_pos) && ROW_ABOVE(hotlist_select_drag_pos)) || (ROW_BELOW(row_y_pos) && ROW_BELOW(hotlist_select_drag_pos)))) {
+		start = row;
+		end = row;
+	} else {
+		start = -1;
+		end = -1;
+	}
+
+	/* Get out if the range isn't valid. The (end < start) state implies
+	 * adjacent ABOVE/BELOW bands, which means no icons have been included.
+	 */
+
+	if (start == -1 || end == -1 || end < start)
+		return;
+
+	if (!hotlist_select_drag_adjust)
+		hotlist_select_none();
+
+	for (row = start; row <= end && row < hotlist_entries; row++) {
+		if (!(hotlist[row].flags & HOTLIST_FLAG_SELECTABLE))
+			continue;
+
+		if (hotlist[row].flags & HOTLIST_FLAG_SELECTED) {
+			hotlist[row].flags &= ~HOTLIST_FLAG_SELECTED;
+			hotlist_selection_count--;
+		} else {
+			hotlist[row].flags |= HOTLIST_FLAG_SELECTED;
+			hotlist_selection_count++;
+		}
+
+		wimp_force_redraw(state.w, state.xscroll, LINE_BASE(row),
+			state.xscroll + (state.visible.x1 - state.visible.x0), LINE_Y1(row));
+	}
+
+	if (hotlist_selection_count == 1) {
+		for (row = 0; row < hotlist_entries; row++) {
+			if (hotlist[row].flags & HOTLIST_FLAG_SELECTED) {
+				hotlist_selection_row = row;
+				break;
+			}
+		}
+	}
 }
 
 
