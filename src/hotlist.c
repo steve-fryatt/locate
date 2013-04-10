@@ -270,7 +270,6 @@ void hotlist_initialise(void)
 	/* Initialise the add/edit window. */
 
 	hotlist_add_window = templates_create_window("HotlistAdd");
-	//templates_link_menu_dialogue("ProgInfo", iconbar_info_window);
 	ihelp_add_window(hotlist_add_window, "HotlistAdd", NULL);
 	event_add_window_mouse_event(hotlist_add_window, hotlist_add_click_handler);
 	event_add_window_key_event(hotlist_add_window, hotlist_add_keypress_handler);
@@ -460,20 +459,6 @@ static void hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 	menus_shade_entry(hotlist_window_menu_item, HOTLIST_MENU_ITEM_SAVE, hotlist_selection_count != 1);
 	menus_shade_entry(hotlist_window_menu_item, HOTLIST_MENU_ITEM_RENAME, hotlist_selection_count != 1);
 	menus_shade_entry(hotlist_window_menu_item, HOTLIST_MENU_ITEM_DELETE, hotlist_selection_count == 0);
-
-//	menus_shade_entry(results_window_menu, RESULTS_MENU_OBJECT_INFO, handle->selection_count != 1);
-//	menus_shade_entry(results_window_menu, RESULTS_MENU_OPEN_PARENT, handle->selection_count != 1);
-//	menus_shade_entry(results_window_menu, RESULTS_MENU_COPY_NAMES, handle->selection_count == 0);
-//	menus_shade_entry(results_window_menu, RESULTS_MENU_MODIFY_SEARCH, dialogue_window_is_open() || file_get_dialogue(handle->file) == NULL);
-//	menus_shade_entry(results_window_menu, RESULTS_MENU_ADD_TO_HOTLIST, hotlist_add_window_is_open() || file_get_dialogue(handle->file) == NULL);
-//	menus_shade_entry(results_window_menu, RESULTS_MENU_STOP_SEARCH, !file_search_active(handle->file));
-
-//	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_PATH_ONLY, !handle->full_info);
-//	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_FULL_INFO, handle->full_info);
-
-//	saveas_initialise_dialogue(results_save_results, "FileName", NULL, TRUE, FALSE, handle);
-//	saveas_initialise_dialogue(results_save_paths, "ExptName", "SelectName", handle->selection_count > 0, handle->selection_count > 0, handle);
-//	saveas_initialise_dialogue(results_save_options, "SrchName", NULL, FALSE, FALSE, handle);
 }
 
 
@@ -556,28 +541,6 @@ static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 	case HOTLIST_MENU_SAVE_HOTLIST:
 		hotlist_save_choices();
 		break;
-/*
-	case RESULTS_MENU_OPEN_PARENT:
-		if (handle->selection_count == 1)
-			results_open_parent(handle, handle->selection_row);
-		break;
-
-	case RESULTS_MENU_COPY_NAMES:
-		results_clipboard_copy_filenames(handle);
-		break;
-
-	case RESULTS_MENU_MODIFY_SEARCH:
-		file_create_dialogue(&pointer, NULL, file_get_dialogue(handle->file));
-		break;
-
-	case RESULTS_MENU_ADD_TO_HOTLIST:
-		hotlist_add_dialogue(file_get_dialogue(handle->file));
-		break;
-
-	case RESULTS_MENU_STOP_SEARCH:
-		file_stop_search(handle->file);
-		break;
-*/
 	}
 }
 
