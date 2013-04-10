@@ -1322,7 +1322,6 @@ static osbool hotlist_save_hotlist(char *filename, osbool selection, void *data)
 static osbool hotlist_save_search(char *filename, osbool selection, void *data)
 {
 	struct discfile_block		*out;
-	int				entry;
 
 	if (filename == NULL || hotlist_selection_row < 0 || hotlist_selection_row >= hotlist_entries)
 		return FALSE;
