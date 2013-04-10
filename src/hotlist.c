@@ -457,7 +457,7 @@ static void hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 			hotlist_selection_from_menu = FALSE;
 		}
 
-		saveas_initialise_dialogue(hotlist_saveas_search, "SearchName", "SelectName", FALSE, FALSE, NULL);
+		saveas_initialise_dialogue(hotlist_saveas_search, "SrchName", "SelectName", FALSE, FALSE, NULL);
 		saveas_initialise_dialogue(hotlist_saveas_hotlist, "HotlistName", "SelectName", hotlist_selection_count > 0, hotlist_selection_count > 0, NULL);
 	}
 
