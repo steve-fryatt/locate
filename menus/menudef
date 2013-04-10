@@ -132,7 +132,11 @@ menu(hotlist_window_menu, "Hotlist") {
 }
 
 menu(entry_menu, "Entry") {
-	item("Save search");
+	item("Save search") {
+		d_box(save_as) {
+			warning;
+		}
+	}
 	item("Rename...");
 	item("Delete");
 }

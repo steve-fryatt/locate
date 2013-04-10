@@ -147,6 +147,7 @@ static osbool			hotlist_selection_from_menu = FALSE;		/**< TRUE if the hotlist s
 static wimp_menu		*hotlist_window_menu = NULL;			/**< The hotlist window menu handle.						*/
 static wimp_menu		*hotlist_window_menu_item = NULL;		/**< THe hotlist window menu's item submenu handle.				*/
 static struct saveas_block	*hotlist_saveas_hotlist = NULL;			/**< The Save Hotlist savebox data handle.					*/
+static struct saveas_block	*hotlist_saveas_search = NULL;			/**< The Save Search savebox data handle.					*/
 
 /* Add/Edit Window. */
 
@@ -179,6 +180,7 @@ static osbool	hotlist_read_add_window(void);
 static osbool	hotlist_add_new_entry(char *name, struct dialogue_block *dialogue);
 static void	hotlist_delete_entry(int entry);
 static osbool	hotlist_save_hotlist(char *filename, osbool selection, void *data);
+static osbool	hotlist_save_search(char *filename, osbool selection, void *data);
 static osbool	hotlist_save_choices(void);
 static osbool	hotlist_save_file(char *filename, osbool selection);
 static osbool	hotlist_load_choices(void);
@@ -223,6 +225,7 @@ void hotlist_initialise(void)
 	hotlist_window_menu = templates_get_menu(TEMPLATES_MENU_HOTLIST);
 	hotlist_window_menu_item = templates_get_menu(TEMPLATES_MENU_HOTLIST_ITEM);
 
+	hotlist_saveas_search = saveas_create_dialogue(FALSE, "file_1a1", hotlist_save_search);
 	hotlist_saveas_hotlist = saveas_create_dialogue(TRUE, "file_1a1", hotlist_save_hotlist);
 
 
@@ -447,6 +450,7 @@ static void hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 			hotlist_selection_from_menu = FALSE;
 		}
 
+		saveas_initialise_dialogue(hotlist_saveas_search, "SearchName", "SelectName", FALSE, FALSE, NULL);
 		saveas_initialise_dialogue(hotlist_saveas_hotlist, "HotlistName", "SelectName", hotlist_selection_count > 0, hotlist_selection_count > 0, NULL);
 	}
 
@@ -487,6 +491,15 @@ static void hotlist_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_wa
 		return;
 
 	switch (warning->selection.items[0]) {
+	case HOTLIST_MENU_ITEM:
+		switch (warning->selection.items[1]) {
+		case HOTLIST_MENU_ITEM_SAVE:
+			saveas_prepare_dialogue(hotlist_saveas_search);
+			wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
+			break;
+		}
+		break;
+		
 	case HOTLIST_MENU_SAVE_HOTLIST:
 		saveas_prepare_dialogue(hotlist_saveas_hotlist);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
@@ -1145,6 +1158,42 @@ static void hotlist_delete_entry(int entry)
 static osbool hotlist_save_hotlist(char *filename, osbool selection, void *data)
 {
 	return hotlist_save_file(filename, selection);
+}
+
+
+/**
+ * Save the current search settings to file.  Used as a DataXfer callback, so
+ * must return TRUE on success or FALSE on failure.
+ *
+ * \param *filename		The filename to save to.
+ * \param selection		TRUE to save just the selection, else FALSE.
+ * \param *data			Context data: the handle of the parent dialogue.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+static osbool hotlist_save_search(char *filename, osbool selection, void *data)
+{
+	struct discfile_block		*out;
+	int				entry;
+
+	if (filename == NULL || hotlist_selection_row < 0 || hotlist_selection_row >= hotlist_entries)
+		return FALSE;
+
+	out = discfile_open_write(filename);
+	if (out == NULL)
+		return FALSE;
+
+	hourglass_on();
+	
+	dialogue_save_file(hotlist[hotlist_selection_row].dialogue, out, NULL);
+
+	hourglass_off();
+
+	discfile_close(out);
+
+	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
+
+	return TRUE;
 }
 
 
