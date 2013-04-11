@@ -689,11 +689,32 @@ static void results_drag_select(unsigned row, wimp_pointer *pointer, wimp_window
 
 static void hotlist_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 {
-	unsigned		row;
+	int			y, row, row_y_pos;
+	wimp_window_state	state;
+	os_error		*error;
 	size_t			pathname_len;
 	char			*pathname;
 
 	debug_printf("Drag end!");
+
+	if (pointer->w == hotlist_window) {
+		state.w = hotlist_window;
+		error = xwimp_get_window_state(&state);
+		if (error != NULL)
+			return;
+
+		/* Calculate the row stats for the drag end. */
+
+		y = pointer->pos.y - state.visible.y1 + state.yscroll;
+
+		row = ROW(y);
+		row_y_pos = ROW_Y_POS(y);
+
+		debug_printf("Internal drag to %d in row %d", row_y_pos, row);
+	} else {
+		debug_printf("External drag");
+	
+	}
 
 /*
 	for (row = 0; row < handle->display_lines; row++) {
