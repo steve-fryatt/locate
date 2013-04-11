@@ -171,6 +171,7 @@ static void	hotlist_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_wa
 static void	hotlist_menu_close(wimp_w w, wimp_menu *menu);
 static void	hotlist_update_extent(void);
 static void	results_drag_select(unsigned row, wimp_pointer *pointer, wimp_window_state *state, osbool ctrl_pressed);
+static void	hotlist_xfer_drag_end_handler(wimp_pointer *pointer, void *data);
 static void	hotlist_select_drag_end_handler(wimp_dragged *drag, void *data);
 static void	hotlist_select_click_select(int row);
 static void	hotlist_select_click_adjust(int row);
@@ -492,7 +493,7 @@ static void hotlist_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_wa
 			break;
 		}
 		break;
-		
+
 	case HOTLIST_MENU_SAVE_HOTLIST:
 		saveas_prepare_dialogue(hotlist_saveas_hotlist);
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
@@ -641,7 +642,7 @@ static void results_drag_select(unsigned row, wimp_pointer *pointer, wimp_window
 		else
 			sprite = "package";
 
-		//dataxfer_work_area_drag(handle->window, pointer, &extent, sprite, results_xfer_drag_end_handler, handle);
+		dataxfer_work_area_drag(hotlist_window, pointer, &extent, sprite, hotlist_xfer_drag_end_handler, NULL);
 	} else {
 		hotlist_select_drag_row = ROW(y);
 		hotlist_select_drag_pos = ROW_Y_POS(y);
@@ -675,6 +676,36 @@ static void results_drag_select(unsigned row, wimp_pointer *pointer, wimp_window
 
 		event_set_drag_handler(hotlist_select_drag_end_handler, NULL, NULL);
 	}
+}
+
+
+/**
+ * Process the termination of transfer drags from a hotlist window by sending
+ * Message_DataLoad for each selected file to the potential recipient.
+ *
+ * \param *pointer		The pointer location at the end of the drag.
+ * \param *data			The results_window data for the drag.
+ */
+
+static void hotlist_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
+{
+	unsigned		row;
+	size_t			pathname_len;
+	char			*pathname;
+
+	debug_printf("Drag end!");
+
+/*
+	for (row = 0; row < handle->display_lines; row++) {
+		if (handle->redraw[handle->redraw[row].index].type != RESULTS_LINE_FILENAME ||
+				!(handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTED))
+			continue;
+
+		objdb_get_name(handle->objects, handle->redraw[handle->redraw[row].index].file, pathname, pathname_len);
+		objdb_get_info(handle->objects, handle->redraw[handle->redraw[row].index].file, info, &object);
+
+		dataxfer_start_load(pointer, pathname, info->size, object.filetype, 0);
+	}*/
 }
 
 
@@ -1331,7 +1362,7 @@ static osbool hotlist_save_search(char *filename, osbool selection, void *data)
 		return FALSE;
 
 	hourglass_on();
-	
+
 	dialogue_save_file(hotlist[hotlist_selection_row].dialogue, out, NULL);
 
 	hourglass_off();
