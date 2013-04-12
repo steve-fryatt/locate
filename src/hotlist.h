@@ -35,9 +35,11 @@
 
 /**
  * Initialise the hotlist system and its associated menus and dialogues.
+ *
+ * \param *sprites		Pointer to the sprite area to be used.
  */
 
-void hotlist_initialise(void);
+void hotlist_initialise(osspriteop_area *sprites);
 
 
 /**

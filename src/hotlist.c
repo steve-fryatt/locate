@@ -84,6 +84,15 @@
 
 #define HOTLIST_ICON_FILE 0
 
+/* Hotlist Toolbar */
+
+#define HOTLIST_TOOLBAR_ICON_SAVE 0
+#define HOTLIST_TOOLBAR_ICON_SELECT 1
+#define HOTLIST_TOOLBAR_ICON_RUN 2
+#define HOTLIST_TOOLBAR_ICON_RENAME 3
+#define HOTLIST_TOOLBAR_ICON_DELETE 4
+
+
 /* Hotlist Window Menu */
 
 #define HOTLIST_MENU_ITEM 0
@@ -177,6 +186,7 @@ static void	hotlist_select_click_select(int row);
 static void	hotlist_select_click_adjust(int row);
 static void	hotlist_select_all(void);
 static void	hotlist_select_none(void);
+static void	hotlist_update_toolbar(void);
 static int	hotlist_calculate_window_click_row(os_coord *pos, wimp_window_state *state);
 static osbool	hotlist_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 static void	hotlist_delete_selection(void);
@@ -226,10 +236,13 @@ static void	hotlist_open_entry(int entry);
 
 /**
  * Initialise the hotlist system and its associated menus and dialogues.
+ *
+ * \param *sprites		Pointer to the sprite area to be used.
  */
 
-void hotlist_initialise(void)
+void hotlist_initialise(osspriteop_area *sprites)
 {
+	static wimp_window	*pane_def;
 	//char*			date = BUILD_DATE;
 	//wimp_icon_create	icon_bar;
 
@@ -267,7 +280,10 @@ void hotlist_initialise(void)
 
 	/* Initialise the hotlist pane window. */
 
-	hotlist_window_pane = templates_create_window("HotlistPane");
+	pane_def = templates_load_window("HotlistPane");
+	pane_def->sprite_area = sprites;
+	hotlist_window_pane = wimp_create_window(pane_def);
+	free(pane_def);
 	ihelp_add_window(hotlist_window_pane, "HotlistPane", NULL);
 
 	event_add_window_menu(hotlist_window_pane, hotlist_window_menu);
@@ -735,6 +751,8 @@ static void hotlist_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 		} while (i < hotlist_entries);
 
 		windows_redraw(hotlist_window);
+
+		hotlist_update_toolbar();
 	} else {
 		/* Issue Message_DataSave for selected items. */
 
@@ -848,6 +866,8 @@ static void hotlist_select_drag_end_handler(wimp_dragged *drag, void *data)
 			}
 		}
 	}
+
+	hotlist_update_toolbar();
 }
 
 
@@ -884,6 +904,8 @@ static void hotlist_select_click_select(int row)
 		wimp_force_redraw(window.w, window.xscroll, LINE_BASE(row),
 				window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(row));
 	}
+
+	hotlist_update_toolbar();
 }
 
 
@@ -926,6 +948,8 @@ static void hotlist_select_click_adjust(int row)
 
 	wimp_force_redraw(window.w, window.xscroll, LINE_BASE(row),
 			window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(row));
+
+	hotlist_update_toolbar();
 }
 
 
@@ -957,6 +981,8 @@ static void hotlist_select_all(void)
 					window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(i));
 		}
 	}
+
+	hotlist_update_toolbar();
 }
 
 
@@ -1005,6 +1031,20 @@ static void hotlist_select_none(void)
 	}
 
 	hotlist_selection_count = 0;
+
+	hotlist_update_toolbar();
+}
+
+
+/**
+ * Update the selected state of the toolbar icons.
+ */
+
+static void hotlist_update_toolbar(void)
+{
+	icons_set_shaded(hotlist_window_pane, HOTLIST_TOOLBAR_ICON_RENAME, hotlist_selection_count != 1);
+	icons_set_shaded(hotlist_window_pane, HOTLIST_TOOLBAR_ICON_DELETE, hotlist_selection_count == 0);
+	icons_set_shaded(hotlist_window_pane, HOTLIST_TOOLBAR_ICON_RUN, hotlist_selection_count != 1);
 }
 
 
@@ -1102,6 +1142,8 @@ static void hotlist_delete_selection(void)
 	}
 
 	windows_redraw(hotlist_window);
+
+	hotlist_update_toolbar();
 }
 
 
@@ -1702,6 +1744,7 @@ void hotlist_process_menu_selection(int selection)
 	debug_printf("Selected hotlist menu item %d", selection);
 
 	if (selection == HOTLIST_MENU_EDIT) {
+		hotlist_update_toolbar();
 		windows_open(hotlist_window);
 		windows_open_nested_as_toolbar(hotlist_window_pane, hotlist_window, HOTLIST_TOOLBAR_HEIGHT);
 	} else if (selection > 0 && hotlist[selection - 1].dialogue != NULL) {

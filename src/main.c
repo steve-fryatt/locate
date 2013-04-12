@@ -257,7 +257,7 @@ static void main_initialise(void)
 	settime_initialise();
 	dialogue_initialise();
 	results_initialise(sprites);
-	hotlist_initialise();
+	hotlist_initialise(sprites);
 	iconbar_initialise();
 	url_initialise();
 	plugin_initialise();
