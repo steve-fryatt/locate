@@ -188,6 +188,7 @@ static void	hotlist_redraw_add_window(void);
 static osbool	hotlist_read_add_window(void);
 static osbool	hotlist_add_new_entry(char *name, struct dialogue_block *dialogue);
 static void	hotlist_delete_entry(int entry);
+static int	hotlist_move_entry(int entry, int insert_before);
 static osbool	hotlist_save_hotlist(char *filename, osbool selection, void *data);
 static osbool	hotlist_saveas_save_search(char *filename, osbool selection, void *data);
 static osbool	hotlist_save_search(char *filename, void *data);
@@ -681,8 +682,9 @@ static void results_drag_select(unsigned row, wimp_pointer *pointer, wimp_window
 
 
 /**
- * Process the termination of transfer drags from a hotlist window by sending
- * Message_DataLoad for each selected file to the potential recipient.
+ * Process the termination of transfer drags from a hotlist window. Drags within
+ * the window move entries in the list, while drags outside issue a
+ * Message_DataSave to try and start a save action.
  *
  * \param *pointer		The pointer location at the end of the drag.
  * \param *data			The results_window data for the drag.
@@ -690,13 +692,15 @@ static void results_drag_select(unsigned row, wimp_pointer *pointer, wimp_window
 
 static void hotlist_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 {
-	int			y, row, row_y_pos;
+	int			y, row, row_y_pos, i;
 	wimp_window_state	state;
 	os_error		*error;
 	size_t			pathname_len;
 	char			*pathname;
 
 	if (pointer->w == hotlist_window) {
+		/* Move items within the window. */
+
 		state.w = hotlist_window;
 		error = xwimp_get_window_state(&state);
 		if (error != NULL)
@@ -709,8 +713,31 @@ static void hotlist_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 		row = ROW(y);
 		row_y_pos = ROW_Y_POS(y);
 
-		debug_printf("Internal drag to %d in row %d", row_y_pos, row);
+		if (row_y_pos > (HOTLIST_LINE_HEIGHT / 2))
+			row++;
+
+		if (row < 0)
+			row = 0;
+
+		if (row > hotlist_entries)
+			row = hotlist_entries;
+
+		/* Repeatedly move and deselect selections until there are none left. */
+
+		do {
+			for (i = 0; i < hotlist_entries; i++) {
+				if (hotlist[i].flags & HOTLIST_FLAG_SELECTED) {
+					hotlist[i].flags &= ~HOTLIST_FLAG_SELECTED;
+					row = hotlist_move_entry(i, row);
+					break;
+				}
+			}
+		} while (i < hotlist_entries);
+
+		windows_redraw(hotlist_window);
 	} else {
+		/* Issue Message_DataSave for selected items. */
+
 		for (row = 0; row < hotlist_entries; row++) {
 			if (!(hotlist[row].flags & HOTLIST_FLAG_SELECTED))
 				continue;
@@ -1337,6 +1364,62 @@ static void hotlist_delete_entry(int entry)
 
 
 /**
+ * Move a hotlist entry, inserting it before a given point in the list.
+ *
+ * \param entry			The entry to be moved.
+ * \param insert_before		The location to insert the moved block. This can
+ *				be up to one more than the number of entries in
+ *				the hotlist.
+ * \return			The updated index of the insertion point, taking
+ *				into account effects of the move.
+ */
+
+static int hotlist_move_entry(int entry, int insert_before)
+{
+	int			insert_at;
+	struct hotlist_block	temp;
+
+
+	if (entry < 0 || entry >= hotlist_entries || insert_before < 0 || insert_before > hotlist_entries)
+		return insert_before;
+
+	/* These two operations would result in no change. */
+
+	if (entry == insert_before || entry + 1 == insert_before)
+		return insert_before;
+
+	/* Copy the block to be moved. */
+
+	strncpy(temp.name, hotlist[entry].name, HOTLIST_NAME_LENGTH);
+	temp.dialogue = hotlist[entry].dialogue;
+	temp.flags = hotlist[entry].flags;
+
+	/* Shuffle the hotlist contents to open up the destination. */
+
+	if (entry < insert_before) {
+		/* Move the intermediate items down the list. */
+
+		memmove(hotlist + entry, hotlist + entry + 1, sizeof(struct hotlist_block) * (insert_before - entry - 1));
+		insert_at = insert_before - 1;
+	} else {
+		/* Move the intermediate items up the list. */
+
+		memmove(hotlist + insert_before + 1, hotlist + insert_before, sizeof(struct hotlist_block) * (entry - insert_before));
+		insert_at = insert_before;
+		insert_before++;
+	}
+
+	/* Put the copy back into the hotlist. */
+
+	strncpy(hotlist[insert_at].name, temp.name, HOTLIST_NAME_LENGTH);
+	hotlist[insert_at].dialogue = temp.dialogue;
+	hotlist[insert_at].flags = temp.flags;
+
+	return insert_before;
+}
+
+
+/**
  * Save the current hotlist settings to file.  Used as a DataXfer callback, so
  * must return TRUE on success or FALSE on failure.
  *
@@ -1366,7 +1449,7 @@ static osbool hotlist_saveas_save_search(char *filename, osbool selection, void 
 {
 	if (filename == NULL || hotlist_selection_row < 0 || hotlist_selection_row >= hotlist_entries)
 		return FALSE;
-		
+
 	return hotlist_save_search(filename, hotlist[hotlist_selection_row].dialogue);
 }
 
@@ -1378,7 +1461,7 @@ static osbool hotlist_saveas_save_search(char *filename, osbool selection, void 
  * \param *data			Context data: the handle of the dialogue data to save.
  * \return			TRUE on success; FALSE on failure.
  */
- 
+
 static osbool hotlist_save_search(char *filename, void *data)
 {
 	struct dialogue_block *dialogue = data;
@@ -1386,7 +1469,7 @@ static osbool hotlist_save_search(char *filename, void *data)
 
 	if (filename == NULL || dialogue == NULL)
 		return FALSE;
-		
+
 	out = discfile_open_write(filename);
 	if (out == NULL)
 		return FALSE;
