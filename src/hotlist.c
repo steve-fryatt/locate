@@ -189,7 +189,8 @@ static osbool	hotlist_read_add_window(void);
 static osbool	hotlist_add_new_entry(char *name, struct dialogue_block *dialogue);
 static void	hotlist_delete_entry(int entry);
 static osbool	hotlist_save_hotlist(char *filename, osbool selection, void *data);
-static osbool	hotlist_save_search(char *filename, osbool selection, void *data);
+static osbool	hotlist_saveas_save_search(char *filename, osbool selection, void *data);
+static osbool	hotlist_save_search(char *filename, void *data);
 static osbool	hotlist_save_choices(void);
 static osbool	hotlist_save_file(char *filename, osbool selection);
 static osbool	hotlist_load_choices(void);
@@ -234,7 +235,7 @@ void hotlist_initialise(void)
 	hotlist_window_menu = templates_get_menu(TEMPLATES_MENU_HOTLIST);
 	hotlist_window_menu_item = templates_get_menu(TEMPLATES_MENU_HOTLIST_ITEM);
 
-	hotlist_saveas_search = saveas_create_dialogue(FALSE, "file_1a1", hotlist_save_search);
+	hotlist_saveas_search = saveas_create_dialogue(FALSE, "file_1a1", hotlist_saveas_save_search);
 	hotlist_saveas_hotlist = saveas_create_dialogue(TRUE, "file_1a1", hotlist_save_hotlist);
 
 
@@ -695,8 +696,6 @@ static void hotlist_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 	size_t			pathname_len;
 	char			*pathname;
 
-	debug_printf("Drag end!");
-
 	if (pointer->w == hotlist_window) {
 		state.w = hotlist_window;
 		error = xwimp_get_window_state(&state);
@@ -712,21 +711,13 @@ static void hotlist_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 
 		debug_printf("Internal drag to %d in row %d", row_y_pos, row);
 	} else {
-		debug_printf("External drag");
-	
+		for (row = 0; row < hotlist_entries; row++) {
+			if (!(hotlist[row].flags & HOTLIST_FLAG_SELECTED))
+				continue;
+
+			dataxfer_start_save(pointer, hotlist[row].name, 0, DISCFILE_LOCATE_FILETYPE, 0, hotlist_save_search, hotlist[row].dialogue);
+		}
 	}
-
-/*
-	for (row = 0; row < handle->display_lines; row++) {
-		if (handle->redraw[handle->redraw[row].index].type != RESULTS_LINE_FILENAME ||
-				!(handle->redraw[handle->redraw[row].index].flags & RESULTS_FLAG_SELECTED))
-			continue;
-
-		objdb_get_name(handle->objects, handle->redraw[handle->redraw[row].index].file, pathname, pathname_len);
-		objdb_get_info(handle->objects, handle->redraw[handle->redraw[row].index].file, info, &object);
-
-		dataxfer_start_load(pointer, pathname, info->size, object.filetype, 0);
-	}*/
 }
 
 
@@ -1362,22 +1353,40 @@ static osbool hotlist_save_hotlist(char *filename, osbool selection, void *data)
 
 
 /**
- * Save the current search settings to file.  Used as a DataXfer callback, so
- * must return TRUE on success or FALSE on failure.
+ * Save a hotlist entry's search settings to file from a saveas dialogue.  Used
+ * as a dialogue callback, so must return TRUE on success or FALSE on failure.
  *
  * \param *filename		The filename to save to.
  * \param selection		TRUE to save just the selection, else FALSE.
- * \param *data			Context data: the handle of the parent dialogue.
+ * \param *data			Context data: unused and always NULL.
  * \return			TRUE on success; FALSE on failure.
  */
 
-static osbool hotlist_save_search(char *filename, osbool selection, void *data)
+static osbool hotlist_saveas_save_search(char *filename, osbool selection, void *data)
 {
-	struct discfile_block		*out;
-
 	if (filename == NULL || hotlist_selection_row < 0 || hotlist_selection_row >= hotlist_entries)
 		return FALSE;
+		
+	return hotlist_save_search(filename, hotlist[hotlist_selection_row].dialogue);
+}
 
+
+/**
+ * Save a hotlits entry's search settings for file, as a generic dataxfer callback.
+ *
+ * \param *filename		The filename to save to.
+ * \param *data			Context data: the handle of the dialogue data to save.
+ * \return			TRUE on success; FALSE on failure.
+ */
+ 
+static osbool hotlist_save_search(char *filename, void *data)
+{
+	struct dialogue_block *dialogue = data;
+	struct discfile_block		*out;
+
+	if (filename == NULL || dialogue == NULL)
+		return FALSE;
+		
 	out = discfile_open_write(filename);
 	if (out == NULL)
 		return FALSE;
