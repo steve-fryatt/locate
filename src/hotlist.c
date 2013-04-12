@@ -130,7 +130,7 @@ struct hotlist_block {
 
 /* Global variables. */
 
-static struct hotlist_block	*hotlist = NULL;				/**< The hotlist entries -- \TODO -- Fix allocation!				*/
+static struct hotlist_block	*hotlist = NULL;				/**< The hotlist entries.							*/
 static int			hotlist_allocation = 0;				/**< The number of entries for which hotlist memory is allocated.		*/
 static int			hotlist_entries = 0;				/**< The number of entries in the hotlist.					*/
 
@@ -151,9 +151,9 @@ static wimp_menu		*hotlist_window_menu_item = NULL;		/**< THe hotlist window men
 static struct saveas_block	*hotlist_saveas_hotlist = NULL;			/**< The Save Hotlist savebox data handle.					*/
 static struct saveas_block	*hotlist_saveas_search = NULL;			/**< The Save Search savebox data handle.					*/
 
-static unsigned			hotlist_select_drag_row = -1		;	/**< The row in which the selection drag started.			*/
-static unsigned			hotlist_select_drag_pos = 0;			/**< The position within the row where the selection drag started.	*/
-static osbool			hotlist_select_drag_adjust = FALSE;		/**< TRUE if the selection drag is with Adjust; FALSE for Select.	*/
+static unsigned			hotlist_select_drag_row = -1		;	/**< The row in which the selection drag started.				*/
+static unsigned			hotlist_select_drag_pos = 0;			/**< The position within the row where the selection drag started.		*/
+static osbool			hotlist_select_drag_adjust = FALSE;		/**< TRUE if the selection drag is with Adjust; FALSE for Select.		*/
 
 /* Add/Edit Window. */
 
