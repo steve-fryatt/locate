@@ -53,6 +53,7 @@
 #include "sflib/event.h"
 #include "sflib/general.h"
 #include "sflib/msgs.h"
+#include "sflib/menus.h"
 #include "sflib/config.h"
 
 /* Application header files */
@@ -132,18 +133,6 @@ void saveas_initialise(void)
 	event_add_window_key_event(saveas_sel_window, saveas_keypress_handler);
 	templates_link_menu_dialogue("save_as_sel", saveas_sel_window);
 	event_add_window_user_data(saveas_sel_window, NULL);
-}
-
-
-/**
- * Open the Save As dialogue at the pointer.
- *
- * \param *pointer		The pointer location to open the dialogue.
- */
-
-void saveas_open_dialogue(wimp_pointer *pointer)
-{
-	//menus_create_standard_menu((wimp_menu *) saveas_window, pointer);
 }
 
 
@@ -252,6 +241,22 @@ void saveas_prepare_dialogue(struct saveas_block *handle)
 		icons_set_selected(handle->window, SAVEAS_ICON_SELECTION, handle->selected);
 		icons_printf(handle->window, SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
 	}
+}
+
+
+/**
+ * Open a Save As dialogue at the pointer.
+ *
+ * \param *handle		The handle of the save dialogie to be opened.
+ * \param *pointer		The pointer location to open the dialogue.
+ */
+
+void saveas_open_dialogue(struct saveas_block *handle, wimp_pointer *pointer)
+{
+	if (handle == NULL || pointer == NULL)
+		return;
+
+	menus_create_standard_menu((wimp_menu *) handle->window, pointer);
 }
 
 

@@ -85,5 +85,15 @@ void saveas_initialise_dialogue(struct saveas_block *handle, char *fullname, cha
 
 void saveas_prepare_dialogue(struct saveas_block *handle);
 
+
+/**
+ * Open a Save As dialogue at the pointer.
+ *
+ * \param *handle		The handle of the save dialogie to be opened.
+ * \param *pointer		The pointer location to open the dialogue.
+ */
+
+void saveas_open_dialogue(struct saveas_block *handle, wimp_pointer *pointer);
+
 #endif
 
