@@ -49,6 +49,3 @@ Locate 2 Issues List
 
 * Dragging multiple searches from the hotlist saves all with the settings of the
   final one.
-
-* Hotlist toolbar doesn't support saveas dialogues yet -- there's no support in
-  saveas module.
