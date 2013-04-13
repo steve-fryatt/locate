@@ -320,6 +320,23 @@ void hotlist_terminate(void)
 
 
 /**
+ * Open the hotlist window.
+ *
+ * \param *pointer		The location at which to open the window.
+ */
+
+void hotlist_open(wimp_pointer *pointer)
+{
+	if (pointer == NULL)
+		return;
+
+	hotlist_update_toolbar();
+	windows_open_centred_at_pointer(hotlist_window, pointer);
+	windows_open_nested_as_toolbar(hotlist_window_pane, hotlist_window, HOTLIST_TOOLBAR_HEIGHT);
+}
+
+
+/**
  * Callback to handle redraw events on a hotlist window.
  *
  * \param  *redraw		The Wimp redraw event block.
@@ -1719,7 +1736,7 @@ static osbool hotlist_load_file(struct discfile_block *load)
 
 wimp_menu *hotlist_build_menu(void)
 {
-	int			line, width = 0;
+	int	line = 0, width = 0;
 
 
 	/* Allocate space for the Wimp menu block. */
@@ -1727,53 +1744,56 @@ wimp_menu *hotlist_build_menu(void)
 	if (hotlist_menu != NULL)
 		heap_free(hotlist_menu);
 
-	hotlist_menu = heap_alloc(28 + 24 * (hotlist_entries + 1));
+	hotlist_menu = heap_alloc(28 + 24 * ((hotlist_entries == 0) ? 1 : hotlist_entries));
 
 	if (hotlist_menu == NULL)
 		return NULL;
 
+
+
 	/* Enter the default Edit entry at the top of the menu. */
 
-	line = 0;
 
-	hotlist_menu->entries[line].menu_flags = NONE;
-
-	hotlist_menu->entries[line].sub_menu = (wimp_menu *) -1;
-	hotlist_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED |
-			wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
-			wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
-
-	msgs_lookup("HotlistEdit", hotlist_menu->entries[line].data.text, 12);
-
-	if (strlen(hotlist_menu->entries[line].data.text) > width)
-		width = strlen(hotlist_menu->entries[line].data.text);
 
 	/* Add any hotlist entries that have been defined. */
 
-	for (line++; line <= hotlist_entries; line++) {
-		if (strlen(hotlist[line - 1].name) > width)
-			width = strlen(hotlist[line - 1].name);
+	if (hotlist_entries > 0) {
+		for (line = 0; line < hotlist_entries; line++) {
+			if (strlen(hotlist[line].name) > width)
+				width = strlen(hotlist[line].name);
 
-		/* Set the menu and icon flags up. */
+			/* Set the menu and icon flags up. */
 
+			hotlist_menu->entries[line].menu_flags = NONE;
+
+			hotlist_menu->entries[line].sub_menu = (wimp_menu *) -1;
+			hotlist_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
+					wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
+					wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
+
+			/* Set the menu icon contents up. */
+
+			hotlist_menu->entries[line].data.indirected_text.text = hotlist[line].name;
+			hotlist_menu->entries[line].data.indirected_text.validation = "";
+			hotlist_menu->entries[line].data.indirected_text.size = HOTLIST_NAME_LENGTH;
+		}
+	} else {
 		hotlist_menu->entries[line].menu_flags = NONE;
 
 		hotlist_menu->entries[line].sub_menu = (wimp_menu *) -1;
-		hotlist_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_INDIRECTED |
-				wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
-				wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
+		hotlist_menu->entries[line].icon_flags = wimp_ICON_TEXT | wimp_ICON_FILLED | wimp_ICON_SHADED |
+			wimp_COLOUR_BLACK << wimp_ICON_FG_COLOUR_SHIFT |
+			wimp_COLOUR_WHITE << wimp_ICON_BG_COLOUR_SHIFT;
 
-		/* Set the menu icon contents up. */
+		msgs_lookup("HotlistNone", hotlist_menu->entries[line].data.text, 12);
 
-		hotlist_menu->entries[line].data.indirected_text.text = hotlist[line - 1].name;
-		hotlist_menu->entries[line].data.indirected_text.validation = "";
-		hotlist_menu->entries[line].data.indirected_text.size = HOTLIST_NAME_LENGTH;
+		if (strlen(hotlist_menu->entries[line].data.text) > width)
+			width = strlen(hotlist_menu->entries[line].data.text);
+
+		line++;
 	}
 
 	/* Finish off the menu definition. */
-
-	if (hotlist_entries >= 1)
-		hotlist_menu->entries[0].menu_flags |= wimp_MENU_SEPARATE;
 
 	hotlist_menu->entries[line - 1].menu_flags |= wimp_MENU_LAST;
 
@@ -1801,18 +1821,13 @@ void hotlist_process_menu_selection(int selection)
 {
 	wimp_pointer	pointer;
 
-	if (selection < 0 || selection > hotlist_entries)
+	if (selection < 0 || selection >= hotlist_entries)
 		return;
 
 	debug_printf("Selected hotlist menu item %d", selection);
 
-	if (selection == HOTLIST_MENU_EDIT) {
-		hotlist_update_toolbar();
-		windows_open(hotlist_window);
-		windows_open_nested_as_toolbar(hotlist_window_pane, hotlist_window, HOTLIST_TOOLBAR_HEIGHT);
-	} else if (selection > 0 && hotlist[selection - 1].dialogue != NULL) {
-		hotlist_open_entry(selection - 1);
-	}
+	if (hotlist[selection].dialogue != NULL)
+		hotlist_open_entry(selection);
 }
 
 

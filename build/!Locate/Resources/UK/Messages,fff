@@ -103,7 +103,7 @@ URLFailed:Could not find an application to launch the given URL.
 # Hotlist Menu.
 
 Hotlist:Hotlist
-HotlistEdit:Edit...
+HotlistNone:No Entries
 HotlistNew:Saved Search
 HotlistNoName:You must enter a name for the hotlist entry.
 HotlistNoMem:Unable to allocate memory for the new hotlist entry.
@@ -323,7 +323,7 @@ Help.SaveAs.Selection:\Stoggle whether to save all the items, or just the select
 
 Help.IconBarMenu.00:\Rsee information about Locate.
 Help.IconBarMenu.01:\Sread the online help.
-Help.IconBarMenu.02:\Rto re-use a previous search from the history list.
+Help.IconBarMenu.02:\Rto re-use a previous search from the history list.|M\Sopen the hotlist \w for editing its entries.
 Help.IconBarMenu.03:\Schange the Locate options.
 Help.IconBarMenu.04:\Squit Locate.
 

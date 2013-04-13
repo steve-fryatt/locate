@@ -12,9 +12,7 @@ Locate 2 Issues List
 
 * File contents strings should be centred on match in window.
 
-* Plugin support not implemented.
-
-* Search history is not implemented.
+* Plugin support not completely implemented.
 
 * Loading saved results from Locate 1.
 
@@ -42,10 +40,9 @@ Locate 2 Issues List
 * Should hotlist keep an "altered" flag and only save if its contents have
   changed?
 
-* Hotlist... in iconbar menu should open hotlist; lose the Edit... item at the
-  top of the submenu!
-
 * Make open/run operate on multi-selection results.
 
 * Dragging multiple searches from the hotlist saves all with the settings of the
   final one.
+
+* Add "Add to hotlist..." to search dialogue menu.

@@ -169,7 +169,7 @@ static void iconbar_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_wa
 	switch (warning->selection.items[0]) {
 	case ICONBAR_MENU_HOTLIST:
 		hotlist = hotlist_build_menu();
-		
+
 		if (hotlist != NULL)
 			wimp_create_sub_menu(hotlist, warning->pos.x, warning->pos.y);
 		break;
@@ -200,7 +200,10 @@ static void iconbar_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 		break;
 
 	case ICONBAR_MENU_HOTLIST:
-		hotlist_process_menu_selection(selection->items[1]);
+		if (selection->items[1] == -1)
+			hotlist_open(&pointer);
+		else
+			hotlist_process_menu_selection(selection->items[1]);
 		break;
 
 	case ICONBAR_MENU_CHOICES:

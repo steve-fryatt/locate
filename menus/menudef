@@ -32,7 +32,7 @@ menu(icon_bar_menu, "Locate") {
 	item("Help") {
 		dotted;
 	}
-	item("Hotlist") {
+	item("Hotlist...") {
 		/* Link to self to get submenu for on-the-fly creation. */
 		submenu(icon_bar_menu) {
 			warning;

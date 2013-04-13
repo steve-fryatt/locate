@@ -50,6 +50,15 @@ void hotlist_terminate(void);
 
 
 /**
+ * Open the hotlist window.
+ *
+ * \param *pointer		The location at which to open the window.
+ */
+
+void hotlist_open(wimp_pointer *pointer);
+
+
+/**
  * Add a dialogue to the hotlist.
  *
  * \param *dialogue		The handle of the dialogue to be added.
