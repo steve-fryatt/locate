@@ -1056,6 +1056,8 @@ static void hotlist_select_none(void)
 		wimp_force_redraw(window.w, window.xscroll, LINE_BASE(hotlist_selection_row),
 				window.xscroll + (window.visible.x1 - window.visible.x0), LINE_Y1(hotlist_selection_row));
 
+		hotlist_update_toolbar();
+
 		return;
 	}
 
