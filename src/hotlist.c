@@ -110,10 +110,6 @@
 #define HOTLIST_ADD_ICON_CANCEL 2
 #define HOTLIST_ADD_ICON_ADD 3
 
-/* Hotlist Menu */
-
-#define HOTLIST_MENU_EDIT 0
-
 /* Hotlist memory allocation. */
 
 #define HOTLIST_NAME_LENGTH 48							/**< The maximum length of a hotlist entry name.				*/
