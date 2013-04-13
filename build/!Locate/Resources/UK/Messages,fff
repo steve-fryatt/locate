@@ -332,6 +332,7 @@ Help.SaveAs.Selection:\Stoggle whether to save all the items, or just the select
 Help.IconBarMenu.00:\Rsee information about Locate.
 Help.IconBarMenu.01:\Sread the online help.
 Help.IconBarMenu.02:\Rto re-use a previous search from the history list.|M\Sopen the hotlist \w for editing its entries.
+Help.IconBarMenu.02??:\Sopen this hotlist entry in the search dialogue.
 Help.IconBarMenu.03:\Schange the Locate options.
 Help.IconBarMenu.04:\Squit Locate.
 
