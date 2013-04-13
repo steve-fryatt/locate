@@ -170,8 +170,10 @@ static void iconbar_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_wa
 	case ICONBAR_MENU_HOTLIST:
 		hotlist = hotlist_build_menu();
 
-		if (hotlist != NULL)
+		if (hotlist != NULL) {
+			iconbar_menu->entries[ICONBAR_MENU_HOTLIST].sub_menu = hotlist;
 			wimp_create_sub_menu(hotlist, warning->pos.x, warning->pos.y);
+		}
 		break;
 	}
 }

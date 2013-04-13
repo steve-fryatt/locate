@@ -22,8 +22,6 @@ Locate 2 Issues List
 
 * What does the Message_PreQuit handler do?!
 
-* Adjust-click on the Hotlist menu drops the submenu.
-
 * objbd_allocate() seems to return FALSE (ie. failed) if required allocation is
   smaller than that already available! Same may be true for results_allocate()?
 
