@@ -174,6 +174,7 @@ static int			hotlist_add_entry = -1;				/**< The hotlist entry associated with t
 
 static void	hotlist_redraw_handler(wimp_draw *redraw);
 static void	hotlist_click_handler(wimp_pointer *pointer);
+static void	hotlist_toolbar_click_handler(wimp_pointer *pointer);
 static void	hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void	hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void	hotlist_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
@@ -285,6 +286,7 @@ void hotlist_initialise(osspriteop_area *sprites)
 	hotlist_window_pane = wimp_create_window(pane_def);
 	free(pane_def);
 	ihelp_add_window(hotlist_window_pane, "HotlistPane", NULL);
+	event_add_window_mouse_event(hotlist_window_pane, hotlist_toolbar_click_handler);
 
 	event_add_window_menu(hotlist_window_pane, hotlist_window_menu);
 	event_add_window_menu_prepare(hotlist_window_pane, hotlist_menu_prepare);
@@ -442,6 +444,46 @@ static void hotlist_click_handler(wimp_pointer *pointer)
 	case wimp_DRAG_SELECT:
 	case wimp_DRAG_ADJUST:
 		results_drag_select(row, pointer, &state, ctrl_pressed);
+		break;
+	}
+}
+
+
+/**
+ * Process mouse clicks in the hotlist toolbar.
+ *
+ * \param *pointer		The mouse event block to handle.
+ */
+
+static void hotlist_toolbar_click_handler(wimp_pointer *pointer)
+{
+	if (pointer == NULL)
+		return;
+
+	switch(pointer->i) {
+	case HOTLIST_TOOLBAR_ICON_SAVE:
+		break;
+
+	case HOTLIST_TOOLBAR_ICON_SELECT:
+		if (pointer->buttons == wimp_CLICK_SELECT)
+			hotlist_select_all();
+		else if (pointer->buttons == wimp_CLICK_ADJUST)
+			hotlist_select_none();
+		break;
+
+	case HOTLIST_TOOLBAR_ICON_RUN:
+		if (pointer->buttons == wimp_CLICK_SELECT && hotlist_selection_count == 1)
+			hotlist_open_entry(hotlist_selection_row);
+		break;
+
+	case HOTLIST_TOOLBAR_ICON_RENAME:
+		if (pointer->buttons == wimp_CLICK_SELECT && hotlist_selection_count == 1)
+			hotlist_rename_entry(hotlist_selection_row);
+		break;
+
+	case HOTLIST_TOOLBAR_ICON_DELETE:
+		if (pointer->buttons == wimp_CLICK_SELECT && hotlist_selection_count >= 1)
+			hotlist_delete_selection();
 		break;
 	}
 }
@@ -1397,6 +1439,16 @@ static void hotlist_delete_entry(int entry)
 {
 	if (entry < 0 || entry >=hotlist_entries)
 		return;
+
+	/* Keep the selection info in step. */
+
+	if (hotlist[entry].flags & HOTLIST_FLAG_SELECTED)
+		hotlist_selection_count--;
+
+	if (hotlist_selection_row > entry)
+		hotlist_selection_row--;
+
+	/* Remove the entry if it isn't the last in the list. */
 
 	if (entry < (hotlist_entries - 1))
 		memmove(hotlist + entry, hotlist + entry + 1, sizeof(struct hotlist_block) * (hotlist_entries - entry - 1));
