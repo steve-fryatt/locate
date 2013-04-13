@@ -25,9 +25,9 @@ Locate is {f*:Open Source}: please read the <License>
 è <Simple searches=>Simple>
 è <Viewing the results=>Results>
 è <Advanced use=>Advanced>
+è <Saving Searches=>Hotlist>
 è <Configuration>
 è <Filer Action=>Plugin>
-
 è <Version History=>History>
 è <Future Plans=>ToDo>
 
@@ -201,7 +201,7 @@ Clicking Menu opens a menu giving various options relating to the results.  Thes
 
 The <menu>Display</menu> submenu, which leads to the options <menu>Path only</menu> and <menu>Full info</menu>.  These toggle the display between only showing the path names of the objects and showing full details of size, type, attributes and the last-modified date.
 
-<menu>Save</menu> leads to several save options.  <menu>Results</menu> leads to a save window allowing the results (and the search parameters that created them) to be saved out in a file that can be loaded back into <cite>Locate</cite>.  <menu>Path names</menu> will allow a list of all the path names (or the current selection) to be saved out as a text file.  Direct transfer to other applications is possible and the complete names (not the truncated ones shown) will be saved.  Finally, <menu>Search</menu> leads to a save window allowing the search parameters from the search to be saved out in a file that can be loaded back into <cite>Locate</cite>. Re-loading this file will open the search window exactly as it was when the search was carried out.
+<menu>Save</menu> leads to several save options.  <menu>Results</menu> leads to a save window allowing the results (and the search parameters that created them) to be saved out in a file that can be loaded back into <cite>Locate</cite>.  <menu>Path names</menu> will allow a list of all the path names (or the current selection) to be saved out as a text file.  Direct transfer to other applications is possible and the complete names (not the truncated ones shown) will be saved.  Finally, <menu>Search</menu> leads to a save window allowing the search parameters from the search to be <link ref="Hotlist">saved out in a file</link> that can be loaded back into <cite>Locate</cite>. Re-loading this file will open the search window exactly as it was when the search was carried out.
 
 <menu>Select all</menu> will select all the items in the window.
 
@@ -215,7 +215,7 @@ The <menu>Display</menu> submenu, which leads to the options <menu>Path only</me
 
 <menu>Modify search...</menu> opens a search window containing the parameters used before (clicking <mouse>select</mouse> on the icon-bar icon always opens a blank <link ref="Simple">search window</link>, although <mouse>adjust</mouse> will recall the last search parameters used).  Note that you can only ever have one search window open at a time (but as many results windows as you have the free memory for - up to the application space limit of 28Kb or course...).
 
-<menu>Add to hotlist...</menu> will add the parameters used for the search to the hotlist, opening a dialogue so that a name can be supplied for the new entry.
+<menu>Add to hotlist...</menu> will add the parameters used for the search to the <link ref="Hotlist">hotlist</link>, opening a dialogue so that a name can be supplied for the new entry.
 
 <menu>Stop search</menu> will halt a search that is continuing in the background, keeping the window open with the results that have been found so far.  You cannot re-start a stopped search.
 
@@ -258,11 +258,13 @@ Finally, the <icon>Full info display</icon> option determines whether or not the
 
 <subhead title="Recalling Old Searches">
 
-<cite>Locate</cite> remembers the parameters used for the last few searches so that they can be re-used easily.  In addition, it is possible to save the parameters along with the results of a search and re-load them later.  This is done from the <link ref="Results">results window menu</link>.
+<cite>Locate</cite> remembers the parameters used for the last search so that they can be re-used easily.  In addition, it is possible to save the parameters, either on their own or along with the results of a search, and re-load them later.  This is done from the <link ref="Results">results window menu</link>.
 
-The <menu>Modify search...</menu> option in the <link ref="Results">results window</link> allows the a search window containing the parameters that produced the results shown to be opened.  This also works with re-loaded results.
+The <menu>Modify search...</menu> option in the <link ref="Results">results window menu</link> allows the a search window containing the parameters that produced the results shown to be opened.  This also works with re-loaded results.
 
-In addition, clicking <mouse>adjust</mouse> on the icon-bar icon will open a search window containing the parameters from the last search to be carried out.  A history of previous searches is also maintained until Locate is quit; this can be accessed from the History sub-menu of the icon-bar menu.  The number of items in the history is set in the <link ref="Configuration">choices window</link>.
+In addition, clicking <mouse>adjust</mouse> on the icon-bar icon will open a search window containing the parameters from the last search to be carried out.
+
+More information on all of these options can be found in the section on <link ref="Hotlist">Saving Searches</link>.
 
 </chapter>
 
@@ -364,6 +366,32 @@ If <icon>Allow control chars</icon> is selected, certain control characters can 
 The codes are always case-insensitive (so <code>\t</code> and <code>\T</code> are the same whatever the setting of the <icon>Ignore case</icon> switch); if any other character follows the <code>\</code>, both will be ignored.  If <icon>Allow control chars</icon> is off, no conversion takes place and <code>\t</code> would match the text <code>\t</code> in the file.
 
 Since searching file contents takes time, this check will only occur if all the other criteria set have been checked and found to match.  For this reason, it is a good idea to try and narrow down the search as much as possible (for example by specifying a list of filetypes to try, or a filename if known).
+
+</chapter>
+
+
+
+
+<chapter title="Saving Searches" file="Hotlist">
+
+Sooner or later, some searches used in <cite>Locate</cite> will prove to be useful enough that it would be helpful to be able to repeat them. To assist with this, various options are available including the hotlist and saved settings files.
+
+The settings from previous searches can always be recalled into the <window>search</window> dialogue. If the <window>results</window> window is still on screen (either from the original search, or from reloading a set of results into <cite>Locate</cite>), then selecting <menu>Modify search...</menu> from the window's menu will open the <window>search</window> dialogue with the same settings ready to be modified or re-used intact. In addition, clicking <mouse>Adjust</mouse> on <cite>Locate</cite>'s iconbar icon will recall the settings used for the last search to have been carried out.
+
+
+<subhead title="Saving search settings">
+
+In addition to saving the settings of a search with its results, they can be saved into a file on their own which can then be used to start a new search. This can be done from a <window>results</window> window by selecting <menu>Save &msep; Search options &msep;</menu> from the menu; the settings from a <window>search</window> dialogue can also be saved directly via the <menu>Save search &msep;</menu> entry in its menu.
+
+Double-clicking on a saved settings file, or dropping one on to <cite>Locate</cite>'s iconbar icon, will open a <window>search</window> dialogue with the correct values set up.
+
+
+<subhead title="The hotlist">
+
+In addition to saved searches, <cite>Locate</cite> contains a hotlist, which can be accessed via the <menu>Hotlist...</menu> entry in the iconbar menu. This opens up the <window>hotlist</window> window, revealing a filer-like repository for storing searches: the main differences are that items in the hotlist can be arranged in any order, can have more descriptive names, and can be accessed from <cite>Locate</cite>'s iconbar menu.
+
+Search settings can be added to the hotlist by selecting <menu>Add to hotlist...</menu> from the <window>results</window> window menu. This will open the <window>Add search to hotlist</window> window, into which a name can be entered; clicking on <icon>Add</icon> will then add the search settings to the hotlist. Settings can also be added via the <menu>Add to hotlist</menu> entry in the <window>search</window> dialogue's menu.
+
 
 </chapter>
 
@@ -725,10 +753,8 @@ The current test builds are for <cite>Locate&nbsp;2</cite>, which is a complete 
 This version of <cite>Locate</cite> is still not finished and several intended features are not yet implemented.  A list of my future plans is included here; if there is something that you think would be useful that isn't on this list, let me know (my email address is on the index page).
 
 <list>
-<li>'Hotlist' type search history, allowing searches to be bookmarked and accessed quickly (do we need, since we can save searches anyway?).
 <li>Cache search results or file locations in a file for faster searching.
 <li>Correctly measure icon sprite widths when laying out the results window.
-<li>Improve memory management, by reducing heap fragmentation (may not be possible, since several Wimp features require static data).
 <li>Search the contents of Squashed files.
 <li>Allow actions to be carried out on found objects (set type, delete, etc.).
 <li>Give the search in field a drop-down menu listing the individual paths; toggle each on and off, and open individual entries?
@@ -800,6 +826,8 @@ f20 = Corpus.Medium           14   Bold 21  Italic 22  Both 23
 f21 = Corpus.Bold             14   Bold 21  Italic 22  Both 23
 f22 = Corpus.Medium.Oblique   14   Bold 21  Italic 22  Both 23
 f23 = Corpus.Bold.Oblique     14   Bold 21  Italic 22  Both 23
+
+f31 = Selwyn                  14
 
 # Fonts 24 to 31 are reserved for the manuals themselves.
 
