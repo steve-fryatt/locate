@@ -282,6 +282,14 @@ Help.SetTime.HourUp:\Sincrease the hour by one.|M\Adecrease it instead.
 Help.SetTime.MinuteDown:\Sdecrease the minute by one.|M\Aincrease it instead.
 Help.SetTime.MinuteUp:\Sincrease the minute by one.|M\Adecrease it instead.
 
+Help.Hotlist:\Thotlist \w.|MDouble click \s to open one of the searches in the search dialogue.|M\Dre-order entries or save them out as files.|MDrag settings or hotlist files here to add them to the list.
+
+Help.HotlistPane.Save:\Ssave the hotlist contents into a separate file.|M\Asave the selected hotlist entry as a search file.
+Help.HotlistPane.Select:\Sselect all of the hotlist entries.|M\Adeselect them all.
+Help.HotlistPane.Run:\Sopen the selected hotlist entry in the search dialogue.
+Help.HotlistPane.Rename:\Srename the selected hotlist entry.
+Help.HotlistPane.Delete:\Sdelete the selected hotlist entries.
+
 Help.Choices:\Tchoices window for Locate.
 Help.Choices.Apply:\Sclose the choices \w and use the changes|M\Ause the changes.
 Help.Choices.Save:\Sclose the choices \w, using the changes and saving them to disc.|M\Ause the changes and save them.
@@ -346,6 +354,14 @@ Help.ResultsMenu.06:\Scopy the filenames (all or those currently selected) to th
 Help.ResultsMenu.07:\Sopen a new search window with the same search options.
 Help.ResultsMenu.08:\Ssave the options of the current search in the hotlist.
 Help.ResultsMenu.09:\Sstop the current search, while keeping those results that have already been found.
+
+Help.HotlistMenu.00:\Rto make changes to the currently selected entries.
+Help.HotlistMenu.0000:\Rsave the settings of the currently selected hotlist entry into a separate file.
+Help.HotlistMenu.0001:\Srename the currently selected hotlist entry.
+Help.HotlistMenu.0002:\Sdelete the currently selected entries from the hotlist.
+Help.HotlistMenu.01:\Sselect all of the hotlist entries.
+Help.HotlistMenu.02:\Sclear the current selection.
+Help.HotlistMenu.03:\Rsave the hotlist out to disc in a separate file.
 
 Help.NameModeMenu.00:\Signore the filename when matching objects.
 Help.NameModeMenu.01:\Smatch objects whose names exactly match a given string.
