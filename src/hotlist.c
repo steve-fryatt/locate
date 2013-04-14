@@ -1593,7 +1593,7 @@ static osbool hotlist_save_search(char *filename, void *data)
 
 	hourglass_on();
 
-	dialogue_save_file(hotlist[hotlist_selection_row].dialogue, out, NULL);
+	dialogue_save_file(data, out, NULL);
 
 	hourglass_off();
 
