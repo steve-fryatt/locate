@@ -40,7 +40,4 @@ Locate 2 Issues List
 
 * Make open/run operate on multi-selection results.
 
-* Dragging multiple searches from the hotlist saves all with the settings of the
-  final one.
-
 * Add "Add to hotlist..." to search dialogue menu.
