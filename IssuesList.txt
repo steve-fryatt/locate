@@ -44,5 +44,3 @@ Locate 2 Issues List
   final one.
 
 * Add "Add to hotlist..." to search dialogue menu.
-
-* Add to hotlist doesn't work any more!

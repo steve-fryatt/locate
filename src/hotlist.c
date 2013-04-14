@@ -1406,8 +1406,7 @@ static osbool hotlist_read_add_window(void)
 		}
 
 		return TRUE;
-	} else if (hotlist_add_dialogue_handle == NULL && hotlist_add_entry != -1) {
-
+	} else if (hotlist_add_dialogue_handle != NULL && hotlist_add_entry == -1) {
 		return hotlist_add_new_entry(new_name, hotlist_add_dialogue_handle);
 	}
 
