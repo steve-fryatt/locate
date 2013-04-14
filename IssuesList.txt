@@ -5,8 +5,8 @@ Locate 2 Issues List
 
 * Caret doesn't move correctly around search dialogue.
 
-* Save search options from search dialogue does not capture current window
-  contents.
+* Save search & add to hotlist options from search dialogue do not capture
+  current window contents.
 
 * Check the correct behaviour of contents searches.
 
@@ -39,5 +39,3 @@ Locate 2 Issues List
   changed?
 
 * Make open/run operate on multi-selection results.
-
-* Add "Add to hotlist..." to search dialogue menu.

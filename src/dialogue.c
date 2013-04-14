@@ -68,6 +68,7 @@
 #include "datetime.h"
 #include "discfile.h"
 #include "flexutils.h"
+#include "hotlist.h"
 #include "iconbar.h"
 #include "ihelp.h"
 #include "saveas.h"
@@ -186,6 +187,7 @@
 /* Dialogue Menu Entries */
 
 #define DIALOGUE_MENU_SAVE_SEARCH 0
+#define DIALOGUE_MENU_ADD_TO_HOTLIST 1
 
 #define DIALOGUE_MAX_FILE_LINE 1024
 
@@ -753,18 +755,18 @@ void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *
 		return;
 
 	discfile_start_section(out, (name == NULL) ? DISCFILE_SECTION_DIALOGUE : DISCFILE_SECTION_HOTLIST, (name == NULL) ? FALSE : TRUE);
-	
+
 	/* Write out the dialogue options. */
 
 	discfile_start_chunk(out, DISCFILE_CHUNK_OPTIONS);
-	
+
 	/* Hotlist name, if required. */
-	
+
 	if (name != NULL)
 		discfile_write_option_string(out, "HNM", name);
 
 	/* Pane setting */
-	
+
 	discfile_write_option_unsigned(out, "PAN", dialogue->pane);
 
 	/* The Search Path. */
@@ -862,7 +864,7 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 	if (discfile_read_format(load) != DISCFILE_LOCATE2) {
 		if (name != NULL)
 			return NULL;
-	
+
 		return dialogue_load_legacy_file(file, load);
 	}
 
@@ -879,9 +881,9 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 	/* Read in the dialogue options. */
 
 	discfile_read_option_unsigned(load, "PAN", &dialogue->pane);
-	
+
 	/* The hotlist name, if applicable. */
-	
+
 	if (name != NULL)
 		discfile_read_option_string(load, "HNM", name, length);
 
@@ -1886,7 +1888,13 @@ static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp
 {
 	unsigned	*typelist;
 
-	if (menu == dialogue_name_mode_menu)
+	if (menu == dialogue_menu) {
+		switch (selection->items[0]) {
+		case DIALOGUE_MENU_ADD_TO_HOTLIST:
+			hotlist_add_dialogue(dialogue_data);
+			break;
+		}
+	} else if (menu == dialogue_name_mode_menu)
 		dialogue_shade_window();
 	else if (menu == dialogue_size_mode_menu)
 		dialogue_shade_size_pane();

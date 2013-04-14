@@ -339,6 +339,7 @@ Help.IconBarMenu.04:\Squit Locate.
 # Help.SearchMenu.00:\Sopen a search window based on this previous search.
 
 Help.SearchMenu.00:\Rsave the current search options so they can be re-loaded into Locate.
+Help.SearchMenu.01:\Ssave the current search options in the hotlist.
 
 Help.ResultsMenu.00:\Rchange the display options.
 Help.ResultsMenu.0000:\Sdisplay only the object paths.
