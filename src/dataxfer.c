@@ -950,7 +950,7 @@ static struct dataxfer_descriptor *dataxfer_find_descriptor(int ref, enum dataxf
 {
 	struct dataxfer_descriptor		*list = dataxfer_descriptors;
 
-	while (list != NULL && (list->type & type) != 0 && list->my_ref != ref)
+	while (list != NULL && ((list->type & type) == 0 || list->my_ref != ref))
 		list = list->next;
 
 	return list;
