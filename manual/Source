@@ -376,22 +376,27 @@ Since searching file contents takes time, this check will only occur if all the 
 
 Sooner or later, some searches used in <cite>Locate</cite> will prove to be useful enough that it would be helpful to be able to repeat them. To assist with this, various options are available including the hotlist and saved settings files.
 
-The settings from previous searches can always be recalled into the <window>search</window> dialogue. If the <window>results</window> window is still on screen (either from the original search, or from reloading a set of results into <cite>Locate</cite>), then selecting <menu>Modify search...</menu> from the window's menu will open the <window>search</window> dialogue with the same settings ready to be modified or re-used intact. In addition, clicking <mouse>Adjust</mouse> on <cite>Locate</cite>'s iconbar icon will recall the settings used for the last search to have been carried out.
+The settings from previous searches can always be recalled into the <window>search</window> dialogue. If the <window>results</window> window is still on screen (either from the original search, or from reloading a set of results into <cite>Locate</cite>), then selecting <menu>Modify search...</menu> from the window's menu will open the <window>search</window> dialogue with the same settings ready to be modified or re-used intact. In addition, clicking <mouse>adjust</mouse> on <cite>Locate</cite>'s iconbar icon will recall the settings used for the last search to have been carried out.
 
 
 <subhead title="Saving search settings">
 
 In addition to saving the settings of a search with its results, they can be saved into a file on their own which can then be used to start a new search. This can be done from a <window>results</window> window by selecting <menu>Save &msep; Search options &msep;</menu> from the menu; the settings from a <window>search</window> dialogue can also be saved directly via the <menu>Save search &msep;</menu> entry in its menu.
 
-Double-clicking on a saved settings file, or dropping one on to <cite>Locate</cite>'s iconbar icon, will open a <window>search</window> dialogue with the correct values set up.
+Double-clicking on a saved settings file, or dropping one on to <cite>Locate</cite>'s iconbar icon, will open a <window>search</window> dialogue with the correct values set up. They can also be added to the hotlist, as described below.
 
 
 <subhead title="The hotlist">
 
-In addition to saved searches, <cite>Locate</cite> contains a hotlist, which can be accessed via the <menu>Hotlist...</menu> entry in the iconbar menu. This opens up the <window>hotlist</window> window, revealing a filer-like repository for storing searches: the main differences are that items in the hotlist can be arranged in any order, can have more descriptive names, and can be accessed from <cite>Locate</cite>'s iconbar menu.
+In addition to saved searches, <cite>Locate</cite> contains a hotlist, which can be accessed via the <menu>Hotlist...</menu> entry in the iconbar menu. This opens up the <window>hotlist</window> window, revealing a filer-like repository for storing searches: the main differences are that items in the hotlist can be arranged in any order, can have more descriptive names, and can be accessed from <cite>Locate</cite>'s iconbar menu (either via the <window>hotlist</window> window, or via the corresponding entry in the <menu>Hotlist... &msep;</menu> submenu on the iconbar.
 
-Search settings can be added to the hotlist by selecting <menu>Add to hotlist...</menu> from the <window>results</window> window menu. This will open the <window>Add search to hotlist</window> window, into which a name can be entered; clicking on <icon>Add</icon> will then add the search settings to the hotlist. Settings can also be added via the <menu>Add to hotlist</menu> entry in the <window>search</window> dialogue's menu.
+Search settings can be added to the hotlist by selecting <menu>Add to hotlist...</menu> from the <window>results</window> window menu. This will open the <window>Add search to hotlist</window> window, into which a name can be entered; clicking on <icon>Add</icon> will then add the search settings to the hotlist. Settings can also be added via the <menu>Add to hotlist...</menu> entry in the <window>search</window> dialogue's menu. Items in the list can be re-ordered by dragging them around with the mouse.
 
+Searches in the <window>hotlist</window> window can be accessed by double-clicking on their icons, or by selecting them and clicking on the <icon>run</icon> button in the toolbar. They can be renamed by selecting them and choosing <menu>Entry &msep; Rename...</menu> from the menu, or by clicking on the <icon>rename</icon> button in the toolbar. Selected entries can be deleted with <menu>Entry &msep; Delete</menu> from the menu, or the <icon>delete</icon> button in the toolbar. The selection itself can be manipulated using the <menu>Select all</menu> and <menu>Clear selection</menu> entries in the menu, or by clicking <mouse>select</mouse> or <mouse>adjust</mouse> respectively on the <icon>selection</icon> button in the toolbar.
+
+The contents of the hotlist is saved automatically when <cite>Locate</cite> exits. Its contents can also be saved into a separate hotlist file using the <menu>Save hotlist</menu> menu item, or by clicking <mouse>select</mouse> on the <icon>save</icon> button in the toolbar; if there is a selection, then it is possible to include just these entries in the saved file. Saved hotlist files can be dropped into a <window>hotlist</window> window to add the searches that they contain to the list.
+
+Finally, individual saved searches can be added to the hotlist window by dragging their files to the window (either saved settings or full results files). They can also be saved out by dragging them, by using <menu>Entry &msep; Save search &msep;</menu> or by clicking <mouse>adjust</mouse> on the <icon>save</icon> button in the toolbar.
 
 </chapter>
 
@@ -507,7 +512,7 @@ This is a complete list of all the changes made to the publicly released version
 <li>Interactive help support is fully implemented.
 <li>The filetype menu in the search window is implemented in a basic way.
 <li>Keypresses are passed on to the Wimp correctly from the search window.
-<li><mouse>Adjust</mouse>-<icon>Cancel</icon> now resets the search window without closing it.
+<li><mouse>adjust</mouse>-<icon>Cancel</icon> now resets the search window without closing it.
 <li>Fixed possible -- but very unlikely -- problem with MessageTrans file handling.
 <li>Choices window implemented in a limited way (only allowing the search path to be changed).
 <li>Fixed problem with broken pointers when clicking over empty section of results window.
