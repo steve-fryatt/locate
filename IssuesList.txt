@@ -5,9 +5,6 @@ Locate 2 Issues List
 
 * Caret doesn't move correctly around search dialogue.
 
-* Save search & add to hotlist options from search dialogue do not capture
-  current window contents.
-
 * What does Suppress Errors option actually do?!
 
 * More generally, remove options that are no longer applicable.

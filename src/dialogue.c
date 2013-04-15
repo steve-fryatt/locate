@@ -40,6 +40,7 @@
 
 /* OSLib Header files. */
 
+#include "oslib/hourglass.h"
 #include "oslib/os.h"
 #include "oslib/osbyte.h"
 #include "oslib/osfile.h"
@@ -389,6 +390,7 @@ static void	dialogue_start_search(struct dialogue_block *dialogue);
 static int	dialogue_scale_size(unsigned base, enum dialogue_size_unit unit, osbool top);
 static void	dialogue_scale_age(os_date_and_time date, unsigned base, enum dialogue_age_unit unit, int round);
 static osbool	dialogue_save_settings(char *filename, osbool selection, void *data);
+static void	dialogue_add_to_hotlist(void);
 static void	dialogue_dump_settings(struct dialogue_block *dialogue);
 
 
@@ -1840,7 +1842,7 @@ static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointe
 		return;
 
 	if (menu == dialogue_menu) {
-		saveas_initialise_dialogue(dialogue_save_search, "SrchName", NULL, FALSE, FALSE, dialogue_data);
+		saveas_initialise_dialogue(dialogue_save_search, "SrchName", NULL, FALSE, FALSE, NULL);
 		return;
 	}
 
@@ -1891,7 +1893,7 @@ static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp
 	if (menu == dialogue_menu) {
 		switch (selection->items[0]) {
 		case DIALOGUE_MENU_ADD_TO_HOTLIST:
-			hotlist_add_dialogue(dialogue_data);
+			dialogue_add_to_hotlist();
 			break;
 		}
 	} else if (menu == dialogue_name_mode_menu)
@@ -2405,20 +2407,67 @@ static void dialogue_scale_age(os_date_and_time date, unsigned base, enum dialog
  *
  * \param *filename		The filename to save to.
  * \param selection		TRUE to save just the selection, else FALSE.
- * \param *data			Context data: the handle of the parent dialogue.
+ * \param *data			Context data: unused and NULL.
  * \return			TRUE on success; FALSE on failure.
  */
 
 static osbool dialogue_save_settings(char *filename, osbool selection, void *data)
 {
-	struct dialogue_block *dialogue = data;
+	struct dialogue_block		*dialogue;
+	struct discfile_block		*out;
 
-	if (dialogue == NULL || dialogue->file == NULL)
+	if (filename == NULL || !dialogue_window_is_open())
 		return FALSE;
 
-	return file_dialogue_save(dialogue->file, filename);
+	dialogue = dialogue_create(NULL, NULL, NULL);
+	if (dialogue == NULL)
+		return FALSE;
+
+	dialogue_read_window(dialogue);
+
+	out = discfile_open_write(filename);
+	if (out == NULL) {
+		dialogue_destroy(dialogue, DIALOGUE_CLIENT_ALL);
+		return FALSE;
+	}
+
+	hourglass_on();
+
+	dialogue_save_file(dialogue, out, NULL);
+
+	hourglass_off();
+
+	discfile_close(out);
+
+	dialogue_destroy(dialogue, DIALOGUE_CLIENT_ALL);
+
+	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
+
+	return TRUE;
 }
 
+
+/**
+ * Add the current window contents to the hotlist.
+ */
+
+static void dialogue_add_to_hotlist(void)
+{
+	struct dialogue_block		*dialogue;
+
+	if (!dialogue_window_is_open())
+		return;
+
+	dialogue = dialogue_create(NULL, NULL, NULL);
+	if (dialogue == NULL)
+		return;
+
+	dialogue_read_window(dialogue);
+
+	hotlist_add_dialogue(dialogue);
+
+	dialogue_destroy(dialogue, DIALOGUE_CLIENT_NONE);
+}
 
 
 /**
