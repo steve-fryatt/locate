@@ -379,6 +379,8 @@ static osbool	dialogue_read_filetype_list(flex_ptr list, char *buffer);
 static void	dialogue_redraw_window(void);
 static void	dialogue_click_handler(wimp_pointer *pointer);
 static osbool	dialogue_keypress_handler(wimp_key *key);
+static void	dialogue_move_caret_down();
+static void	dialogue_move_caret_up();
 static void	dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void	dialogue_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void	dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp_selection *selection);
@@ -1819,12 +1821,80 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 		dialogue_close_window();
 		break;
 
+	case wimp_KEY_TAB:
+	case wimp_KEY_DOWN:
+		dialogue_move_caret_down();
+		break;
+
+	case wimp_KEY_SHIFT | wimp_KEY_TAB:
+	case wimp_KEY_UP:
+		dialogue_move_caret_up();
+		break;
+
 	default:
 		return FALSE;
 		break;
 	}
 
 	return TRUE;
+}
+
+
+/**
+ * Handle keypresses that result in the caret being moved forward or down in
+ * the dialogue.
+ */
+
+static void dialogue_move_caret_down(void)
+{
+	wimp_caret	caret;
+	os_error	*error;
+
+	error = xwimp_get_caret_position(&caret);
+
+	if (caret.w == dialogue_window && (caret.i == DIALOGUE_ICON_SEARCH_PATH || caret.i == DIALOGUE_ICON_FILENAME)) {
+		if (caret.i != DIALOGUE_ICON_FILENAME && !icons_get_shaded(dialogue_window, DIALOGUE_ICON_FILENAME))
+			icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_FILENAME);
+		else if (dialogue_pane == DIALOGUE_PANE_SIZE && !icons_get_shaded(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN))
+			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN);
+		else if (dialogue_pane == DIALOGUE_PANE_DATE && icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE) &&
+				!icons_get_shaded(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM))
+			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM);
+		else if (dialogue_pane == DIALOGUE_PANE_DATE && icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE) &&
+				!icons_get_shaded(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN))
+			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN);
+		else if (dialogue_pane == DIALOGUE_PANE_TYPE && !icons_get_shaded(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE))
+			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE);
+		else if (dialogue_pane == DIALOGUE_PANE_CONTENTS && !icons_get_shaded(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT))
+			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT);
+		else if (caret.i != DIALOGUE_ICON_SEARCH_PATH && !icons_get_shaded(dialogue_window, DIALOGUE_ICON_SEARCH_PATH))
+			icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
+	}
+
+}
+
+
+/**
+ * Handle keypresses that result in the caret being moved backwards or up in
+ * the dialogue.
+ */
+
+static void dialogue_move_caret_up(void)
+{
+	wimp_caret	caret;
+	os_error	*error;
+
+	error = xwimp_get_caret_position(&caret);
+
+	if (caret.w == dialogue_window) {
+		switch (caret.i) {
+		case DIALOGUE_ICON_FILENAME:
+			if (!icons_get_shaded(dialogue_window, DIALOGUE_ICON_SEARCH_PATH))
+				icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
+
+		}
+	}
+
 }
 
 
