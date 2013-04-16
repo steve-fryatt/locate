@@ -3,8 +3,6 @@ Locate 2 Issues List
 
 * Status bar is not updated when saved results are loaded.
 
-* Caret doesn't move correctly around search dialogue.
-
 * What does Suppress Errors option actually do?!
 
 * More generally, remove options that are no longer applicable.

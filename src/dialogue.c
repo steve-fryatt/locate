@@ -1906,13 +1906,77 @@ static void dialogue_move_caret_up(void)
 
 	error = xwimp_get_caret_position(&caret);
 
-	if (caret.w == dialogue_window) {
-		switch (caret.i) {
-		case DIALOGUE_ICON_FILENAME:
-			if (!icons_get_shaded(dialogue_window, DIALOGUE_ICON_SEARCH_PATH))
-				icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
+	if (caret.w == dialogue_window && caret.i == DIALOGUE_ICON_FILENAME) {
+		icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
+	} else if (caret.w == dialogue_window && caret.i == DIALOGUE_ICON_SEARCH_PATH) {
+		switch(dialogue_pane) {
+		case DIALOGUE_PANE_SIZE:
+			if (!icons_get_shaded(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX))
+				icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX);
+			else if (!icons_get_shaded(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN))
+				icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN);
+			else if (!icons_get_shaded(dialogue_window, DIALOGUE_ICON_FILENAME))
+				icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_FILENAME);
+			break;
 
+		case DIALOGUE_PANE_DATE:
+			if (icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE) &&
+					!icons_get_shaded(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO))
+				icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO);
+			else if (icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE) &&
+					!icons_get_shaded(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM))
+				icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM);
+			else if (icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE) &&
+					!icons_get_shaded(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX))
+				icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX);
+			else if (icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE) &&
+					!icons_get_shaded(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN))
+				icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN);
+			else if (!icons_get_shaded(dialogue_window, DIALOGUE_ICON_FILENAME))
+				icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_FILENAME);
+			break;
+
+		case DIALOGUE_PANE_TYPE:
+			if (!icons_get_shaded(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE))
+				icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE);
+			else if (!icons_get_shaded(dialogue_window, DIALOGUE_ICON_FILENAME))
+				icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_FILENAME);
+			break;
+
+		case DIALOGUE_PANE_CONTENTS:
+			if (!icons_get_shaded(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT))
+				icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT);
+			else if (!icons_get_shaded(dialogue_window, DIALOGUE_ICON_FILENAME))
+				icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_FILENAME);
+			break;
+
+		default:
+			if (!icons_get_shaded(dialogue_window, DIALOGUE_ICON_FILENAME))
+				icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_FILENAME);
+			break;
 		}
+	} else if (caret.w == dialogue_panes[DIALOGUE_PANE_SIZE]) {
+		if (caret.i == DIALOGUE_SIZE_ICON_MAX) {
+			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MIN);
+		} else if (caret.i == DIALOGUE_SIZE_ICON_MIN) {
+			icons_put_caret_in_group(dialogue_window, 2, DIALOGUE_ICON_FILENAME, DIALOGUE_ICON_SEARCH_PATH);
+		}
+	} else if (caret.w == dialogue_panes[DIALOGUE_PANE_DATE] && icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE)) {
+		if (caret.i == DIALOGUE_DATE_ICON_DATE_TO) {
+			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_FROM);
+		} else if (caret.i == DIALOGUE_DATE_ICON_DATE_FROM) {
+			icons_put_caret_in_group(dialogue_window, 2, DIALOGUE_ICON_FILENAME, DIALOGUE_ICON_SEARCH_PATH);
+		}
+	} else if (caret.w == dialogue_panes[DIALOGUE_PANE_DATE] && icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE)) {
+		if (caret.i == DIALOGUE_DATE_ICON_AGE_MAX) {
+			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MIN);
+		} else if (caret.i == DIALOGUE_DATE_ICON_AGE_MIN) {
+			icons_put_caret_in_group(dialogue_window, 2, DIALOGUE_ICON_FILENAME, DIALOGUE_ICON_SEARCH_PATH);
+		}
+	} else if (caret.w == dialogue_panes[DIALOGUE_PANE_TYPE] && caret.i == DIALOGUE_TYPE_ICON_TYPE) {
+		icons_put_caret_in_group(dialogue_window, 2, DIALOGUE_ICON_FILENAME, DIALOGUE_ICON_SEARCH_PATH);
+	} else if (caret.w == dialogue_panes[DIALOGUE_PANE_CONTENTS] && caret.i == DIALOGUE_CONTENTS_ICON_TEXT) {
+		icons_put_caret_in_group(dialogue_window, 2, DIALOGUE_ICON_FILENAME, DIALOGUE_ICON_SEARCH_PATH);
 	}
 
 }
