@@ -1869,8 +1869,28 @@ static void dialogue_move_caret_down(void)
 			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT);
 		else if (caret.i != DIALOGUE_ICON_SEARCH_PATH && !icons_get_shaded(dialogue_window, DIALOGUE_ICON_SEARCH_PATH))
 			icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
+	} else if (caret.w == dialogue_panes[DIALOGUE_PANE_SIZE] && (caret.i == DIALOGUE_SIZE_ICON_MIN || caret.i == DIALOGUE_SIZE_ICON_MAX)) {
+		if (caret.i == DIALOGUE_SIZE_ICON_MIN && !icons_get_shaded(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX))
+			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_SIZE], DIALOGUE_SIZE_ICON_MAX);
+		else
+			icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
+	} else if (caret.w == dialogue_panes[DIALOGUE_PANE_DATE] && icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE) &&
+			(caret.i == DIALOGUE_DATE_ICON_DATE_FROM || caret.i == DIALOGUE_DATE_ICON_DATE_TO)) {
+		if (caret.i == DIALOGUE_DATE_ICON_DATE_FROM && !icons_get_shaded(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO))
+			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_DATE_TO);
+		else
+			icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
+	} else if (caret.w == dialogue_panes[DIALOGUE_PANE_DATE] && icons_get_selected(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE) &&
+			(caret.i == DIALOGUE_DATE_ICON_AGE_MIN || caret.i == DIALOGUE_DATE_ICON_AGE_MAX)) {
+		if (caret.i == DIALOGUE_DATE_ICON_AGE_MIN && !icons_get_shaded(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX))
+			icons_put_caret_at_end(dialogue_panes[DIALOGUE_PANE_DATE], DIALOGUE_DATE_ICON_AGE_MAX);
+		else
+			icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
+	} else if (caret.w == dialogue_panes[DIALOGUE_PANE_TYPE] && caret.i == DIALOGUE_TYPE_ICON_TYPE) {
+		icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
+	} else if (caret.w == dialogue_panes[DIALOGUE_PANE_CONTENTS] && caret.i == DIALOGUE_CONTENTS_ICON_TEXT) {
+		icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
 	}
-
 }
 
 
