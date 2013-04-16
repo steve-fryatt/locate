@@ -283,7 +283,6 @@ static osbool			results_select_drag_adjust = FALSE;		/**< TRUE if the selection 
 /* Local function prototypes. */
 
 static void	results_click_handler(wimp_pointer *pointer);
-static osbool	results_keypress_handler(wimp_key *key);
 static void	results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void	results_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void	results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection);
@@ -511,7 +510,6 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	event_add_window_open_event(new->window, results_open_handler);
 	event_add_window_close_event(new->window, results_close_handler);
 	event_add_window_mouse_event(new->window, results_click_handler);
-	//event_add_window_key_event(new->window, results_keypress_handler);
 	event_add_window_menu(new->window, results_window_menu);
 	event_add_window_menu_prepare(new->window, results_menu_prepare);
 	event_add_window_menu_warning(new->window, results_menu_warning);
@@ -818,29 +816,6 @@ static void results_click_handler(wimp_pointer *pointer)
 		results_drag_select(handle, row, pointer, &state, ctrl_pressed);
 		break;
 	}
-}
-
-
-/**
- * Process keypresses in a results window.
- *
- * \param *key			The keypress event block to handle.
- * \return			TRUE if the event was handled; else FALSE.
- */
-
-static osbool results_keypress_handler(wimp_key *key)
-{
-	if (key == NULL)
-		return FALSE;
-
-	switch (key->c) {
-
-	default:
-		return FALSE;
-		break;
-	}
-
-	return TRUE;
 }
 
 
