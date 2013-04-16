@@ -1,6 +1,13 @@
 Locate 2 Issues List
 --------------------
 
+* There's no duplicate checking when entering hotlist names.
+
+* When dragging hotlist entries from the window to another application, the
+  filenames need to be sanitised first.
+
+* Selection routines in hotlist need to take account of length of icon text.
+
 * Status bar is not updated when saved results are loaded.
 
 * What does Suppress Errors option actually do?!
