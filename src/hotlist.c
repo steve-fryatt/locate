@@ -340,25 +340,12 @@ void hotlist_open(wimp_pointer *pointer)
 
 static void hotlist_redraw_handler(wimp_draw *redraw)
 {
-	int			ox, oy, top, bottom, y, i;
+	int			ox, oy, top, bottom, y;
 	osbool			more;
 	wimp_icon		*icon;
-	char			validation[255];
-	char			*truncation, *size, *attributes, *date;
-	size_t			truncation_len;
 
 
 	icon = hotlist_window_def->icons;
-
-	/* Set up the validation string buffer for text+sprite icons. */
-
-	//*validation = 'S';
-	//icon[HOTLIST_ICON_FILE].data.indirected_text.validation = validation;
-
-	/* Set up the truncation line. */
-
-	//if (truncation != NULL)
-	//	strcpy(truncation, "...");
 
 	/* Redraw the window. */
 
@@ -379,26 +366,17 @@ static void hotlist_redraw_handler(wimp_draw *redraw)
 			bottom = hotlist_entries;
 
 		for (y = top; y < bottom; y++) {
-			//i = handle->redraw[y].index;
+			icon[HOTLIST_ICON_FILE].extent.y0 = LINE_Y0(y);
+			icon[HOTLIST_ICON_FILE].extent.y1 = LINE_Y1(y);
 
-//			switch (handle->redraw[i].type) {
-//			case RESULTS_LINE_FILENAME:
-				icon[HOTLIST_ICON_FILE].extent.y0 = LINE_Y0(y);
-				icon[HOTLIST_ICON_FILE].extent.y1 = LINE_Y1(y);
+			icon[HOTLIST_ICON_FILE].data.indirected_text.text = hotlist[y].name;
 
-				icon[HOTLIST_ICON_FILE].data.indirected_text.text = hotlist[y].name;
+			if (hotlist[y].flags & HOTLIST_FLAG_SELECTED)
+				icon[HOTLIST_ICON_FILE].flags |= wimp_ICON_SELECTED;
+			else
+				icon[HOTLIST_ICON_FILE].flags &= ~wimp_ICON_SELECTED;
 
-				if (hotlist[y].flags & HOTLIST_FLAG_SELECTED)
-					icon[HOTLIST_ICON_FILE].flags |= wimp_ICON_SELECTED;
-				else
-					icon[HOTLIST_ICON_FILE].flags &= ~wimp_ICON_SELECTED;
-
-				wimp_plot_icon(&(icon[HOTLIST_ICON_FILE]));
-			//	break;
-
-//			default:
-//				break;
-//			}
+			wimp_plot_icon(&(icon[HOTLIST_ICON_FILE]));
 		}
 
 		more = wimp_get_rectangle(redraw);
@@ -1814,8 +1792,6 @@ wimp_menu *hotlist_build_menu(void)
 
 void hotlist_process_menu_selection(int selection)
 {
-	wimp_pointer	pointer;
-
 	if (selection < 0 || selection >= hotlist_entries)
 		return;
 
