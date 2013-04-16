@@ -7,8 +7,6 @@ Locate 2 Issues List
 
 * More generally, remove options that are no longer applicable.
 
-* What does the Message_PreQuit handler do?!
-
 * Make open/run operate on multi-selection results.
 
 * There is no filetype check in file_create_from_saved() or

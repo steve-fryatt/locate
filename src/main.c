@@ -204,7 +204,6 @@ static void main_initialise(void)
 	main_task_handle = wimp_initialise(wimp_VERSION_RO3, task_name, NULL, &wimp_version);
 
 	event_add_message_handler(message_QUIT, EVENT_MESSAGE_INCOMING, main_message_quit);
-	event_add_message_handler(message_PRE_QUIT, EVENT_MESSAGE_INCOMING, main_message_prequit);
 
 	/* Initialise the flex heap. */
 
@@ -299,21 +298,6 @@ static void main_parse_command_line(int argc, char *argv[])
 static osbool main_message_quit(wimp_message *message)
 {
 	main_quit_flag = TRUE;
-
-	return TRUE;
-}
-
-
-/**
- * Handle incoming Message_PreQuit.
- */
-
-static osbool main_message_prequit(wimp_message *message)
-{
-	return TRUE;
-
-	message->your_ref = message->my_ref;
-	wimp_send_message(wimp_USER_MESSAGE_ACKNOWLEDGE, message, message->sender);
 
 	return TRUE;
 }
