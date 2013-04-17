@@ -304,7 +304,6 @@ Help.Choices.HistConf:\Stoggle whether the option is given to accept and name ne
 Help.Choices.PlugQuit:\Stoggle how Locate behaves when started as a Filer Action plugin.|MIf on, Locate will not place an icon on the icon bar and will quit as soon as all its windows have been closed.
 Help.Choices.PlugOpen:\Stoggle if a search window is opened when a Filer Action search is started.|MIf not, the search begins immediately with default parameters, which can be changed using the results window menu.
 Help.Choices.Scroll:\Stoggle whether the results window is scrolled to the end when new matches are added.
-Help.Choices.FileIcons:\Stoggle whether file icons are shown in the filetypes menu.
 
 Help.Results:\Tlist of files that were located.|MDouble click \s to load a file, run an application or open a directory.|MDouble click \a to open an object's parent directory.|M\Sselect an object, or \a to add or remove objects from a selection.
 

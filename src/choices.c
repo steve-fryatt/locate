@@ -75,7 +75,6 @@
 #define CHOICE_ICON_PLUGIN_QUIT 19
 #define CHOICE_ICON_PLUGIN_WINDOW 20
 #define CHOICE_ICON_AUTOSCROLL 21
-#define CHOICE_ICON_MENU_ICONS 22
 
 
 /* Global variables */
@@ -164,7 +163,6 @@ static void choices_set_window(void)
 	icons_set_selected(choices_window, CHOICE_ICON_PLUGIN_QUIT, config_opt_read("QuitAsPlugin"));
 	icons_set_selected(choices_window, CHOICE_ICON_PLUGIN_WINDOW, config_opt_read("SearchWindAsPlugin"));
 	icons_set_selected(choices_window, CHOICE_ICON_AUTOSCROLL, config_opt_read("ScrollResults"));
-	icons_set_selected(choices_window, CHOICE_ICON_MENU_ICONS, config_opt_read("FileMenuSprites"));
 
 	icons_printf(choices_window, CHOICE_ICON_HISTORY_SIZE, "%d", config_int_read("HistorySize"));
 }
@@ -188,7 +186,6 @@ static void choices_read_window(void)
 	config_opt_set("QuitAsPlugin", icons_get_selected(choices_window, CHOICE_ICON_PLUGIN_QUIT));
 	config_opt_set("SearchWindAsPlugin", icons_get_selected(choices_window, CHOICE_ICON_PLUGIN_WINDOW));
 	config_opt_set("ScrollResults", icons_get_selected(choices_window, CHOICE_ICON_AUTOSCROLL));
-	config_opt_set("FileMenuSprites", icons_get_selected(choices_window, CHOICE_ICON_MENU_ICONS));
 
 	config_int_set("HistorySize", atoi(icons_get_indirected_text_addr(choices_window, CHOICE_ICON_HISTORY_SIZE)));
 }

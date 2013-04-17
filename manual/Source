@@ -415,8 +415,6 @@ The <icon>Plugin behaviour</icon> section is only available to users of RISC OS 
 
 When <icon>Scroll to new matches</icon> is on, the <link ref="Results">results window</link> scrolls down as new matches are found so that the last entry is always visible.  When off, the window does not scroll and new matches may be added out of sight.
 
-<icon>Icons in filetype menu</icon> specifies whether or not file icons are shown in the menu of filetypes that is available in the Types section of the search window.
-
 Click on <icon>Apply</icon> to use the changes or <icon>Save</icon> to save them and then use them (in both cases <mouse>adjust</mouse> will keep the window open).  Click on <icon>Cancel</icon> with <mouse>select</mouse> to close the window and forget the changes; click with <mouse>adjust</mouse> to reset the window contents to the state they were in when the window was last opened.
 
 
