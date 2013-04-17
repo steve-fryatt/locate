@@ -119,6 +119,7 @@ SHHELP := Locate,3d6
 HTMLHELP := manual.html
 README := ReadMe,fff
 LICENSE := Licence,fff
+EXTRAS := Extras
 
 
 # Set up the source files.
@@ -196,7 +197,7 @@ $(OUTDIR)/$(HTMLHELP): $(MANUAL)/$(MANSRC)
 
 release: clean all
 	$(RM) ../$(ZIPFILE)
-	(cd $(OUTDIR) ; $(ZIP) $(ZIPFLAGS) ../../$(ZIPFILE) $(APP) $(README) $(LICENSE))
+	(cd $(OUTDIR) ; $(ZIP) $(ZIPFLAGS) ../../$(ZIPFILE) $(APP) $(README) $(LICENSE) $(EXTRAS))
 	$(RM) ../$(PKGZIPFILE)
 	$(RM) $(OUTDIR)/package/Apps/Misc/*
 	(cd $(OUTDIR) ; rsync -av --exclude=*.svn* $(APP) package/Apps/Misc/ )
