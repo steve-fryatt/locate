@@ -3,14 +3,14 @@ Locate 2 Issues List
 
 * There's no duplicate checking when entering hotlist names.
 
-* Selection routines in hotlist need to take account of length of icon text.
-
-* Make open/run operate on multi-selection results.
-
 * There is no filetype check in file_create_from_saved() or
   hotlist_load_choices() -- the former is passed files from the commandline with
   not other checks; the latter loads files from Choices: in a similarly trusting
   manner. Test might want to be in discfile_open_read(), however.
+
+* Selection routines in hotlist need to take account of length of icon text.
+
+* Make open/run operate on multi-selection results.
 
 * Check the correct behaviour of contents searches.
 
