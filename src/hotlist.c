@@ -176,7 +176,7 @@ static void	hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 static void	hotlist_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void	hotlist_menu_close(wimp_w w, wimp_menu *menu);
 static void	hotlist_update_extent(void);
-static void	results_drag_select(unsigned row, wimp_pointer *pointer, wimp_window_state *state, osbool ctrl_pressed);
+static void	hotlist_drag_select(unsigned row, wimp_pointer *pointer, wimp_window_state *state, osbool ctrl_pressed);
 static void	hotlist_xfer_drag_end_handler(wimp_pointer *pointer, void *data);
 static void	hotlist_select_drag_end_handler(wimp_dragged *drag, void *data);
 static void	hotlist_select_click_select(int row);
@@ -434,7 +434,7 @@ static void hotlist_click_handler(wimp_pointer *pointer)
 
 	case wimp_DRAG_SELECT:
 	case wimp_DRAG_ADJUST:
-		results_drag_select(row, pointer, &state, ctrl_pressed);
+		hotlist_drag_select(row, pointer, &state, ctrl_pressed);
 		break;
 	}
 }
@@ -676,7 +676,7 @@ static void hotlist_update_extent(void)
  * \param ctrl_pressed		TRUE if a Ctrl key is down; else FALSE.
  */
 
-static void results_drag_select(unsigned row, wimp_pointer *pointer, wimp_window_state *state, osbool ctrl_pressed)
+static void hotlist_drag_select(unsigned row, wimp_pointer *pointer, wimp_window_state *state, osbool ctrl_pressed)
 {
 	int			x, y;
 	os_box			extent;
