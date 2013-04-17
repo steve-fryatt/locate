@@ -1,8 +1,6 @@
 Locate 2 Issues List
 --------------------
 
-* Add missing files back into archive from Locate 1 distro.
-
 * There's no duplicate checking when entering hotlist names.
 
 * Selection routines in hotlist need to take account of length of icon text.
