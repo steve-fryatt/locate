@@ -29,6 +29,7 @@
 
 /* ANSI C header files */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -753,8 +754,7 @@ static void hotlist_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 	int			y, row, row_y_pos, i;
 	wimp_window_state	state;
 	os_error		*error;
-	size_t			pathname_len;
-	char			*pathname;
+	char			leafname[HOTLIST_NAME_LENGTH], *from, *to;
 
 	if (pointer->w == hotlist_window) {
 		/* Move items within the window. */
@@ -802,7 +802,20 @@ static void hotlist_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 			if (!(hotlist[row].flags & HOTLIST_FLAG_SELECTED))
 				continue;
 
-			dataxfer_start_save(pointer, hotlist[row].name, 0, DISCFILE_LOCATE_FILETYPE, 0, hotlist_save_search, hotlist[row].dialogue);
+			from = hotlist[row].name;
+			to = leafname;
+
+			while (*from != '\0') {
+				if (isgraph(*from) && (strchr(".:*#$&@^%\\", *from) == NULL))
+					*(to++) = *from;
+
+				from++;
+
+			}
+
+			*from = '\0';
+
+			dataxfer_start_save(pointer, leafname, 0, DISCFILE_LOCATE_FILETYPE, 0, hotlist_save_search, hotlist[row].dialogue);
 		}
 	}
 }

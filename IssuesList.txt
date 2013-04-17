@@ -1,10 +1,9 @@
 Locate 2 Issues List
 --------------------
 
-* There's no duplicate checking when entering hotlist names.
+* Add missing files back into archive from Locate 1 distro.
 
-* When dragging hotlist entries from the window to another application, the
-  filenames need to be sanitised first.
+* There's no duplicate checking when entering hotlist names.
 
 * Selection routines in hotlist need to take account of length of icon text.
 
