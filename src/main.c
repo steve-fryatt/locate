@@ -93,7 +93,6 @@ static void	main_poll_loop(void);
 static void	main_initialise(void);
 static void	main_parse_command_line(int argc, char *argv[]);
 static osbool	main_message_quit(wimp_message *message);
-static osbool	main_message_prequit(wimp_message *message);
 
 
 /*
