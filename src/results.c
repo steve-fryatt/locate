@@ -652,9 +652,10 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 {
 	struct results_window		*new;
 	struct results_file_block	data;
-	char				title[TITLE_LENGTH];
+	char				title[TITLE_LENGTH], status[256], errors[256], number[20];
+;
 	int				i, size, position;
-	unsigned			lines;
+	unsigned			lines, file_count, error_count;
 
 	if (file == NULL || objects == NULL || load == NULL)
 		return NULL;
@@ -708,6 +709,9 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 
 	/* Load the window lines into the window. */
 
+	file_count = 0;
+	error_count = 0;
+
 	if (discfile_open_chunk(load, DISCFILE_CHUNK_RESULTS)) {
 		size = discfile_chunk_size(load);
 		if ((size % sizeof(struct results_file_block)) != 0) {
@@ -724,6 +728,7 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 			switch (data.type) {
 			case RESULTS_LINE_FILENAME:
 				results_add_file(new, data.data);
+				file_count++;
 				break;
 			case RESULTS_LINE_TEXT:
 				results_add_raw(new, RESULTS_LINE_TEXT, data.data, data.colour, data.sprite);
@@ -757,6 +762,20 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 	/* Reformat the loaded lines in the window. */
 
 	results_accept_lines(new);
+
+	/* Update the status bar */
+
+	if (error_count == 0) {
+		*errors = '\0';
+	} else {
+		snprintf(number, sizeof(number), "%d", error_count);
+		msgs_param_lookup("Errors", errors, sizeof(errors), number, NULL, NULL, NULL);
+	}
+
+	snprintf(number, sizeof(number), "%d", file_count);
+	msgs_param_lookup("Found", status, sizeof(status), number, errors, NULL, NULL);
+
+	results_set_status(new, status);
 
 	return new;
 }
