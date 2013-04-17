@@ -12,9 +12,6 @@ Locate 2 Issues List
 
 * What does Suppress Errors option actually do?!
 
-* More generally, remove options that are no longer applicable. "Icons in
-  filetype menu", "History list".
-
 * Make open/run operate on multi-selection results.
 
 * There is no filetype check in file_create_from_saved() or
