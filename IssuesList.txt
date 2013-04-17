@@ -8,8 +8,6 @@ Locate 2 Issues List
 
 * Selection routines in hotlist need to take account of length of icon text.
 
-* What does Suppress Errors option actually do?!
-
 * Make open/run operate on multi-selection results.
 
 * There is no filetype check in file_create_from_saved() or
@@ -37,3 +35,5 @@ Locate 2 Issues List
   changed?
 
 * Status bar doesn't have an error count when files get reloaded.
+
+* The Suppress Errors option probably needs implementing or removing!

@@ -249,7 +249,7 @@ By default, <cite>Locate</cite> will only record details of the files that match
 
 If an image filing system is causing errors to be generated when <cite>Locate</cite> tries to read the files within one of its image directories, select <icon>Ignore Image FS's contents</icon>.  This will cause <cite>Locate</cite> to check the name and attributes of the image file itself (for example a <cite>Spark</cite> archive) but not of the objects within it.  This is useful, for example, in the situation where you have <cite>ArcFS</cite> loaded and attempt to search a path containing Zip files; without this option on, <cite>ArcFS</cite> will halt the search with errors each time a Zip archive is encountered.
 
-Errors returned by filing systems while the search is being carried out can either be suppressed by selecting <icon>Suppress FS errors</icon> (meaning that they are not reported at the time, but instead get logged in the <link ref="Results">results window</link>) or reported in an error window when they happen (stopping the search until you acknowledge the message).  In the latter case, the errors are not shown in the results window.
+The <icon>Suppress FS errors</icon> is currently unused, as at present <cite>Locate</cite>&nbsp;2 logs all errors in the <link ref="Results">results window</link>.
 
 Finally, the <icon>Full info display</icon> option determines whether or not the <window>results window</window> starts off in path only or full info mode.
 
