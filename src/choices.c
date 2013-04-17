@@ -70,11 +70,9 @@
 #define CHOICE_ICON_IMAGE_FS 8
 #define CHOICE_ICON_SUPPRESS_ERRORS 9
 #define CHOICE_ICON_FULL_INFO 10
-#define CHOICE_ICON_HISTORY_SIZE 14
-#define CHOICE_ICON_CONFIRM_HISTORY 16
-#define CHOICE_ICON_PLUGIN_QUIT 19
-#define CHOICE_ICON_PLUGIN_WINDOW 20
-#define CHOICE_ICON_AUTOSCROLL 21
+#define CHOICE_ICON_PLUGIN_QUIT 13
+#define CHOICE_ICON_PLUGIN_WINDOW 14
+#define CHOICE_ICON_AUTOSCROLL 15
 
 
 /* Global variables */
@@ -159,12 +157,9 @@ static void choices_set_window(void)
 	icons_set_selected(choices_window, CHOICE_ICON_IMAGE_FS, config_opt_read("ImageFS"));
 	icons_set_selected(choices_window, CHOICE_ICON_SUPPRESS_ERRORS, config_opt_read("SuppressErrors"));
 	icons_set_selected(choices_window, CHOICE_ICON_FULL_INFO, config_opt_read("FullInfoDisplay"));
-	icons_set_selected(choices_window, CHOICE_ICON_CONFIRM_HISTORY, config_opt_read("ConfirmHistoryAdd"));
 	icons_set_selected(choices_window, CHOICE_ICON_PLUGIN_QUIT, config_opt_read("QuitAsPlugin"));
 	icons_set_selected(choices_window, CHOICE_ICON_PLUGIN_WINDOW, config_opt_read("SearchWindAsPlugin"));
 	icons_set_selected(choices_window, CHOICE_ICON_AUTOSCROLL, config_opt_read("ScrollResults"));
-
-	icons_printf(choices_window, CHOICE_ICON_HISTORY_SIZE, "%d", config_int_read("HistorySize"));
 }
 
 
@@ -182,12 +177,9 @@ static void choices_read_window(void)
 	config_opt_set("ImageFS", icons_get_selected(choices_window, CHOICE_ICON_IMAGE_FS));
 	config_opt_set("SuppressErrors", icons_get_selected(choices_window, CHOICE_ICON_SUPPRESS_ERRORS));
 	config_opt_set("FullInfoDisplay", icons_get_selected(choices_window, CHOICE_ICON_FULL_INFO));
-	config_opt_set("ConfirmHistoryAdd", icons_get_selected(choices_window, CHOICE_ICON_CONFIRM_HISTORY));
 	config_opt_set("QuitAsPlugin", icons_get_selected(choices_window, CHOICE_ICON_PLUGIN_QUIT));
 	config_opt_set("SearchWindAsPlugin", icons_get_selected(choices_window, CHOICE_ICON_PLUGIN_WINDOW));
 	config_opt_set("ScrollResults", icons_get_selected(choices_window, CHOICE_ICON_AUTOSCROLL));
-
-	config_int_set("HistorySize", atoi(icons_get_indirected_text_addr(choices_window, CHOICE_ICON_HISTORY_SIZE)));
 }
 
 
@@ -198,7 +190,6 @@ static void choices_read_window(void)
 static void choices_redraw_window(void)
 {
 	wimp_set_icon_state(choices_window, CHOICE_ICON_SEARCH_PATH, 0, 0);
-	wimp_set_icon_state(choices_window, CHOICE_ICON_HISTORY_SIZE, 0, 0);
 
 	icons_replace_caret_in_window(choices_window);
 }

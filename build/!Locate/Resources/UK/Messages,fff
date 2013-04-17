@@ -299,8 +299,6 @@ Help.Choices.StoreAll:\Stoggle whether the full details of the search directory 
 Help.Choices.ImageFS:\Stoggle whether the contents of Image Filing System directories are searched by default.
 Help.Choices.Suppress:\Stoggle whether errors from filing systems are reported in an error box or logged in the results window by default.
 Help.Choices.FullInfo:\Stoggle if a full info display is used by default for new searches.
-Help.Choices.HistSize:Enter the number of searches to store in the history list.|MEnter '0' to disable the history.
-Help.Choices.HistConf:\Stoggle whether the option is given to accept and name new history entries.
 Help.Choices.PlugQuit:\Stoggle how Locate behaves when started as a Filer Action plugin.|MIf on, Locate will not place an icon on the icon bar and will quit as soon as all its windows have been closed.
 Help.Choices.PlugOpen:\Stoggle if a search window is opened when a Filer Action search is started.|MIf not, the search begins immediately with default parameters, which can be changed using the results window menu.
 Help.Choices.Scroll:\Stoggle whether the results window is scrolled to the end when new matches are added.

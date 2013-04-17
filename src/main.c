@@ -218,8 +218,6 @@ static void main_initialise(void)
 	config_opt_init("StoreAllFiles", FALSE);				/**< TRUE if all file details will be stored; else FALSE.	*/
 	config_opt_init("ImageFS", FALSE);					/**< TRUE to search ImageFS contents; else FALSE.		*/
 	config_opt_init("SuppressErrors", TRUE);				/**< TRUE to list errors in search results; FALSE to report.	*/
-	config_int_init("HistorySize", 10);					/**< The number of entries in the history menu.			*/
-	config_opt_init("ConfirmHistoryAdd", TRUE);				/**< TRUE to confirm all additions to the history.		*/
 	config_opt_init("ScrollResults", TRUE);					/**< TRUE to scroll the results window to the last entry.	*/
 	config_int_init("OSGBPBReadSize", 1000);				/**< The number of bytes allocated ot OS_GBPB calls.		*/
 	config_opt_init("QuitAsPlugin", FALSE);					/**< Quit when complete if running as a FilerAction plugin.	*/
