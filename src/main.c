@@ -265,7 +265,7 @@ static void main_initialise(void)
 	hourglass_off();
 
 	if (config_opt_read("ValidatePaths") && !search_validate_paths(config_str_read("SearchPath"), FALSE)) {
-		selection = error_msgs_report_question("BadPaths", "BadPathsB");
+		selection = error_msgs_report_question("BadLoadPaths", "BadLoadPathsB");
 		if (selection == 1) {
 			wimp_get_pointer_info(&pointer);
 			choices_open_window(&pointer);

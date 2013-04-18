@@ -66,8 +66,10 @@ BadFiletype:Type '%0' was not recognised.
 BadDate:'%0' is not a valid date.
 BadPath:The path '%0' can not be found.
 EmptyPath:The list of paths contains an empty string.
-BadPaths:The configured search paths contain some invalid locations. Do you wish to edit them?
-BadPathsB:Yes,No
+BadLoadPaths:The configured search paths contain some invalid locations. Do you wish to edit them?
+BadLoadPathsB:Edit,Ignore
+BadConfigPaths:The search paths contain some invalid locations. Do you wish to correct these?
+BadConfigPathsB:Correct,Ignore
 
 
 

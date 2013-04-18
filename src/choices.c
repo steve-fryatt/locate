@@ -57,6 +57,7 @@
 #include "choices.h"
 
 #include "ihelp.h"
+#include "search.h"
 #include "templates.h"
 
 
@@ -82,7 +83,7 @@ static wimp_w			choices_window = NULL;
 
 static void	choices_close_window(void);
 static void	choices_set_window(void);
-static void	choices_read_window(void);
+static osbool	choices_read_window(void);
 static void	choices_redraw_window(void);
 
 static void	choices_click_handler(wimp_pointer *pointer);
@@ -167,10 +168,23 @@ static void choices_set_window(void)
 
 /**
  * Update the configuration settings from the values in the Choices window.
+ *
+ * \return			TRUE if successful; FALSE if validation errors occurred.
  */
 
-static void choices_read_window(void)
+static osbool choices_read_window(void)
 {
+	wimp_error_box_selection	selection;
+
+	/* Validate the search paths. */
+
+	if (!search_validate_paths(icons_get_indirected_text_addr(choices_window, CHOICE_ICON_SEARCH_PATH), FALSE)) {
+		selection = error_msgs_report_question("BadConfigPaths", "BadConfigPathsB");
+
+		if (selection == 1)
+			return FALSE;
+	}
+
 	/* Read the main window. */
 
 	config_str_set("SearchPath", icons_get_indirected_text_addr(choices_window, CHOICE_ICON_SEARCH_PATH));
@@ -183,6 +197,8 @@ static void choices_read_window(void)
 	config_opt_set("SearchWindAsPlugin", icons_get_selected(choices_window, CHOICE_ICON_PLUGIN_WINDOW));
 	config_opt_set("ScrollResults", icons_get_selected(choices_window, CHOICE_ICON_AUTOSCROLL));
 	config_opt_set("ValidatePaths", icons_get_selected(choices_window, CHOICE_ICON_VALIDATE_PATHS));
+
+	return TRUE;
 }
 
 
@@ -212,7 +228,8 @@ static void choices_click_handler(wimp_pointer *pointer)
 	switch ((int) pointer->i) {
 	case CHOICE_ICON_APPLY:
 		if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
-			choices_read_window();
+			if (!choices_read_window())
+				break;
 
 			if (pointer->buttons == wimp_CLICK_SELECT)
 				choices_close_window();
@@ -221,7 +238,8 @@ static void choices_click_handler(wimp_pointer *pointer)
 
 	case CHOICE_ICON_SAVE:
 		if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
-			choices_read_window();
+			if (!choices_read_window())
+				break;
 			config_save();
 
 			if (pointer->buttons == wimp_CLICK_SELECT)
