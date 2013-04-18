@@ -160,7 +160,7 @@ struct discfile_section {
  * size plus the data size). Thus they might be up to three bytes less than the
  * rounded chunk size.
  */
- 
+
 enum discfile_chunk_flags {
 	DISCFILE_CHUNK_FLAGS_NONE = 0,						/**< There are no chunk flags set.				*/
 	DISCFILE_CHUNK_FLAGS_UNUSED = 0xffffffffu				/**< Bitmask for all the unused flag bits which should be zero.	*/
@@ -296,7 +296,7 @@ void discfile_start_section(struct discfile_block *handle, enum discfile_section
 	section.type = type;
 	section.size = 0;
 	section.flags = DISCFILE_SECTION_FLAGS_NONE;
-	
+
 	if (multiple == TRUE)
 		section.flags |= DISCFILE_SECTION_FLAGS_MULTIPLE;
 
@@ -674,12 +674,12 @@ struct discfile_block *discfile_open_read(char *filename)
 	new->mode = DISCFILE_READ;
 	new->format = DISCFILE_UNKNOWN_FORMAT;
 	new->error_token = NULL;
-	
+
 	/* Initialise the Locate 2 file section info blocks. Each pointer is set
 	 * to start from the first section, so that it will work for both multiple
 	 * and non-multiple sections.
 	 */
-	
+
 	for (i = 0; i < DISCFILE_MAX_SECTIONS; i++) {
 		new->section_info[i].ptr = sizeof(struct discfile_header);
 		new->section_info[i].multiple = FALSE;
@@ -1028,6 +1028,7 @@ char *discfile_legacy_read_string(struct discfile_block *handle, char *text, siz
 	error = xosargs_read_ptrw(handle->handle, &ptr);
 	if (error != NULL) {
 		discfile_set_error(handle, "FileError");
+		text[0] = '\0';
 		return text;
 	}
 
@@ -1039,6 +1040,7 @@ char *discfile_legacy_read_string(struct discfile_block *handle, char *text, siz
 
 	if (max_bytes <= 0) {
 		discfile_set_error(handle, "FileUnrec");
+		text[0] = '\0';
 		return text;
 	}
 
@@ -1234,7 +1236,7 @@ static void discfile_validate_structure(struct discfile_block *handle)
 			discfile_set_error(handle, "FileUnrec");
 			return;
 		}
-		
+
 		if (section.type < 0 || section.type >= DISCFILE_MAX_SECTIONS) {
 			discfile_set_error(handle, "FileUnrec");
 			return;
@@ -1244,15 +1246,15 @@ static void discfile_validate_structure(struct discfile_block *handle)
 			discfile_set_error(handle, "FileUnrec");
 			return;
 		}
-		
+
 		if (handle->section_info[section.type].count > 0 &&
 				(handle->section_info[section.type].multiple == FALSE || (section.flags & DISCFILE_SECTION_FLAGS_MULTIPLE) == 0)) {
 			discfile_set_error(handle, "FileUnrec");
 			return;
 		}
-		
+
 		handle->section_info[section.type].count++;
-		
+
 		if (section.flags & DISCFILE_SECTION_FLAGS_MULTIPLE)
 			handle->section_info[section.type].multiple = TRUE;
 
@@ -1330,7 +1332,7 @@ osbool discfile_open_section(struct discfile_block *handle, enum discfile_sectio
 			discfile_set_error(handle, "FileError");
 		return FALSE;
 	}
-	
+
 	ptr = handle->section_info[type].ptr;
 
 	/* Get the file extent. */
@@ -1355,11 +1357,11 @@ osbool discfile_open_section(struct discfile_block *handle, enum discfile_sectio
 
 		if (section.type == type) {
 			handle->section = ptr;
-			
+
 			/* If this is a "multiple" section, then on the next pass,
 			 * start looking from the next section in the file.
-			 */ 
-			
+			 */
+
 			if (handle->section_info[type].multiple)
 				handle->section_info[type].ptr = ptr + section.size;
 		} else {
