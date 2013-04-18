@@ -1529,7 +1529,7 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 		success = FALSE;
 	}
 
-	if (success && !search_validate_paths(dialogue->path)) {
+	if (success && !search_validate_paths(dialogue->path, TRUE)) {
 		success = FALSE;
 	}
 

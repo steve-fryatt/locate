@@ -73,6 +73,7 @@
 #define CHOICE_ICON_PLUGIN_QUIT 13
 #define CHOICE_ICON_PLUGIN_WINDOW 14
 #define CHOICE_ICON_AUTOSCROLL 15
+#define CHOICE_ICON_VALIDATE_PATHS 16
 
 
 /* Global variables */
@@ -160,6 +161,7 @@ static void choices_set_window(void)
 	icons_set_selected(choices_window, CHOICE_ICON_PLUGIN_QUIT, config_opt_read("QuitAsPlugin"));
 	icons_set_selected(choices_window, CHOICE_ICON_PLUGIN_WINDOW, config_opt_read("SearchWindAsPlugin"));
 	icons_set_selected(choices_window, CHOICE_ICON_AUTOSCROLL, config_opt_read("ScrollResults"));
+	icons_set_selected(choices_window, CHOICE_ICON_VALIDATE_PATHS, config_opt_read("ValidatePaths"));
 }
 
 
@@ -180,6 +182,7 @@ static void choices_read_window(void)
 	config_opt_set("QuitAsPlugin", icons_get_selected(choices_window, CHOICE_ICON_PLUGIN_QUIT));
 	config_opt_set("SearchWindAsPlugin", icons_get_selected(choices_window, CHOICE_ICON_PLUGIN_WINDOW));
 	config_opt_set("ScrollResults", icons_get_selected(choices_window, CHOICE_ICON_AUTOSCROLL));
+	config_opt_set("ValidatePaths", icons_get_selected(choices_window, CHOICE_ICON_VALIDATE_PATHS));
 }
 
 

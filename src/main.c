@@ -176,9 +176,11 @@ static void main_poll_loop(void)
 
 static void main_initialise(void)
 {
-	static char		task_name[255];
-	char			resources[255], res_temp[255];
-	osspriteop_area		*sprites;
+	static char			task_name[255];
+	char				resources[255], res_temp[255];
+	osspriteop_area			*sprites;
+	wimp_error_box_selection	selection;
+	wimp_pointer			pointer;
 
 	wimp_version_no		wimp_version;
 
@@ -224,6 +226,7 @@ static void main_initialise(void)
 	config_opt_init("SearchWindAsPlugin", FALSE);				/**< TRUE to open a search window when acting as a plugin.	*/
 	config_opt_init("FullInfoDisplay", FALSE);				/**< TRUE to display full file info by default.			*/
 	config_int_init("MultitaskTimeslot", 10);				/**< The timeslot, in cs, allowed for a search poll.		*/
+	config_opt_init("ValidatePaths", TRUE);					/**< TRUE to validate search paths on load; FALSE to ignore.	*/
 
 	config_load();
 
@@ -260,6 +263,14 @@ static void main_initialise(void)
 	templates_close();
 
 	hourglass_off();
+
+	if (config_opt_read("ValidatePaths") && !search_validate_paths(config_str_read("SearchPath"), FALSE)) {
+		selection = error_msgs_report_question("BadPaths", "BadPathsB");
+		if (selection == 1) {
+			wimp_get_pointer_info(&pointer);
+			choices_open_window(&pointer);
+		}
+	}
 }
 
 

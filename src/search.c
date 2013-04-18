@@ -1062,11 +1062,13 @@ static unsigned search_drop_stack(struct search_block *search)
  * detals are reported to the user.
  *
  * \param *paths		Pointer to the list of paths to test.
+ * \param report		TRUE to flag errors up to the user; FALSE to
+ *				return quietly.
  * \return			TRUE if all paths are valid; FALSE if an error
  *				was found.
  */
 
-osbool search_validate_paths(char *paths)
+osbool search_validate_paths(char *paths, osbool report)
 {
 	char			*copy, *path, *path_end, errbuf[256];
 	osbool			done = FALSE, success = TRUE;
@@ -1090,17 +1092,21 @@ osbool search_validate_paths(char *paths)
 		if (*path != '\0') {
 			error = xosfile_read_no_path(path, &type, NULL, NULL, NULL, NULL);
 			if (error != NULL) {
-				error_report_error(error->errmess);
+				if (report)
+					error_report_error(error->errmess);
 				success = FALSE;
 			} else if (type == fileswitch_NOT_FOUND || type == fileswitch_IS_FILE) {
-				if (strlen(path) > 200)
-					strcpy(path + 197, "...");
-				msgs_param_lookup("BadPath", errbuf, sizeof(errbuf), path, NULL, NULL, NULL);
-				error_report_info(errbuf);
+				if (report) {
+					if (strlen(path) > 200)
+						strcpy(path + 197, "...");
+					msgs_param_lookup("BadPath", errbuf, sizeof(errbuf), path, NULL, NULL, NULL);
+					error_report_info(errbuf);
+				}
 				success = FALSE;
 			}
 		} else {
-			error_msgs_report_info("EmptyPath");
+			if (report)
+				error_msgs_report_info("EmptyPath");
 			success = FALSE;
 		}
 

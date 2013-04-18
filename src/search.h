@@ -198,11 +198,13 @@ void search_poll_all(void);
  * detals are reported to the user.
  *
  * \param *paths		Pointer to the list of paths to test.
+ * \param report		TRUE to flag errors up to the user; FALSE to
+ *				return quietly.
  * \return			TRUE if all paths are valid; FALSE if an error
  *				was found.
  */
 
-osbool search_validate_paths(char *paths);
+osbool search_validate_paths(char *paths, osbool report);
 
 #endif
 
