@@ -34,3 +34,22 @@ Locate 2 Issues List
 * Status bar doesn't have an error count when files get reloaded.
 
 * The Suppress Errors option probably needs implementing or removing!
+
+* Filetype info cacheing shouldn't ignore a type once it has been flagged as
+  "Unknown".
+
+* feature request; if results window ('full info' option ticked) had columns for
+  each parameter, maybe the results could be sorted by date or name or type, in
+  the same way as a filer window
+
+* pie in the sky idea; Under the 'age' criteria, another option on the sub-menu
+  to search for 'File is ... most recent'. In other words the newest object that
+  matches the criteria. I realise this doesn't really fit in with the way the
+  software outputs results to the search window as it scans, so is probably
+  impossible and requires a different app altogether. The reason I mention it is
+  if I have a number of backups of a given directory on disc(s), each backup
+  being taken at a different time, and I have been remiss and not labelled the
+  backups correctly, I might want to know which is the most recent, and the only
+  way to be sure would be to look at every single file within them. I suppose if
+  the above item (3) were implemented it would be possible to search and then
+  find the newest item by sorting the results by date afterwards.
