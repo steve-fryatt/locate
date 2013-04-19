@@ -100,9 +100,13 @@ The necessary libraries and build tools can be found at <link ref="#url http://w
 
 <chapter title="Introduction" file="Introduction">
 
-<cite>Locate</cite> is a file find utility for RISC OS.  It will search a specified directory for files that match a set of conditions.  These conditions include the filename (including wildcards), file size, modification date, filetype and attributes.
+<cite>Locate</cite> is a file find utility for RISC&nbsp;OS.  It will search a specified directory for files that match a set of conditions.  These conditions include the filename (including wildcards), file size, modification date, filetype, attributes and contents.
 
-<cite>Locate</cite> is loosely based on similar utilities available on other platforms: particularly <cite>File Find</cite> on the '9x versions of <cite>Windows</cite>.
+<cite>Locate</cite> is loosely based on similar utilities available on other platforms: particularly the <cite>File Find</cite> tool that was once found on the '9x versions of <cite>Windows</cite>.
+
+Note that with the arrival of <cite>Locate&nbsp;2</cite>, there are now two distinct versions of <cite>Locate</cite> in circulation. While they share the same name and outward appearance, internally they are very different pieces of software. <cite>Locate&nbsp;2</cite> will load search settings saved from the original, but will currently not load old results (although it can load settings from those files so that searches can be repeated) &ndash; this limitation might be removed in a future update. It will never be possible to load files saved from <cite>Locate&nbsp;2</cite> into the original version.
+
+Unless it explicitly stated otherwise, references in this manual to &quot;Locate&quot; refer to <cite>Locate&nbsp;2</cite> &ndash; this is now the only supported version of the software.
 
 </chapter>
 
@@ -111,11 +115,11 @@ The necessary libraries and build tools can be found at <link ref="#url http://w
 
 <chapter title="Installing Locate" file="Installation">
 
-<cite>Locate</cite> requires RISC OS 4 or later; it might work with earlier versions, but requires the Nested Wimp and is unsupported.  It can be run off a hard disc or floppy disc.
+<cite>Locate</cite> requires RISC&nbsp;OS&nbsp;4 or later; it might work with earlier versions, but requires the Nested Wimp and its use is unsupported.  It can be run off a hard disc or floppy disc.
 
-To install <cite>Locate</cite> on a hard disc, copy the <file>!Locate</file> application to a suitable directory.
+To install <cite>Locate</cite> on a hard disc, copy the <file>!Locate</file> application to a suitable directory. If you have installed <cite>Locate</cite> using a package management system, then please refer to the instructions which came with that.
 
-Under RISC OS <cite>Select</cite>, <cite>Locate</cite> will act as a <cite>Filer</cite> plugin for Find by default.  See the <link ref="Plugin">Filer Action Plugin</link> section for details of how to disable this feature.
+Under RISC&nbsp;OS <cite>Select</cite>, <cite>Locate</cite> will act as a <cite>Filer</cite> plugin for Find by default.  See the <link ref="Plugin">Filer Action Plugin</link> section for details of how to disable this feature.
 
 </chapter>
 
@@ -124,15 +128,15 @@ Under RISC OS <cite>Select</cite>, <cite>Locate</cite> will act as a <cite>Filer
 
 <chapter title="Simple Searches" file="Simple">
 
-To use <cite>Locate</cite>, run it in the usual way by double-clicking on its icon.  When its icon appears on the icon-bar, click <mouse>select</mouse> on the <cite>Locate</cite> icon to open the <window>search</window> dialogue.
+To use <cite>Locate</cite>, start it in the usual way by double-clicking on its icon in a directory window (or via your preferred application launcher).  When the <cite>Locate</cite> icon appears on the icon-bar, click <mouse>select</mouse> on it to open the <window>search</window> dialogue.
 
-By default, <cite>Locate</cite> will validate the default search paths configured in the <icon>Search directories</icon> field of the <window>choices</window> dialogue when it loads. If any are invalid on the current machine (for example if the system only has USB-connected drives and therefore no ADFS, the default of 'ADFS::4.$' will not exist), then it will warn of the problem and offer the option to edit the settings. Accepting this will open the <link ref="Configuration">choices dialogue</link>; otherwise the paths can be left as they are but will need to be corrected in the <window>search</window> dialogue before a search can be carried out. This validation can be disabled from the <window>choices</window> dialogue.
+By default, <cite>Locate</cite> will validate the default search paths configured in the <icon>Search directories</icon> field of the <window>choices</window> dialogue when it loads. If any are invalid on the current machine (for example if the system only has USB-connected drives and therefore no ADFS, then the default path of <file>ADFS::4.$</file> will not exist), then it will warn of the problem and offer the option to edit the settings. Accepting this will open the <link ref="Configuration">choices dialogue</link>; otherwise the problem can be ignored and the paths left as they are &ndash; but they will need to be corrected in the <window>search</window> dialogue before a search can be carried out. This validation can be disabled from the <window>choices</window> dialogue if not required.
 
 <subhead title="RISC OS Select Filer plugin">
 
-If you have RISC OS <cite>Select</cite>, <cite>Locate</cite> will also perform searches when the <menu>Find</menu> option in the Filer menu is used.  By default this will bypass the search window, simply searching for objects with the given name in the selected directories.  Unlike the Filer's normal find option, the <cite>Locate</cite> plugin uses wildcards in the filename as described below.
+If you have RISC OS <cite>Select</cite>, then <cite>Locate</cite> can also perform searches when the <menu>Find</menu> option in the <cite>Filer</cite> menu is used.  By default this will bypass the search window, simply searching for objects with the given name in the selected directories.  Unlike the <cite>Filer</cite>'s normal find option, the <cite>Locate</cite> plugin uses wildcards in the filename as described below.
 
-To add more parameters to the search, stop the search from the <link ref="Results">results window menu</link> and use the <menu>Modify search...</menu> option.  It is possible to have the <menu>Find</menu> option open a search window instead of starting a search directly: to change the behaviour of the plugin, see the <link ref="Configuration">choices window</link>.  Instructions for disabling the plugin are also available in the <link ref="Plugin">Filer Action Plugin</link> section, to allow the standard Filer Action search to be used instead.
+To add more parameters to the search in this situation, stop the search from the <link ref="Results">results window menu</link> and use the <menu>Modify search...</menu> option.  It is possible to have the <menu>Find</menu> option open a search window instead of starting a search directly: to change the behaviour of the plugin, see the <link ref="Configuration">choices window</link>.  Instructions for disabling the plugin are also available in the <link ref="Plugin">Filer Action Plugin</link> section, to allow the standard Filer Action search to be used instead.
 
 
 

@@ -3,6 +3,8 @@ Locate 2 Issues List
 
 * There's no duplicate checking when entering hotlist names.
 
+* Dragging the iconbar icon hasn't been implemented.
+
 * There is no filetype check in file_create_from_saved() or
   hotlist_load_choices() -- the former is passed files from the commandline with
   not other checks; the latter loads files from Choices: in a similarly trusting
