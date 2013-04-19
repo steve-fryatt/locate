@@ -241,8 +241,6 @@ unsigned objdb_add_root(struct objdb_block *handle, char *path)
 	if ((length = objdb_get_name_length(handle, handle->list[index].key)) > handle->longest_path)
 		handle->longest_path = length;
 
-	debug_printf("\\YAdding root details for %s with key %u", path, handle->list[index].key);
-
 	return handle->list[index].key;
 }
 
@@ -280,8 +278,6 @@ unsigned objdb_add_file(struct objdb_block *handle, unsigned parent, osgbpb_info
 
 	if ((length = objdb_get_name_length(handle, handle->list[index].key)) > handle->longest_path)
 		handle->longest_path = length;
-
-	debug_printf("\\YAdding file details for %s to %u with key %u", file->name, parent, handle->list[index].key);
 
 	return handle->list[index].key;
 }
@@ -779,8 +775,6 @@ void objdb_delete_last_key(struct objdb_block *handle, unsigned key)
 	 * last one to be allocated, to keep the two in step and speed up
 	 * accesses.
 	 */
-
-	debug_printf("\\ODeleting key %u", handle->list[index].key);
 
 	if (handle->list[index].key + 1 == handle->key)
 		handle->key--;

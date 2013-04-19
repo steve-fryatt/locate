@@ -133,8 +133,6 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 	if (new == NULL)
 		return NULL;
 
-	debug_printf("Created new content search: 0x%x", new);
-
 	new->objects = objects;
 	new->results = results;
 
@@ -167,8 +165,6 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 
 		if (new->any_case)
 			string_toupper(new->text);
-
-		debug_printf("String to match: '%s', inverted=%d", new->text, new->invert);
 	} else {
 		mem_ok = FALSE;
 	}
@@ -212,8 +208,6 @@ void contents_destroy(struct contents_block *handle)
 	if (handle == NULL)
 		return;
 
-	debug_printf("Destroyed content search: 0x%x", handle);
-
 	if (handle->filename != NULL)
 		flex_free((flex_ptr) &(handle->filename));
 
@@ -253,8 +247,6 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 
 	handle->pointer = 0;
 	handle->matched = FALSE;
-
-	debug_printf("Processing object content: key = %d", key);
 
 	/* Find the filename of the file to be searched. */
 
@@ -303,8 +295,6 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 	if (handle == NULL)
 		return TRUE;
 
-	//debug_printf("Starting contents search loop %d at time %u", handle->pointer, os_read_monotonic_time());
-
 	while (!handle->error && (!handle->invert || !handle->matched) && (handle->pointer < handle->file_extent) &&
 			(os_read_monotonic_time() < end_time)) {
 		byte = contents_get_byte(handle, handle->pointer, TRUE);
@@ -312,8 +302,6 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 		end = -1;
 
 		if (byte == *(handle->text) && contents_test_wildcard(handle, handle->pointer, &end)) {
-			debug_printf("Match at offset %d", handle->pointer);
-
 			if (!handle->invert) {
 				if (!handle->matched)
 					handle->parent = results_add_file(handle->results, handle->key);
@@ -334,8 +322,6 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 
 		handle->pointer++;
 	}
-
-	//debug_printf("Finishing contents search loop at time %u", os_read_monotonic_time());
 
 	if (handle->error || (handle->matched && handle->invert) || handle->pointer >= handle->file_extent) {
 		if (handle->invert && !handle->matched && !handle->error)
@@ -371,15 +357,11 @@ static osbool contents_test_wildcard(struct contents_block *handle, int pointer,
 	 *     does move the flex heap, then this will break messily!
 	 */
 
-	//debug_printf("Entering wildcard routine");
-
 	if (end != NULL)
 		*end = 0;
 
 loopStart:
 	for (i = 0; pattern[i] != '\0' && (pointer + i) < handle->file_extent; i++) {
-		//debug_printf("Loop i=%d, for pattern %c", i, pattern[i]);
-
 		switch (pattern[i]) {
 		case '?':
 			break;
@@ -397,7 +379,6 @@ loopStart:
 			if (!*pattern) {
 				if (end != NULL)
 					*end = pointer + i - 1;
-				//debug_printf("Returning TRUE");
 				return TRUE;
 			}
 
@@ -405,7 +386,6 @@ loopStart:
 			break;
 
 		default:
-			//debug_printf("Testing char=%c against pattern=%c", contents_get_byte(handle, pointer + i, TRUE), pattern[i]);
 			if (contents_get_byte(handle, pointer + i, TRUE) != pattern[i])
 				goto starCheck;
 
@@ -419,15 +399,12 @@ loopStart:
 	while (pattern[i] == '*')
 		++i;
 
-	//debug_printf("Returning %s", (!pattern[i]) ? "TRUE" : "FALSE");
-
 	return (!pattern[i]);
 
 starCheck:
 	if (!star) {
 		if (end != NULL)
 			*end = pointer + i - 1;
-		//debug_printf("Returning FALSE");
 		return FALSE;
 	}
 

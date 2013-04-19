@@ -88,9 +88,9 @@ void plugin_filer_launched(void)
 {
 	if (plugin_current_state != PLUGIN_STATE_IDLE)
 		return;
-	
+
 	plugin_current_state = PLUGIN_STATE_WAITING;
-	
+
 }
 
 
@@ -109,33 +109,30 @@ static osbool plugin_message_filer_action(wimp_message *message)
 	filer_full_message_action		*filer_action = (filer_full_message_action *) message;
 	wimp_full_message_task_close_down	close_down;
 
-	
+
 	if (filer_action->operation != fileraction_FIND)
 		return FALSE;
-		
+
 	switch (plugin_current_state) {
 	case PLUGIN_STATE_IDLE:
-		debug_printf("Message Exchange Started");
 		message->your_ref = message->my_ref;
 		error = xwimp_send_message(wimp_USER_MESSAGE, message, message->sender);
 		if (error == NULL) {
 			plugin_current_state = PLUGIN_STATE_WAITING;
-			
+
 		}
 		break;
-		
+
 	case PLUGIN_STATE_RECEIVED_FILES:
-		debug_printf("Message Exchange completed.");
 		plugin_current_state = PLUGIN_STATE_IDLE;
-		
+
 		close_down.size = 20;
 		close_down.your_ref = 0;
 		close_down.action = message_TASK_CLOSE_DOWN;
 		wimp_send_message(wimp_USER_MESSAGE, (wimp_message *) &close_down, message->sender);
 		break;
-	
+
 	default:
-		debug_printf("Unexpected Message_FilerAction");
 		plugin_current_state = PLUGIN_STATE_IDLE;
 		break;
 	}
@@ -157,8 +154,6 @@ static osbool plugin_message_filer_selection_dir(wimp_message *message)
 
 	filer_full_message_selection_dir	*selection_dir = (filer_full_message_selection_dir *) message;
 	//help_full_message_reply		help_reply;
-	
-	debug_printf("Received Message_FilerSelectionDir: '%s'", selection_dir->dir_name);
 
 	plugin_current_state = PLUGIN_STATE_RECEIVED_DIRECTORY;
 
@@ -179,8 +174,6 @@ static osbool plugin_message_filer_add_selection(wimp_message *message)
 
 	filer_full_message_add_selection	*add_selection = (filer_full_message_add_selection *) message;
 	//help_full_message_reply		help_reply;
-	
-	debug_printf("Received Message_FilerAddSelection: '%s'", add_selection->leaf_list);
 
 	plugin_current_state = PLUGIN_STATE_RECEIVED_FILES;
 

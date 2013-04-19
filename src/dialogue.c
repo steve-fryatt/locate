@@ -393,7 +393,6 @@ static int	dialogue_scale_size(unsigned base, enum dialogue_size_unit unit, osbo
 static void	dialogue_scale_age(os_date_and_time date, unsigned base, enum dialogue_age_unit unit, int round);
 static osbool	dialogue_save_settings(char *filename, osbool selection, void *data);
 static void	dialogue_add_to_hotlist(void);
-static void	dialogue_dump_settings(struct dialogue_block *dialogue);
 
 
 /**
@@ -705,14 +704,10 @@ void dialogue_destroy(struct dialogue_block *dialogue, enum dialogue_client clie
 	 * data.
 	 */
 
-	debug_printf("Dialogue 0x%x in use by 0x%x; deletion requested by 0x%x", dialogue, dialogue->clients, client);
-
 	dialogue->clients &= ~client;
 
 	if (dialogue->clients != DIALOGUE_CLIENT_NONE)
 		return;
-
-	debug_printf("Deleting dialogue!");
 
 	/* Free the memory used and exit. */
 
@@ -2237,10 +2232,6 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 	if (dialogue == NULL || dialogue->file == NULL)
 		return;
 
-	/* Dump the settings to Reporter for debugging. */
-
-	dialogue_dump_settings(dialogue);
-
 	/* Calculate the required fixed buffer size and allocate the buffer. */
 
 	buffer_size = MAX_BUFFER(buffer_size, strlen(dialogue->path) + 1);
@@ -2622,102 +2613,4 @@ static void dialogue_add_to_hotlist(void)
 
 	dialogue_destroy(dialogue, DIALOGUE_CLIENT_NONE);
 }
-
-
-/**
- * Dump the contents of the a search parameter block for debugging.
- *
- * \param *dialogue		The dialogue data block to dump the settings from.
- */
-
-static void dialogue_dump_settings(struct dialogue_block *dialogue)
-{
-	char			line[DIALOGUE_MAX_FILE_LINE];
-	int			i, index;
-
-
-	if (dialogue == NULL)
-		return;
-
-	debug_printf("Search path: '%s'", dialogue->path);
-
-	debug_printf("Filename: '%s'", dialogue->filename);
-	debug_printf("Ignore Case: %s", config_return_opt_string(dialogue->ignore_case));
-
-	/* Set the Size pane */
-
-	debug_printf("Size Mode: %d", dialogue->size_mode);
-	debug_printf("Min Size Unit: %d", dialogue->size_min_unit);
-	debug_printf("Max Size Unit: %d", dialogue->size_max_unit);
-	debug_printf("Min Size: %d", dialogue->size_min);
-	debug_printf("Max Size: %d", dialogue->size_max);
-
-	/* Set the Date / Age pane. */
-
-	debug_printf("Use Age Mode: %s", config_return_opt_string(dialogue->use_age));
-
-	debug_printf("Date Mode: %d", dialogue->date_mode);
-	debug_printf("Min Date Status: %d", dialogue->date_min_status);
-	datetime_write_date(dialogue->date_min, dialogue->date_min_status, line, DIALOGUE_MAX_FILE_LINE);
-	debug_printf("Min Date: '%s'", line);
-	debug_printf("Max Date Status: %d", dialogue->date_max_status);
-	datetime_write_date(dialogue->date_max, dialogue->date_max_status, line, DIALOGUE_MAX_FILE_LINE);
-	debug_printf("Max Date: '%s'", line);
-
-	debug_printf("Age Mode: %d", dialogue->age_mode);
-	debug_printf("Min Age Unit: %d", dialogue->age_min_unit);
-	debug_printf("Max Age Unit: %d", dialogue->age_max_unit);
-	debug_printf("Min Age: %d", dialogue->age_min);
-	debug_printf("Max Age: %d", dialogue->age_max);
-
-	/* Set the Type pane */
-
-	debug_printf("Match Directories: %s", config_return_opt_string(dialogue->type_directories));
-	debug_printf("Match Applications: %s", config_return_opt_string(dialogue->type_applications));
-	debug_printf("Match Files: %s", config_return_opt_string(dialogue->type_files));
-	debug_printf("Type Mode: %d", dialogue->type_mode);
-
-	index = 0;
-	for (i = 0; dialogue->type_types[i] != 0xffffffffu; i++) {
-		index += snprintf(line + index, DIALOGUE_MAX_FILE_LINE - (index + 1), "%03x,", dialogue->type_types[i]);
-	}
-	if (index > 0)
-		*(line + index - 1) = '\0';
-	else
-		*line = '\0';
-	debug_printf("Type List: '%s'", line);
-
-
-	//dialogue_write_filetype_list(icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE),
-	//		icons_get_indirected_text_length(dialogue_panes[DIALOGUE_PANE_TYPE], DIALOGUE_TYPE_ICON_TYPE),
-	//		dialogue->type_types);
-
-	/* Set the Attributes pane. */
-
-	debug_printf("Test Locked: %s", config_return_opt_string(dialogue->attributes_locked));
-	debug_printf("Test Owner Read: %s", config_return_opt_string(dialogue->attributes_owner_read));
-	debug_printf("Test Owner Write: %s", config_return_opt_string(dialogue->attributes_owner_write));
-	debug_printf("Test Public Read: %s", config_return_opt_string(dialogue->attributes_public_read));
-	debug_printf("Test Public Write: %s", config_return_opt_string(dialogue->attributes_public_write));
-	debug_printf("Locked Status: %s", config_return_opt_string(dialogue->attributes_locked_yes));
-	debug_printf("Owner Read Status: %s", config_return_opt_string(dialogue->attributes_owner_read_yes));
-	debug_printf("Owner Write Status: %s", config_return_opt_string(dialogue->attributes_owner_write_yes));
-	debug_printf("Public Read Status: %s", config_return_opt_string(dialogue->attributes_public_read_yes));
-	debug_printf("Public Write Status: %s", config_return_opt_string(dialogue->attributes_public_write_yes));
-
-	/* Set the Contents pane. */
-
-	debug_printf("Contents Mode: %d", dialogue->contents_mode);
-	debug_printf("File Contents: '%s'", dialogue->contents_text);
-	debug_printf("Ignore Case in Contents: %s", config_return_opt_string(dialogue->contents_ignore_case));
-	debug_printf("Allow Ctrl Chars in Contents: %s", config_return_opt_string(dialogue->contents_ctrl_chars));
-
-	/* Set the search options. */
-
-	debug_printf("Store All Files: %s", config_return_opt_string(dialogue->store_all));
-	debug_printf("Ignore ImageFS Contents: %s", config_return_opt_string(dialogue->ignore_imagefs));
-	debug_printf("Suppress Errors: %s", config_return_opt_string(dialogue->suppress_errors));
-	debug_printf("Display Full Info: %s", config_return_opt_string(dialogue->full_info));
-}
-
 

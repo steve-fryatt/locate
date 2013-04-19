@@ -1617,8 +1617,6 @@ static osbool hotlist_save_choices(void)
 
 	config_find_save_file(filename, 1024, "Hotlist");
 
-	debug_printf("Saving hotlist to '%s'", filename);
-
 	return hotlist_save_file(filename, FALSE);
 }
 
@@ -1816,8 +1814,6 @@ void hotlist_process_menu_selection(int selection)
 {
 	if (selection < 0 || selection >= hotlist_entries)
 		return;
-
-	debug_printf("Selected hotlist menu item %d", selection);
 
 	if (hotlist[selection].dialogue != NULL)
 		hotlist_open_entry(selection);
