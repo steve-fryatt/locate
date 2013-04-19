@@ -1,6 +1,7 @@
 <document title="Locate">
 <define name="version" value="0.89">
 <define name="date" value="8 December 2004" length=30 align="right">
+<define name="sprites" value="Sprites">
 
 
 
@@ -149,8 +150,10 @@ To change the location, you can simply type the required paths into the field.  
 
 If an object is dragged to <cite>Locate</cite>'s icon-bar icon, the search window is opened ready to search that path.  The icon-bar icon can also be dragged to locations in the same way as the directory icon in the search window.
 
-<box>
-Hint: on RISC OS 4 you can drag the directory onto a filer icon to set the search path to the default directory (usually the root on that drive).
+<box type="info">
+On RISC OS 4 you can drag the directory onto a filer icon to set the search path to the default directory (usually the root on that drive).
+
+This is a two-line box.
 </box>
 
 The default path used for the search is set in the <link ref="Configuration">choices window</link>.
@@ -860,6 +863,8 @@ fH5        = f14
 fH6        = f15
 
 # Set default background and font
+
+#SpriteFile Sprites
 
 #Background rgb 255,255,255
 Background wimp 1
