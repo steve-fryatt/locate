@@ -765,11 +765,9 @@ Public Alpha release.
 <li>Fixed bug causing filetype searches to fail for typed files when used in conjunction with date or age restrictions.
 </list>
 
-<subhead title="Test Builds">
+<subhead title="2.00 (19 April 2013)">
 
-Public Alpha release.
-
-The current test builds are for <cite>Locate&nbsp;2</cite>, which is a complete re-write of the original <cite>Locate</cite>. At present this documentation is still catching up, and some features of the original remain unimplemented.
+First Stable Release of Locate 2.
 
 <list>
 <li>Complete re-implementation in C.
@@ -796,8 +794,6 @@ This version of <cite>Locate</cite> is still not finished and several intended f
 <li>Add stop/modify search buttons to the status bar (or toolbar).
 <li>Make <window>search window</window> opening configurable, so that any pane can be opened by default.
 </list>
-
-Some of these are very much 'internal' features that won't show up much to the user.  They are only listed here to keep one single list of things still to be done.
 
 </chapter>
 
