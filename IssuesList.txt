@@ -1,8 +1,6 @@
 Locate 2 Issues List
 --------------------
 
-* There's no duplicate checking when entering hotlist names.
-
 * Dragging the iconbar icon hasn't been implemented.
 
 * Filetype menu should be in numeric order when opened with Adjust.

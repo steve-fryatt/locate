@@ -110,6 +110,7 @@ Hotlist:Hotlist
 HotlistNone:No Entries
 HotlistNew:Saved Search
 HotlistNoName:You must enter a name for the hotlist entry.
+HotlistDupName:This name is already used in the hotlist.
 HotlistNoMem:Unable to allocate memory for the new hotlist entry.
 
 # Filename window menus.

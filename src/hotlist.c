@@ -1378,6 +1378,7 @@ static osbool hotlist_read_add_window(void)
 {
 	char			*new_name;
 	wimp_window_state	window;
+	int			i;
 
 	new_name = icons_get_indirected_text_addr(hotlist_add_window, HOTLIST_ADD_ICON_NAME);
 	string_ctrl_zero_terminate(new_name);
@@ -1385,6 +1386,14 @@ static osbool hotlist_read_add_window(void)
 	if (new_name == NULL || strlen(new_name) == 0) {
 		error_msgs_report_info("HotlistNoName");
 		return FALSE;
+	}
+
+	for (i = 0; i < hotlist_entries; i++) {
+		if (string_nocase_strcmp(new_name, hotlist[i].name) == 0 &&
+				(hotlist_add_entry == 0 || hotlist_add_entry != i)) {
+			error_msgs_report_info("HotlistDupName");
+			return FALSE;
+		}
 	}
 
 	if (hotlist_add_dialogue_handle == NULL && hotlist_add_entry >= 0 && hotlist_add_entry < hotlist_entries) {
