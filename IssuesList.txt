@@ -1,10 +1,6 @@
 Locate 2 Issues List
 --------------------
 
-* Dragging the iconbar icon hasn't been implemented.
-
-* Filetype menu should be in numeric order when opened with Adjust.
-
 * There is no filetype check in file_create_from_saved() or
   hotlist_load_choices() -- the former is passed files from the commandline with
   not other checks; the latter loads files from Choices: in a similarly trusting
