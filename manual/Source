@@ -71,13 +71,13 @@ Locate - Flexible file search for RISC OS                        Version $$versi
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 <link rel="stylesheet" type="text/css" href="../../style/base.css" media="screen">
-<title>RISC&nbsp;OS Software &ndash; Locate&nbsp;2 &nbsp; Manual</title>
+<title>RISC&nbsp;OS Software &ndash; Locate &ndash; Manual</title>
 </head>
 
 <body bgcolor="#ffffff" text="#000000">
 <div id="container">
 <div id="header">
-<h1>Locate&nbsp;2 &ndash; Manual</h1>
+<h1>Locate &ndash; Manual</h1>
 </div>
 
 <div id="content">
@@ -249,7 +249,7 @@ Saved results files can be dragged to the <link ref="Hotlist">hotlist</link> in 
 
 <menu>Copy names</menu> will copy the names of the files (or those that are currently selected) on to the global clipboard, ready to be pasted into another application.
 
-<menu>Modify search...</menu> opens a search window containing the parameters used before (clicking <mouse>select</mouse> on the iconbar icon always opens a blank <link ref="Simple">search window</link>, although <mouse>adjust</mouse> will recall the last search parameters used).  Note that you can only ever have one search window open at a time (but as many results windows as you have the free memory for - up to the application space limit of 28Kb or course...).
+<menu>Modify search...</menu> opens a search window containing the parameters used before (clicking <mouse>select</mouse> on the iconbar icon always opens a blank <link ref="Simple">search window</link>, although <mouse>adjust</mouse> will recall the last search parameters used).  Note that you can only ever have one search window open at a time (but as many results windows as you have the free memory for &ndash; up to the application space limit of 28Kb or course...).
 
 <menu>Add to hotlist...</menu> will add the parameters used for the search to the <link ref="Hotlist">hotlist</link>, opening a dialogue so that a name can be supplied for the new entry.
 
@@ -327,7 +327,7 @@ By default the case of the name is ignored; un-tick the <icon>Ignore case</icon>
 
 <chapter title="Matching on File Size" file="Size">
 
-To check for certain sizes of file, select the <icon>Size</icon> option in the left margin of the <link ref="Advanced">search dialogue</link>.  Choose a search criteria from the drop down list (the default is <menu>not important</menu> meaning that the size is ignored).  Having selected a criteria, it is possible to enter the required size(s) into the fields below; select the units required for each field.  The larger units match a spread either side of the specified size, so 1Kb would match from 1Kb-512bytes to 1Kb+512bytes.
+To check for certain sizes of file, select the <icon>Size</icon> option in the left margin of the <link ref="Advanced">search dialogue</link>.  Choose a search criteria from the drop down list (the default is <menu>not important</menu> meaning that the size is ignored).  Having selected a criteria, it is possible to enter the required size(s) into the fields below; select the units required for each field.  The larger units match a spread either side of the specified size, so 1Kb would match from 1Kb&nbsp;&minus;&nbsp;512bytes to 1Kb&nbsp;+&nbsp;512bytes.
 
 Directories and applications will always match the size test, as their sizes are not very meaningful.
 
@@ -400,14 +400,14 @@ To check the contents of files, select <icon>Contents</icon> in the left margin 
 If <icon>Allow control chars</icon> is selected, certain control characters can be entered using <code>\</code> sequences.  These are as follows:
 
 <list>
-<li><code>\a</code> - Bell (ASCII 7)
-<li><code>\b</code> - Backspace (ASCII 8)
-<li><code>\f</code> - Formfeed (ASCII 12)
-<li><code>\n</code> - Newline (ASCII 10)
-<li><code>\r</code> - Carriage Return (ASCII 13)
-<li><code>\t</code> - Tab (ASCII 9)
-<li><code>\v</code> - Vertical Tab (ASCII 11)
-<li><code>\\</code> - Backslash (ASCII 92)
+<li><code>\a</code> &ndash; Bell (ASCII 7)
+<li><code>\b</code> &ndash; Backspace (ASCII 8)
+<li><code>\f</code> &ndash; Formfeed (ASCII 12)
+<li><code>\n</code> &ndash; Newline (ASCII 10)
+<li><code>\r</code> &ndash; Carriage Return (ASCII 13)
+<li><code>\t</code> &ndash; Tab (ASCII 9)
+<li><code>\v</code> &ndash; Vertical Tab (ASCII 11)
+<li><code>\\</code> &ndash; Backslash (ASCII 92)
 </list>
 
 The codes are always case-insensitive (so <code>\t</code> and <code>\T</code> are the same whatever the setting of the <icon>Ignore case</icon> switch); if any other character follows the <code>\</code>, both will be ignored.  If <icon>Allow control chars</icon> is off, no conversion takes place and <code>\t</code> would match the text <code>\t</code> in the file.
@@ -913,9 +913,9 @@ fStd
 
 <div><h2>Updates and Contacting Me</h2>
 
-<p>If you have any comments about Locate, or would like to report any bugs that you find, you can email me at the address below.</p>
+<p>If you have any comments about <cite>Locate</cite>, or would like to report any bugs that you find, you can email me at the address below.</p>
 
-<p>Updates to Locate and more programs for RISC&nbsp;OS computers can be found on my website at <a href="http://www.stevefryatt.org.uk/software/">http://www.stevefryatt.org.uk/software/</a></p></div>
+<p>Updates to <cite>Locate</cite> and more programs for RISC&nbsp;OS computers can be found on my website at <a href="http://www.stevefryatt.org.uk/software/">http://www.stevefryatt.org.uk/software/</a></p></div>
 
 <p class="breadcrumb">[ <a href="../../" class="breadcrumb">Home</a>
 | <a href="../" class="breadcrumb">RISC&nbsp;OS Software</a>
