@@ -58,8 +58,9 @@
 
 /* Application header files */
 
-#include "dataxfer.h"
+#include "saveas.h"
 
+#include "dataxfer.h"
 #include "ihelp.h"
 #include "main.h"
 #include "templates.h"
