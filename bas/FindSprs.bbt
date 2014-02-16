@@ -1,0 +1,56 @@
+REM >FindSprs
+REM
+REM Copyright 2002-2012, Stephen Fryatt (info@stevefryatt.org.uk)
+REM
+REM This file is part of Locate:
+REM
+REM   http://www.stevefryatt.org.uk/software/
+REM
+REM Licensed under the EUPL, Version 1.1 only (the "Licence");
+REM You may not use this work except in compliance with the
+REM Licence.
+REM
+REM You may obtain a copy of the Licence at:
+REM
+REM   http://joinup.ec.europa.eu/software/page/eupl
+REM
+REM Unless required by applicable law or agreed to in
+REM writing, software distributed under the Licence is
+REM distributed on an "AS IS" basis, WITHOUT WARRANTIES
+REM OR CONDITIONS OF ANY KIND, either express or implied.
+REM
+REM See the Licence for the specific language governing
+REM permissions and limitations under the Licence.REM >!Help
+
+REM Find themed sprites for Locate
+:
+REM NB: This is required over and above the !Boot/!Run files, because we need to KNOW that the
+REM sprites file exists before we go into Locate itself.
+:
+ON ERROR PRINT REPORT$+" at line "+STR$(ERL) : END
+:
+theme_dir$="<Locate$Dir>.Themes"
+theme$=""
+:
+DIM b% 255
+:
+SYS "XOS_ReadVarVal","Theme$Current",b%,256,0,0 TO ,,len% ;flags%
+IF (flags% AND 1)=0 THEN
+ b%?len%=13
+ IF $b%<>"" THEN
+  SYS "XOS_File",5,theme_dir$+"."+$b% TO type%
+  IF type%=2 OR type%=3 THEN theme$=$b%
+ ENDIF
+ENDIF
+:
+IF theme$="" THEN
+ SYS "OS_Byte",129,0,&FF TO ,os_version%
+ IF os_version%>=&A8 THEN theme$="RO4"
+ENDIF
+:
+IF theme$="" THEN theme$="Default"
+:
+theme_path$=theme_dir$+"."+theme$
+SYS "XOS_SetVarVal","Locate$Sprites",theme_path$,LEN(theme_path$),0,0
+
+

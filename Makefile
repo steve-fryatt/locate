@@ -47,6 +47,7 @@ MANTOOLS := $(SFBIN)/mantools
 BINDHELP := $(SFBIN)/bindhelp
 TEXTMERGE := $(SFBIN)/textmerge
 MENUGEN := $(SFBIN)/menugen
+TOKENIZE := $(SFBIN)/tokenize
 GETPKGREV := $(SFBIN)/getpackagerev
 MAKECONTROL := $(SFBIN)/makecontrol
 
@@ -91,6 +92,7 @@ SRCZIPFLAGS := -x "*/.svn/*" -r -y -9
 BUZIPFLAGS := -x "*/.svn/*" -r -y -9
 BINDHELPFLAGS := -f -r -v
 MENUGENFLAGS := -d
+TOKENIZEFLAGS := 
 
 
 # Includes and libraries.
@@ -102,6 +104,7 @@ LINKS := -L$(GCCSDK_INSTALL_ENV)/lib -lOSLibH32 -lSFLib32 -lFlexLib32
 # Set up the various build directories.
 
 SRCDIR := src
+BASDIR := bas
 MENUDIR := menus
 MANUAL := manual
 OBJDIR := obj
@@ -115,12 +118,15 @@ APP := !Locate
 UKRES := Resources/UK
 RUNIMAGE := !RunImage,ff8
 MENUS := Menus,ffd
+FINDHELP := !Help,ffb
 TEXTHELP := HelpText,fff
 SHHELP := Locate,3d6
 HTMLHELP := manual.html
 README := ReadMe,fff
 LICENSE := Licence,fff
+FINDSPRS := FindSprs,ffb
 EXTRAS := Extras
+STARTLOCATE := StartLocate,ffb
 
 
 # Set up the source files.
@@ -129,6 +135,9 @@ MANSRC := Source
 MANSPR := ManSprite
 READMEHDR := Header
 MENUSRC := menudef
+FINDHELPSRC := Help.bbt
+FINDSPRSSRC := FindSprs.bbt
+STARTLOCATESRC := StartLocate.bbt
 PKGCTRL := Control
 
 OBJS := choices.o clipboard.o contents.o dataxfer.o datetime.o dialogue.o	\
@@ -144,7 +153,7 @@ all: application documentation
 
 # Build the application and its supporting binary files.
 
-application: $(OUTDIR)/$(APP)/$(RUNIMAGE) $(OUTDIR)/$(APP)/$(UKRES)/$(MENUS)
+application: $(OUTDIR)/$(APP)/$(RUNIMAGE) $(OUTDIR)/$(APP)/$(UKRES)/$(MENUS) $(OUTDIR)/$(APP)/$(FINDSPRS) $(OUTDIR)/$(EXTRAS)/$(STARTLOCATE)
 
 
 # Build the complete !RunImage from the object files.
@@ -173,10 +182,20 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 $(OUTDIR)/$(APP)/$(UKRES)/$(MENUS): $(MENUDIR)/$(MENUSRC)
 	$(MENUGEN) $(MENUDIR)/$(MENUSRC) $(OUTDIR)/$(APP)/$(UKRES)/$(MENUS) $(MENUGENFLAGS)
 
+# Build the other bits of BASIC.
+
+$(OUTDIR)/$(APP)/$(FINDSPRS): $(BASDIR)/$(FINDSPRSSRC)
+	$(TOKENIZE) $(TOKENIZEFLAGS) $(BASDIR)/$(FINDSPRSSRC) -out $(OUTDIR)/$(APP)/$(FINDSPRS)
+
+$(OUTDIR)/$(EXTRAS)/$(STARTLOCATE): $(BASDIR)/$(STARTLOCATESRC)
+	$(TOKENIZE) $(TOKENIZEFLAGS) $(BASDIR)/$(STARTLOCATESRC) -out $(OUTDIR)/$(EXTRAS)/$(STARTLOCATE)
 
 # Build the documentation
 
-documentation: $(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP) $(OUTDIR)/$(APP)/$(UKRES)/$(SHHELP) $(OUTDIR)/$(README) $(OUTDIR)/$(HTMLHELP)
+documentation: $(OUTDIR)/$(APP)/$(FINDHELP) $(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP) $(OUTDIR)/$(APP)/$(UKRES)/$(SHHELP) $(OUTDIR)/$(README) $(OUTDIR)/$(HTMLHELP)
+
+$(OUTDIR)/$(APP)/$(FINDHELP): $(MANUAL)/$(FINDHELPSRC)
+	$(TOKENIZE) $(TOKENIZEFLAGS) $(MANUAL)/$(FINDHELPSRC) -out $(OUTDIR)/$(APP)/$(FINDHELP)
 
 $(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP): $(MANUAL)/$(MANSRC)
 	$(MANTOOLS) -MTEXT -I$(MANUAL)/$(MANSRC) -O$(OUTDIR)/$(APP)/$(UKRES)/$(TEXTHELP) -D'version=$(HELP_VERSION)' -D'date=$(HELP_DATE)'
