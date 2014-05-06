@@ -35,21 +35,15 @@ CC := $(wildcard $(GCCSDK_INSTALL_CROSSBIN)/*gcc)
 RM := rm -rf
 CP := cp
 
-ZIP := /home/steve/GCCSDK/env/bin/zip
+ZIP := $(GCCSDK_INSTALL_ENV)/bin/zip
 
-SFBIN := /home/steve/GCCSDK/sfbin
-
-TEXTMAN := $(SFBIN)/textman
-STRONGMAN := $(SFBIN)/strongman
-HTMLMAN := $(SFBIN)/htmlman
-DDFMAN := $(SFBIN)/ddfman
-MANTOOLS := $(SFBIN)/mantools
-BINDHELP := $(SFBIN)/bindhelp
-TEXTMERGE := $(SFBIN)/textmerge
-MENUGEN := $(SFBIN)/menugen
-TOKENIZE := $(SFBIN)/tokenize
-GETPKGREV := $(SFBIN)/getpackagerev
-MAKECONTROL := $(SFBIN)/makecontrol
+MANTOOLS := $(SFTOOLS_BIN)/mantools
+BINDHELP := $(SFTOOLS_BIN)/bindhelp
+TEXTMERGE := $(SFTOOLS_BIN)/textmerge
+MENUGEN := $(SFTOOLS_BIN)/menugen
+TOKENIZE := $(SFTOOLS_BIN)/tokenize
+GETPKGREV := $(SFTOOLS_BIN)/getpackagerev
+MAKECONTROL := $(SFTOOLS_BIN)/makecontrol
 
 # The build date.
 
