@@ -14,6 +14,7 @@ LIBRARY "BASIC:Window"
 LIBRARY "BASIC:Config"
 LIBRARY "BASIC:WimpError"
 LIBRARY "BASIC:WimpSprite"
+LIBRARY "BASIC:Window"
 LIBRARY "BASIC:URL"
 :
 SYS "OS_GetEnv" TO command_line$
@@ -133,7 +134,7 @@ CASE b%!12 OF
     WHEN 6,7,8,9,10 : IF b%!8=1 THEN PROCset_icon_selected(search_window%,b%!16,TRUE)
                       SYS "Wimp_GetCaretPosition",,q%
                       IF !q%=search_panes%(search_pane%) THEN PROCput_caret_at_end(search_window%,4)
-                      PROCclose_window(search_panes%(search_pane%))
+                      PROCwindow_close(search_panes%(search_pane%))
                       PROCopen_search_pane(b%!16-6,0,0)
     WHEN 11 : CASE b%!8 OF
       WHEN 4  : next_dir%=0
@@ -222,10 +223,10 @@ CASE b%!12 OF
   ENDIF
  WHEN time_window% : CASE b%!16 OF
    WHEN 0 : CASE b%!8 OF
-     WHEN 4 : PROCclose_window(time_window%)
+     WHEN 4 : PROCwindow_close(time_window%)
      WHEN 1 : PROCopen_time_window(set_date_icon%,0,0,TRUE)
     ENDCASE
-   WHEN 1 : PROCset_time : IF b%!8=4 THEN PROCclose_window(time_window%)
+   WHEN 1 : PROCset_time : IF b%!8=4 THEN PROCwindow_close(time_window%)
    WHEN 2 : PROCtick_menu_item(month_menu%,set_date_month%-1)
             PROCdisplay_icon_menu(month_menu%,time_window%,2)
    WHEN 5,6 : PROCbump_icon(time_window%,4,(b%!16=6 AND b%!8=4) OR (b%!16=5 AND b%!8=1),1,days_in_month%(set_date_month%),0)
@@ -236,15 +237,15 @@ CASE b%!12 OF
   ENDCASE
  WHEN choices_window% : CASE b%!16 OF
    WHEN 0 : CASE b%!8 OF
-     WHEN 4 : PROCset_choices(FALSE) : PROCclose_window(choices_window%)
+     WHEN 4 : PROCset_choices(FALSE) : PROCwindow_close(choices_window%)
      WHEN 1 : PROCset_choices(FALSE)
     ENDCASE
    WHEN 1 : CASE b%!8 OF
-     WHEN 4 : PROCset_choices(TRUE) : PROCclose_window(choices_window%)
+     WHEN 4 : PROCset_choices(TRUE) : PROCwindow_close(choices_window%)
      WHEN 1 : PROCset_choices(TRUE)
     ENDCASE
    WHEN 2 : CASE b%!8 OF
-     WHEN 4 : PROCclose_window(choices_window%)
+     WHEN 4 : PROCwindow_close(choices_window%)
      WHEN 1 : PROCopen_choices_window(!b%,b%!4)
     ENDCASE
   ENDCASE
@@ -290,7 +291,7 @@ CASE !b% OF
    OTHERWISE : SYS "Wimp_ProcessKey",b%!24
   ENDCASE
  WHEN choices_window% : CASE b%!24 OF
-   WHEN 13 : PROCset_choices(FALSE) :  PROCclose_window(choices_window%)
+   WHEN 13 : PROCset_choices(FALSE) :  PROCwindow_close(choices_window%)
    OTHERWISE : SYS "Wimp_ProcessKey",b%!24
   ENDCASE
  WHEN history_add_window% : CASE b%!24 OF
@@ -299,8 +300,8 @@ CASE !b% OF
    OTHERWISE : SYS "Wimp_ProcessKey",b%!24
   ENDCASE
  WHEN time_window% : CASE b%!24 OF
-   WHEN 13 : PROCset_time : PROCclose_window(time_window%)
-   WHEN 27 : PROCclose_window(time_window%)
+   WHEN 13 : PROCset_time : PROCwindow_close(time_window%)
+   WHEN 27 : PROCwindow_close(time_window%)
   ENDCASE
  OTHERWISE : SYS "Wimp_ProcessKey",b%!24
 ENDCASE
@@ -1533,9 +1534,9 @@ DEF PROCclose_search_window
 :
 REM Close the search window and tidy up.
 :
-PROCclose_window(search_window%)
-PROCclose_window(search_panes%(search_pane%))
-IF FNwindow_is_open(time_window%) THEN PROCclose_window(time_window%)
+PROCwindow_close(search_window%)
+PROCwindow_close(search_panes%(search_pane%))
+IF FNwindow_is_open(time_window%) THEN PROCwindow_close(time_window%)
 :
 REM If the current options for the window exist and aren't the default, then clear the 'attached' bit of the
 REM block's flags and free the block.  Clear the current_options pointer.
@@ -1949,7 +1950,7 @@ IF re_open% THEN
  PROCforce_icon_redraw(time_window%,4)
  PROCforce_icon_redraw(time_window%,7)
 ELSE
- PROCopen_window_centred(time_window%,x%,y%)
+ PROCwindow_open_centred_at(time_window%,x%,y%)
  PROCput_caret_at_end(time_window%,4)
 ENDIF
 ENDPROC
@@ -2077,7 +2078,7 @@ searching_window_handle%=data_block%!8
 !data_block%=!results_window_list%
 :
 !a%=data_block%!8
-PROCopen_window(!a%)
+PROCwindow_open(!a%)
 SYS "Wimp_GetWindowState",,a%
 PROCmove_results_pane(a%,data_block%!32)
 SYS "Wimp_OpenWindow",,a%
@@ -3997,7 +3998,7 @@ IF handle% THEN
    !data_block%=!results_window_list%
    :
    !a%=data_block%!8
-   PROCopen_window(!a%)
+   PROCwindow_open(!a%)
    SYS "Wimp_GetWindowState",,a%
    PROCmove_results_pane(a%,data_block%!32)
    SYS "Wimp_OpenWindow",,a%
@@ -4263,11 +4264,11 @@ pending_history_block%=options%
 $FNicon_indirection(history_add_window%,1)=name$
 :
 IF FNwindow_is_open(history_add_window%) THEN
- PROCopen_window(history_add_window%)
+ PROCwindow_open(history_add_window%)
  PROCforce_icon_redraw(history_add_window%,1)
 ELSE
  SYS "Wimp_GetPointerInfo",,q%
- PROCopen_window_at(history_add_window%,!q%-64,q%!4)
+ PROCwindow_open_at(history_add_window%,!q%-64,q%!4)
 ENDIF
 PROCput_caret_at_end(history_add_window%,1)
 ENDPROC
@@ -4281,7 +4282,7 @@ IF pending_history_block%<>-1 THEN
  PROCadd_search_to_history(search_history_list%,FNread_int_config("HistorySize"),pending_history_block%,$FNicon_indirection(history_add_window%,1))
  PROCdelete_search_options(pending_history_block%,%100)
  pending_history_block%=-1
- PROCclose_window(history_add_window%)
+ PROCwindow_close(history_add_window%)
 ENDIF
 ENDPROC
 :
@@ -4292,7 +4293,7 @@ DEF PROCremove_pending_history_entry
 IF pending_history_block%<>-1 THEN
  PROCdelete_search_options(pending_history_block%,%100)
  pending_history_block%=-1
- PROCclose_window(history_add_window%)
+ PROCwindow_close(history_add_window%)
 ENDIF
 ENDPROC
 
@@ -4638,7 +4639,7 @@ IF FNwindow_is_open(choices_window%) THEN
  PROCforce_icon_redraw(choices_window%,13)
  IF FNis_caret_in_icon(choices_window%,13) THEN PROCput_caret_at_end(choices_window%,10)
 ELSE
- PROCopen_window_centred(choices_window%,x%,y%)
+ PROCwindow_open_centred_at(choices_window%,x%,y%)
  PROCput_caret_at_end(choices_window%,6)
 ENDIF
 ENDPROC
