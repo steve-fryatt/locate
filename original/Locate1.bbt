@@ -170,7 +170,7 @@ CASE b%!12 OF
      WHEN 0,1 : FOR loop%=2 TO 21
                  PROCset_icon_deleted(search_panes%(1),loop%,(b%!16=0 AND loop%>9) OR (b%!16=1 AND loop%<10))
                 NEXT loop%
-                PROCforce_window_redraw(search_panes%(1))
+                PROCwindow_force_redraw(search_panes%(1))
                 IF b%!8=1 THEN PROCset_icon_selected(search_panes%(1),b%!16,TRUE)
                 PROCsearch_window_caret_clear
      WHEN 4 : PROCtick_menu_item(date_logic_menu%,search_date_logic%)
@@ -2984,7 +2984,7 @@ IF q%!124-(q%!116-q%!108) < q%!148 THEN
  PROCmove_results_pane(q%+100,data_block%!32)
 ENDIF
 :
-PROCforce_window_redraw(data_block%!8)
+PROCwindow_force_redraw(data_block%!8)
 ENDPROC
 :
 :
