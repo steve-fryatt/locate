@@ -7,15 +7,15 @@ REM Version 0.89a
 REM 6 June 2004
 :
 LIBRARY "BASIC:WimpLib2"
-LIBRARY "BASIC:String"
-LIBRARY "BASIC:Icon"
-LIBRARY "BASIC:Date"
-LIBRARY "BASIC:Window"
 LIBRARY "BASIC:Config"
+LIBRARY "BASIC:Date"
+LIBRARY "BASIC:Icon"
+LIBRARY "BASIC:Resources"
+LIBRARY "BASIC:String"
+LIBRARY "BASIC:URL"
 LIBRARY "BASIC:WimpError"
 LIBRARY "BASIC:WimpSprite"
 LIBRARY "BASIC:Window"
-LIBRARY "BASIC:URL"
 :
 SYS "OS_GetEnv" TO command_line$
 :
@@ -769,7 +769,7 @@ DIM b% 4000, q% 255, a% 255
 $b%="TASK"
 TASK=!b%
 :
-resource_path$=FNterritory_resources("<Locate$Dir>.Resources")
+resource_path$=FNresources_find_territory_folder("<Locate$Dir>.Resources")
 :
 DIM message_block% 16
 SYS "MessageTrans_FileInfo",,resource_path$+"Messages" TO flags%,,message_size%
