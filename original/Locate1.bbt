@@ -264,7 +264,7 @@ CASE b%!12 OF
    WHEN 3 : search_pause_abort%=TRUE
   ENDCASE
  WHEN info_window% : CASE b%!16 OF
-   WHEN 8 : PROClaunch_url(FNmessage_trans("SupportURL")) : PROCdisplay_menu(-1,0,0)
+   WHEN 8 : PROCurl_launch(FNmessage_trans("SupportURL")) : PROCdisplay_menu(-1,0,0)
   ENDCASE
  OTHERWISE : PROCresults_window_click
 ENDCASE
