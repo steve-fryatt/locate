@@ -928,7 +928,7 @@ results_pane_width%=(results_pane_def%!96-results_pane_def%!88)-8
 results_pane_height%=(results_pane_def%!12-results_pane_def%!4)
 PROCclose_templates
 :
-results_window_def%!64=FNload_user_sprite_area("<Locate$Sprites>.Sprites")
+results_window_def%!64=FNwimpsprite_load_user_sprites("<Locate$Sprites>.Sprites")
 :
 $FNicon_indirection(info_window%,6)=FNmessage_trans("Version")
 :
@@ -1934,7 +1934,7 @@ IF date$="" THEN
  SYS "OS_Word",14,q%+100
  SYS "Territory_ConvertTimeToOrdinals",-1,q%+100,q%
 ELSE
- level%=FNconvert_date_to_ordinals(date$,q%)
+ level%=FNdate_convert_to_ordinals(date$,q%)
 ENDIF
 set_date_month%=q%!20
 set_date_icon%=icon%
@@ -2249,8 +2249,8 @@ date1$=FNextract_string(parameters%,ptr%)
 date2$=FNextract_string(parameters%,ptr%)
 :
 IF date_logic%>=1 AND date_age%=FALSE THEN
- date_level1%=FNconvert_date_to_ordinals(date1$,q%)
- IF date_logic%>=5 date_level2%=FNconvert_date_to_ordinals(date2$,q%+32)
+ date_level1%=FNdate_convert_to_ordinals(date1$,q%)
+ IF date_logic%>=5 date_level2%=FNdate_convert_to_ordinals(date2$,q%+32)
  :
  CASE date_logic% OF
   WHEN 1 : IF date_level1%<=1 THEN
