@@ -19,12 +19,12 @@ LIBRARY "BASIC:Window"
 :
 SYS "OS_GetEnv" TO command_line$
 :
-PROCwimp_error_initialise("Locate","!locate")
-ON ERROR dummy%=FNwimp_error : END
+PROCwimperror_initialise("Locate","!locate")
+ON ERROR dummy%=FNwimperror_program : END
 :
 PROCinitialise
 :
-ON ERROR SYS "OS_Byte",229,1,0 : quit%=(FNwimp_error=2)
+ON ERROR SYS "OS_Byte",229,1,0 : quit% = FNwimperror_program
 :
 WHILE NOT quit%
  PROCpoll(poll_mask%,TRUE)
@@ -423,7 +423,7 @@ CASE menu_up% OF
    PROCforce_icon_redraw(search_panes%(2),5)
    IF FNis_caret_in_icon(search_panes%(2),5) THEN PROCput_caret_at_end(search_panes%(2),5)
   ELSE
-   PROCwimp_report(FNmessage_trans("TypeBufFull"),2,%10,"")
+   PROCwimperror_report(FNmessage_trans("TypeBufFull"),2,%10,"")
   ENDIF
   IF NOT re_open% THEN
    PROCfree_block(heap_handle%,file_type_menu%)
@@ -711,7 +711,7 @@ IF data_load_item%<data_load_block%!12 THEN
 ELSE
  poll_mask%=&03CB1 : send_data_load%=FALSE
  PROCfree_block(heap_handle%,data_load_buffer%)
- IF data_load_errors%>0 THEN PROCwimp_report(FNmessage_trans("NotThereDrag"),2,%10,"")
+ IF data_load_errors%>0 THEN PROCwimperror_report(FNmessage_trans("NotThereDrag"),2,%10,"")
 ENDIF
 ENDPROC
 :
@@ -778,7 +778,7 @@ SYS "MessageTrans_OpenFile",message_block%,resource_path$+"Messages",message_buf
 :
 task_name$=FNmessage_trans("TaskName")
 task_sprite$=FNmessage_trans("TaskSpr")
-PROCwimp_error_initialise(task_name$,task_sprite$)
+PROCwimperror_initialise(task_name$,task_sprite$)
 wimp_needed%=310
 :
 REM Choose what messages we accept from the WIMP.
@@ -2088,7 +2088,7 @@ next_dir%=0
 REPEAT
  index_dir$=FNenumerate_index_dirs(index_dir_list%, next_dir%)
  IF index_dir$="" THEN
-  PROCwimp_report(FNmessage_trans("NoPaths"),1,%01,"")
+  PROCwimperror_report(FNmessage_trans("NoPaths"),1,%01,"")
  ELSE
   errors%=FNsearch_files(index_dir$,search_info%,data_block%,data_ptr%,exit%,multitask%,NOT image_fs%,NOT suppress_fs_errors%)
  ENDIF
@@ -2744,13 +2744,13 @@ OSCLI("Report os_gbpb_block%")
 VDU 4 : PRINT REPORT$
 :
 IF ERR=17 THEN
- PROCwimp_report(FNmessage_trans("AbrtSrch"),1,%01,"")
+ PROCwimperror_report(FNmessage_trans("AbrtSrch"),1,%01,"")
  exit%=TRUE
 ELSE
  IF recover% THEN
-  exit%=(FNwimp_report(REPORT$,2,%11,"")=2)
+  exit%=(FNwimperror_report(REPORT$,2,%11,"")=2)
  ELSE
-  PROCwimp_report(REPORT$+" "+STR$(ERL),2,%10,"")
+  PROCwimperror_report(REPORT$+" "+STR$(ERL),2,%10,"")
   exit%=TRUE
  ENDIF
 ENDIF
@@ -3318,7 +3318,7 @@ IF data_block%<>-1 THEN
     ELSE
      redraw_list%!(icon%*32+8)=redraw_list%!(icon%*32+8) OR &200
      PROCredraw_results_icon(data_block%,icon%)
-     PROCwimp_report(FNmessage_trans("NotThere"),2,%10,"")
+     PROCwimperror_report(FNmessage_trans("NotThere"),2,%10,"")
     ENDIF
    ENDIF
  ENDCASE
@@ -3854,7 +3854,7 @@ IF save_data_block%<>0 THEN
 ENDIF
 :
 PROCdisplay_menu(-1,0,0)
-PROCwimp_report(FNmessage_trans("RAMXferFail"),2,%01,"")
+PROCwimperror_report(FNmessage_trans("RAMXferFail"),2,%01,"")
 ENDPROC
 :
 :
@@ -3871,7 +3871,7 @@ REM Save direct if we have a full filename (ignore the DTP).
 :
 LOCAL save_block%
 :
-IF INSTR($FNicon_indirection(save_window%,2),".")=0 THEN PROCwimp_report(FNmessage_trans("BadSave"),1,%01,"") : ENDPROC
+IF INSTR($FNicon_indirection(save_window%,2),".")=0 THEN PROCwimperror_report(FNmessage_trans("BadSave"),1,%01,"") : ENDPROC
 :
 CASE data_save_type% OF
  WHEN 0 : save_block%=FNbuild_data_save_block(data%)
@@ -3905,7 +3905,7 @@ IF ack% THEN
 ENDIF
 :
 REM We can't manage to load *and* search simultaneously, so ignore the load.
-IF searching_data_block%<>0 THEN PROCwimp_report(FNmessage_trans("NoLoadNow"),1,%10,"") : ENDPROC
+IF searching_data_block%<>0 THEN PROCwimperror_report(FNmessage_trans("NoLoadNow"),1,%10,"") : ENDPROC
 :
 SYS "Hourglass_On"
 :
@@ -3921,7 +3921,7 @@ IF handle% THEN
  version%=q%!4
  :
  IF !q%<>&48435253 OR version%>1 THEN
-  PROCwimp_report(FNmessage_trans("BadFile"),1,%10,"")
+  PROCwimperror_report(FNmessage_trans("BadFile"),1,%10,"")
   SYS "OS_Find",0,handle%
  ELSE
   SYS "OS_GBPB",4,handle%,q%,4
@@ -4037,7 +4037,7 @@ IF handle% THEN SYS "XOS_Find",0,handle%
 IF b1% THEN PROCfree_block(heap_handle%,b1%)
 IF b2% THEN PROCfree_block(heap_handle%,b2%)
 IF b3% THEN PROCfree_block(heap_handle%,b3%)
-PROCwimp_report(FNmessage_trans("FileError"),2,%10,"")
+PROCwimperror_report(FNmessage_trans("FileError"),2,%10,"")
 ENDPROC
 :
 :
@@ -4210,11 +4210,11 @@ IF c%<(size%-1) THEN
   c%+=1
  ENDWHILE
  :
- IF path$<>"" THEN PROCwimp_report(FNmessage_trans("PathBufFull"),2,%10,"") : c%=start%
+ IF path$<>"" THEN PROCwimperror_report(FNmessage_trans("PathBufFull"),2,%10,"") : c%=start%
  :
  buffer%?c%=0
 ELSE
- PROCwimp_report(FNmessage_trans("PathBufFull"),2,%10,"")
+ PROCwimperror_report(FNmessage_trans("PathBufFull"),2,%10,"")
 ENDIF
 ENDPROC
 :
