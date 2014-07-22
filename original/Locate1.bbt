@@ -131,7 +131,7 @@ CASE b%!12 OF
      WHEN 1 : PROCreset_search_window
     ENDCASE
     WHEN 1 : IF b%!8=4 THEN PROCclose_search_window : PROCsearch(FNget_current_search_options) : PROCterminate_plugin
-    WHEN 6,7,8,9,10 : IF b%!8=1 THEN PROCset_icon_selected(search_window%,b%!16,TRUE)
+    WHEN 6,7,8,9,10 : IF b%!8=1 THEN PROCicon_set_selected(search_window%,b%!16,TRUE)
                       SYS "Wimp_GetCaretPosition",,q%
                       IF !q%=search_panes%(search_pane%) THEN PROCput_caret_at_end(search_window%,4)
                       PROCwindow_close(search_panes%(search_pane%))
@@ -168,10 +168,10 @@ CASE b%!12 OF
   ELSE
    CASE b%!16 OF
      WHEN 0,1 : FOR loop%=2 TO 21
-                 PROCset_icon_deleted(search_panes%(1),loop%,(b%!16=0 AND loop%>9) OR (b%!16=1 AND loop%<10))
+                 PROCicon_set_deleted(search_panes%(1),loop%,(b%!16=0 AND loop%>9) OR (b%!16=1 AND loop%<10))
                 NEXT loop%
                 PROCwindow_force_redraw(search_panes%(1))
-                IF b%!8=1 THEN PROCset_icon_selected(search_panes%(1),b%!16,TRUE)
+                IF b%!8=1 THEN PROCicon_set_selected(search_panes%(1),b%!16,TRUE)
                 PROCsearch_window_caret_clear
      WHEN 4 : PROCtick_menu_item(date_logic_menu%,search_date_logic%)
               PROCdisplay_icon_menu(date_logic_menu%,search_panes%(1),4)
@@ -191,7 +191,7 @@ CASE b%!12 OF
   ELSE
    CASE b%!16 OF
      WHEN 0 : FOR loop%=3 TO 6
-               PROCset_icon_shaded(search_panes%(2),loop%,NOT FNicon_selected(search_panes%(2),0) OR (loop%>=5 AND search_type_logic%=0))
+               PROCicon_set_shaded(search_panes%(2),loop%,NOT FNicon_selected(search_panes%(2),0) OR (loop%>=5 AND search_type_logic%=0))
               NEXT loop%
               PROCsearch_window_caret_clear
      WHEN 4 : PROCtick_menu_item(type_logic_menu%,search_type_logic%)
@@ -206,9 +206,9 @@ CASE b%!12 OF
    PROCdisplay_menu(search_window_menu%,!b%,b%!4)
   ELSE
    CASE b%!16 OF
-     WHEN 0,3,6,9,12 : PROCset_icon_shaded(search_panes%(3),b%!16+1,NOT FNicon_selected(search_panes%(3),b%!16))
-                       PROCset_icon_shaded(search_panes%(3),b%!16+2,NOT FNicon_selected(search_panes%(3),b%!16))
-     OTHERWISE : IF b%!8=1 THEN PROCset_icon_selected(search_panes%(3),b%!16,TRUE)
+     WHEN 0,3,6,9,12 : PROCicon_set_shaded(search_panes%(3),b%!16+1,NOT FNicon_selected(search_panes%(3),b%!16))
+                       PROCicon_set_shaded(search_panes%(3),b%!16+2,NOT FNicon_selected(search_panes%(3),b%!16))
+     OTHERWISE : IF b%!8=1 THEN PROCicon_set_selected(search_panes%(3),b%!16,TRUE)
     ENDCASE
   ENDIF
  WHEN search_panes%(4)
@@ -229,10 +229,10 @@ CASE b%!12 OF
    WHEN 1 : PROCset_time : IF b%!8=4 THEN PROCwindow_close(time_window%)
    WHEN 2 : PROCtick_menu_item(month_menu%,set_date_month%-1)
             PROCdisplay_icon_menu(month_menu%,time_window%,2)
-   WHEN 5,6 : PROCbump_icon(time_window%,4,(b%!16=6 AND b%!8=4) OR (b%!16=5 AND b%!8=1),1,days_in_month%(set_date_month%),0)
-   WHEN 8,9 : PROCbump_icon(time_window%,7,(b%!16=9 AND b%!8=4) OR (b%!16=8 AND b%!8=1),0,9999,4)
-   WHEN 15,16 : PROCbump_icon(time_window%,13,(b%!16=16 AND b%!8=4) OR (b%!16=15 AND b%!8=1),0,23,2)
-   WHEN 17,18 : PROCbump_icon(time_window%,14,(b%!16=18 AND b%!8=4) OR (b%!16=17 AND b%!8=1),0,59,2)
+   WHEN 5,6 : PROCicon_bump_value(time_window%,4,(b%!16=6 AND b%!8=4) OR (b%!16=5 AND b%!8=1),1,days_in_month%(set_date_month%),0)
+   WHEN 8,9 : PROCicon_bump_value(time_window%,7,(b%!16=9 AND b%!8=4) OR (b%!16=8 AND b%!8=1),0,9999,4)
+   WHEN 15,16 : PROCicon_bump_value(time_window%,13,(b%!16=16 AND b%!8=4) OR (b%!16=15 AND b%!8=1),0,23,2)
+   WHEN 17,18 : PROCicon_bump_value(time_window%,14,(b%!16=18 AND b%!8=4) OR (b%!16=17 AND b%!8=1),0,59,2)
    WHEN 10 : PROCshade_time(FNicon_selected(time_window%,10))
   ENDCASE
  WHEN choices_window% : CASE b%!16 OF
@@ -350,7 +350,7 @@ CASE menu_up% OF
   PROCset_results_menu_state(results_window_menu_ptr%)
  WHEN size_logic_menu%
   $FNicon_indirection(search_panes%(0),2)=FNnumbered_message_trans("SizeLogic",!b%)
-  PROCforce_icon_redraw(search_panes%(0),2)
+  PROCicon_redraw(search_panes%(0),2)
   search_size_logic%=!b%
   FOR loop%=3 TO 9
    PROCset_icon_state(search_panes%(0),loop%,0,(!b%<=4 AND loop%>=6) OR !b%=0,0)
@@ -359,57 +359,57 @@ CASE menu_up% OF
   PROCsearch_window_caret_clear
  WHEN size_units_menu% : CASE size_units_icon% OF
    WHEN 1 : $FNicon_indirection(search_panes%(0),5)=FNnumbered_message_trans("SizeUnits",!b%)
-            PROCforce_icon_redraw(search_panes%(0),5)
+            PROCicon_redraw(search_panes%(0),5)
             search_size_units1%=!b%
             PROCtick_menu_item(size_units_menu%,search_size_units1%)
    WHEN 2 : $FNicon_indirection(search_panes%(0),9)=FNnumbered_message_trans("SizeUnits",!b%)
-            PROCforce_icon_redraw(search_panes%(0),9)
+            PROCicon_redraw(search_panes%(0),9)
             search_size_units2%=!b%
             PROCtick_menu_item(size_units_menu%,search_size_units2%)
   ENDCASE
  WHEN date_logic_menu%
   $FNicon_indirection(search_panes%(1),3)=FNnumbered_message_trans("DateLogic",!b%)
-  PROCforce_icon_redraw(search_panes%(1),3)
+  PROCicon_redraw(search_panes%(1),3)
   search_date_logic%=!b%
   FOR loop%=5 TO 9
-   PROCset_icon_shaded(search_panes%(1),loop%,(!b%<=4 AND loop%>=7) OR !b%=0)
+   PROCicon_set_shaded(search_panes%(1),loop%,(!b%<=4 AND loop%>=7) OR !b%=0)
   NEXT loop%
   PROCtick_menu_item(date_logic_menu%,search_date_logic%)
   PROCsearch_window_caret_clear
  WHEN month_menu%
   set_date_month%=!b%+1
   $FNicon_indirection(time_window%,3)=FNnumbered_message_trans("Month",set_date_month%)
-  PROCforce_icon_redraw(time_window%,3)
+  PROCicon_redraw(time_window%,3)
   PROCtick_menu_item(month_menu%,!b%)
   IF VAL($FNicon_indirection(time_window%,4))>days_in_month%(set_date_month%) THEN
    $FNicon_indirection(time_window%,4)=STR$(days_in_month%(set_date_month%))
-   PROCforce_icon_redraw(time_window%,4)
+   PROCicon_redraw(time_window%,4)
   ENDIF
  WHEN age_logic_menu%
   $FNicon_indirection(search_panes%(1),11)=FNnumbered_message_trans("AgeLogic",!b%)
-  PROCforce_icon_redraw(search_panes%(1),11)
+  PROCicon_redraw(search_panes%(1),11)
   search_age_logic%=!b%
   FOR loop%=13 TO 21
-   PROCset_icon_shaded(search_panes%(1),loop%,(!b%<=4 AND loop%>=17) OR !b%=0)
+   PROCicon_set_shaded(search_panes%(1),loop%,(!b%<=4 AND loop%>=17) OR !b%=0)
   NEXT loop%
   PROCtick_menu_item(age_logic_menu%,search_age_logic%)
   PROCsearch_window_caret_clear
  WHEN age_units_menu% : CASE age_units_icon% OF
    WHEN 1 : $FNicon_indirection(search_panes%(1),14)=FNnumbered_message_trans("AgeUnits",!b%)
-            PROCforce_icon_redraw(search_panes%(1),14)
+            PROCicon_redraw(search_panes%(1),14)
             search_age_units1%=!b%
             PROCtick_menu_item(age_units_menu%,search_age_units1%)
    WHEN 2 : $FNicon_indirection(search_panes%(1),19)=FNnumbered_message_trans("AgeUnits",!b%)
-            PROCforce_icon_redraw(search_panes%(1),19)
+            PROCicon_redraw(search_panes%(1),19)
             search_age_units2%=!b%
             PROCtick_menu_item(age_units_menu%,search_age_units2%)
   ENDCASE
  WHEN type_logic_menu%
   $FNicon_indirection(search_panes%(2),3)=FNnumbered_message_trans("TypeLogic",!b%)
-  PROCforce_icon_redraw(search_panes%(2),3)
+  PROCicon_redraw(search_panes%(2),3)
   search_type_logic%=!b%
   FOR loop%=3 TO 6
-   PROCset_icon_shaded(search_panes%(2),loop%,(NOT FNicon_selected(search_panes%(2),0)) OR (loop%>=5 AND search_type_logic%=0))
+   PROCicon_set_shaded(search_panes%(2),loop%,(NOT FNicon_selected(search_panes%(2),0)) OR (loop%>=5 AND search_type_logic%=0))
   NEXT loop%
   PROCtick_menu_item(type_logic_menu%,search_type_logic%)
   PROCsearch_window_caret_clear
@@ -420,7 +420,7 @@ CASE menu_up% OF
    ELSE
     $FNicon_indirection(search_panes%(2),5)+=","+$FNmenu_indirection(file_type_menu%,!b%)
    ENDIF
-   PROCforce_icon_redraw(search_panes%(2),5)
+   PROCicon_redraw(search_panes%(2),5)
    IF FNis_caret_in_icon(search_panes%(2),5) THEN PROCput_caret_at_end(search_panes%(2),5)
   ELSE
    PROCwimperror_report(FNmessage_trans("TypeBufFull"),2,%10,"")
@@ -431,10 +431,10 @@ CASE menu_up% OF
   ENDIF
  WHEN content_logic_menu%
   $FNicon_indirection(search_panes%(4),1)=FNnumbered_message_trans("ContentLogic",!b%)
-  PROCforce_icon_redraw(search_panes%(4),1)
+  PROCicon_redraw(search_panes%(4),1)
   search_content_logic%=!b%
   FOR loop%=3 TO 5
-   PROCset_icon_shaded(search_panes%(4),loop%,search_content_logic%=0)
+   PROCicon_set_shaded(search_panes%(4),loop%,search_content_logic%=0)
   NEXT loop%
   PROCtick_menu_item(content_logic_menu%,search_content_logic%)
   PROCsearch_window_caret_clear
@@ -1228,7 +1228,7 @@ IF current_search_options%=0 THEN
  REM Set up and open the search window.
  :
  PROCset_search_window(settings%,TRUE,pane%)
- PROCset_icon_selected(search_window%,13,FALSE)
+ PROCicon_set_selected(search_window%,13,FALSE)
  PROCopen_search_pane(pane%,x%,y%)
  :
  IF FNwindow_is_open(search_window%) THEN PROCput_caret_at_end(search_window%,4)
@@ -1297,31 +1297,31 @@ PROCset_search_window(current_search_options%,FALSE,pane%)
 REM Refresh main window.
 :
 IF FNwindow_is_open(search_panes%(0)) THEN
- PROCforce_icon_redraw(search_panes%(0),2)
- PROCforce_icon_redraw(search_panes%(0),3)
- PROCforce_icon_redraw(search_panes%(0),5)
- PROCforce_icon_redraw(search_panes%(0),7)
- PROCforce_icon_redraw(search_panes%(0),9)
+ PROCicon_redraw(search_panes%(0),2)
+ PROCicon_redraw(search_panes%(0),3)
+ PROCicon_redraw(search_panes%(0),5)
+ PROCicon_redraw(search_panes%(0),7)
+ PROCicon_redraw(search_panes%(0),9)
 ENDIF
 :
 IF FNwindow_is_open(search_panes%(1)) THEN
- PROCforce_icon_redraw(search_panes%(1),3)
- PROCforce_icon_redraw(search_panes%(1),5)
- PROCforce_icon_redraw(search_panes%(1),8)
+ PROCicon_redraw(search_panes%(1),3)
+ PROCicon_redraw(search_panes%(1),5)
+ PROCicon_redraw(search_panes%(1),8)
 ENDIF
 :
 IF FNwindow_is_open(search_panes%(2)) THEN
- PROCforce_icon_redraw(search_panes%(2),3)
- PROCforce_icon_redraw(search_panes%(2),5)
+ PROCicon_redraw(search_panes%(2),3)
+ PROCicon_redraw(search_panes%(2),5)
 ENDIF
 :
 IF FNwindow_is_open(search_panes%(4)) THEN
- PROCforce_icon_redraw(search_panes%(4),1)
- PROCforce_icon_redraw(search_panes%(4),3)
+ PROCicon_redraw(search_panes%(4),1)
+ PROCicon_redraw(search_panes%(4),3)
 ENDIF
 :
-PROCforce_icon_redraw(search_window%,4)
-PROCforce_icon_redraw(search_window%,20)
+PROCicon_redraw(search_window%,4)
+PROCicon_redraw(search_window%,20)
 :
 REM Move the caret somewhere sensible.
 :
@@ -1359,12 +1359,12 @@ ENDIF
 SYS "Wimp_GetIconState",,q%
 PROCcopy_long_string(FNextract_long_string(settings%,ptr%),q%!28,q%!36)
 $FNicon_indirection(search_window%,4)=FNextract_string(settings%,ptr%)
-PROCset_icon_selected(search_window%,12,FNextract_word(settings%,ptr%))
+PROCicon_set_selected(search_window%,12,FNextract_word(settings%,ptr%))
 word%=FNextract_word(settings%,ptr%)                           : REM All the options are now in one word.
-PROCset_icon_selected(search_window%,16,(word% AND %0001)<>0)
-PROCset_icon_selected(search_window%,17,(word% AND %0010)<>0)
-PROCset_icon_selected(search_window%,18,(word% AND %0100)<>0)
-PROCset_icon_selected(search_window%,21,(word% AND %1000)<>0)
+PROCicon_set_selected(search_window%,16,(word% AND %0001)<>0)
+PROCicon_set_selected(search_window%,17,(word% AND %0010)<>0)
+PROCicon_set_selected(search_window%,18,(word% AND %0100)<>0)
+PROCicon_set_selected(search_window%,21,(word% AND %1000)<>0)
 word%=FNextract_word(settings%,ptr%)                           : REM Extract two blank words.
 word%=FNextract_word(settings%,ptr%)
 :
@@ -1379,16 +1379,16 @@ $FNicon_indirection(search_panes%(0),7)=FNextract_string(settings%,ptr%)
 search_size_units2%=FNextract_word(settings%,ptr%)
 $FNicon_indirection(search_panes%(0),9)=FNnumbered_message_trans("SizeUnits",search_size_units2%)
 FOR loop%=3 TO 9
- PROCset_icon_shaded(search_panes%(0),loop%,(search_size_logic%<=4 AND loop%>=6) OR search_size_logic%=0)
+ PROCicon_set_shaded(search_panes%(0),loop%,(search_size_logic%<=4 AND loop%>=6) OR search_size_logic%=0)
 NEXT loop%
 :
 REM Set up date pane.
 :
 word%=FNextract_word(settings%,ptr%)    : REM Date / Age format
-PROCset_icon_selected(search_panes%(1),0,word%=0)
-PROCset_icon_selected(search_panes%(1),1,word%=1)
+PROCicon_set_selected(search_panes%(1),0,word%=0)
+PROCicon_set_selected(search_panes%(1),1,word%=1)
 FOR loop%=2 TO 21
- PROCset_icon_deleted(search_panes%(1),loop%,(loop%>=10 AND word%=0) OR (loop%<=9 AND word%=1))
+ PROCicon_set_deleted(search_panes%(1),loop%,(loop%>=10 AND word%=0) OR (loop%<=9 AND word%=1))
 NEXT loop%
 :
 search_date_logic%=FNextract_word(settings%,ptr%)
@@ -1396,7 +1396,7 @@ $FNicon_indirection(search_panes%(1),3)=FNnumbered_message_trans("DateLogic",sea
 $FNicon_indirection(search_panes%(1),5)=FNextract_string(settings%,ptr%)
 $FNicon_indirection(search_panes%(1),8)=FNextract_string(settings%,ptr%)
 FOR loop%=5 TO 9
- PROCset_icon_shaded(search_panes%(1),loop%,(search_date_logic%<=4 AND loop%>=7) OR search_date_logic%=0)
+ PROCicon_set_shaded(search_panes%(1),loop%,(search_date_logic%<=4 AND loop%>=7) OR search_date_logic%=0)
 NEXT loop%
 :
 search_age_logic%=FNextract_word(settings%,ptr%)
@@ -1408,19 +1408,19 @@ $FNicon_indirection(search_panes%(1),18)=FNextract_string(settings%,ptr%)
 search_age_units2%=FNextract_word(settings%,ptr%)
 $FNicon_indirection(search_panes%(1),19)=FNnumbered_message_trans("AgeUnits",search_age_units2%)
 FOR loop%=13 TO 21
- PROCset_icon_shaded(search_panes%(1),loop%,(search_age_logic%<=4 AND loop%>=17) OR search_age_logic%=0)
+ PROCicon_set_shaded(search_panes%(1),loop%,(search_age_logic%<=4 AND loop%>=17) OR search_age_logic%=0)
 NEXT loop%
 :
 REM Set up type pane
 :
 word%=FNextract_word(settings%,ptr%)
 :
-PROCset_icon_selected(search_panes%(2),0,word% AND %001)
-PROCset_icon_selected(search_panes%(2),1,word% AND %010)
-PROCset_icon_selected(search_panes%(2),2,word% AND %100)
+PROCicon_set_selected(search_panes%(2),0,word% AND %001)
+PROCicon_set_selected(search_panes%(2),1,word% AND %010)
+PROCicon_set_selected(search_panes%(2),2,word% AND %100)
 search_type_logic%=FNextract_word(settings%,ptr%)
 FOR loop%=3 TO 6
- PROCset_icon_shaded(search_panes%(2),loop%,(word% AND %001)=0 OR (loop%>=5 AND search_type_logic%=0))
+ PROCicon_set_shaded(search_panes%(2),loop%,(word% AND %001)=0 OR (loop%>=5 AND search_type_logic%=0))
 NEXT loop%
 $FNicon_indirection(search_panes%(2),3)=FNnumbered_message_trans("TypeLogic",search_type_logic%)
 $FNicon_indirection(search_panes%(2),5)=FNextract_string(settings%,ptr%)
@@ -1429,27 +1429,27 @@ REM Set up attribute pane
 :
 word%=FNextract_word(settings%,ptr%)
 FOR loop%=0 TO 12 STEP 3
- PROCset_icon_selected(search_panes%(3),loop%,word% AND (1<<(loop% DIV 3)))
- PROCset_icon_shaded(search_panes%(3),loop%+1,(word% AND (1<<(loop% DIV 3)))=0)
- PROCset_icon_shaded(search_panes%(3),loop%+2,(word% AND (1<<(loop% DIV 3)))=0)
+ PROCicon_set_selected(search_panes%(3),loop%,word% AND (1<<(loop% DIV 3)))
+ PROCicon_set_shaded(search_panes%(3),loop%+1,(word% AND (1<<(loop% DIV 3)))=0)
+ PROCicon_set_shaded(search_panes%(3),loop%+2,(word% AND (1<<(loop% DIV 3)))=0)
 NEXT loop%
 word%=FNextract_word(settings%,ptr%)
 FOR loop%=1 TO 13 STEP 3
- PROCset_icon_selected(search_panes%(3),loop%,(word% AND (1<<(loop% DIV 3)))<>0)
- PROCset_icon_selected(search_panes%(3),loop%+1,(word% AND (1<<(loop% DIV 3)))=0)
+ PROCicon_set_selected(search_panes%(3),loop%,(word% AND (1<<(loop% DIV 3)))<>0)
+ PROCicon_set_selected(search_panes%(3),loop%+1,(word% AND (1<<(loop% DIV 3)))=0)
 NEXT loop%
 :
 REM Set up content pane
 :
 search_content_logic%=FNextract_word(settings%,ptr%)
 FOR loop%=3 TO 5
- PROCset_icon_shaded(search_panes%(4),loop%,search_content_logic%=0)
+ PROCicon_set_shaded(search_panes%(4),loop%,search_content_logic%=0)
 NEXT loop%
 $FNicon_indirection(search_panes%(4),1)=FNnumbered_message_trans("ContentLogic",search_content_logic%)
 $FNicon_indirection(search_panes%(4),3)=FNextract_string(settings%,ptr%)
 word%=FNextract_word(settings%,ptr%)
-PROCset_icon_selected(search_panes%(4),4,word% AND %01)
-PROCset_icon_selected(search_panes%(4),5,word% AND %10)
+PROCicon_set_selected(search_panes%(4),4,word% AND %01)
+PROCicon_set_selected(search_panes%(4),5,word% AND %10)
 ENDPROC
 :
 :
@@ -1943,12 +1943,12 @@ $FNicon_indirection(time_window%,4)=RIGHT$("0"+STR$(q%!16),2)
 $FNicon_indirection(time_window%,7)=RIGHT$("000"+STR$(q%!24),4)
 $FNicon_indirection(time_window%,13)=RIGHT$("0"+STR$(q%!12),2)
 $FNicon_indirection(time_window%,14)=RIGHT$("0"+STR$(q%!8),2)
-PROCset_icon_selected(time_window%,10,level%=1)
+PROCicon_set_selected(time_window%,10,level%=1)
 PROCshade_time(level%=1)
 IF re_open% THEN
- PROCforce_icon_redraw(time_window%,3)
- PROCforce_icon_redraw(time_window%,4)
- PROCforce_icon_redraw(time_window%,7)
+ PROCicon_redraw(time_window%,3)
+ PROCicon_redraw(time_window%,4)
+ PROCicon_redraw(time_window%,7)
 ELSE
  PROCwindow_open_centred_at(time_window%,x%,y%)
  PROCput_caret_at_end(time_window%,4)
@@ -1977,7 +1977,7 @@ IF FNicon_selected(time_window%,10) THEN
 ENDIF
 :
 $FNicon_indirection(search_panes%(1),set_date_icon%)=date$
-PROCforce_icon_redraw(search_panes%(1),set_date_icon%)
+PROCicon_redraw(search_panes%(1),set_date_icon%)
 ENDPROC
 :
 :
@@ -1993,7 +1993,7 @@ DEF PROCshade_time(time%)
 LOCAL icon%
 :
 FOR icon%=11 TO 18
- PROCset_icon_shaded(time_window%,icon%,NOT time%)
+ PROCicon_set_shaded(time_window%,icon%,NOT time%)
 NEXT icon%
 :
 IF NOT time% AND (FNis_caret_in_icon(time_window%,13) OR FNis_caret_in_icon(time_window%,14)) THEN
@@ -2019,7 +2019,7 @@ index_dir_list%=parameters%+12
 search_info%=FNdecode_search_parameters(extras$,multitask%,image_fs%,suppress_fs_errors%,full_info%,parameters%)
 :
 IF multitask% THEN
- PROCset_icon_shaded(search_window%,1,TRUE)
+ PROCicon_set_shaded(search_window%,1,TRUE)
 ELSE
  SYS "Hourglass_On"
 ENDIF
@@ -2118,7 +2118,7 @@ ELSE
   $q%=""
  ENDIF
  SYS "MessageTrans_Lookup",message_block%,"Found",FNicon_indirection(data_block%!32,0),255,STR$(data_block%!12-errors%),q%
- PROCforce_icon_redraw(data_block%!32,0)
+ PROCicon_redraw(data_block%!32,0)
  searching_data_block%=0
  IF menu_up%=results_window_menu% THEN
   PROCset_results_menu_state(data_block%)
@@ -2127,7 +2127,7 @@ ELSE
 ENDIF
 :
 IF multitask% THEN
- PROCset_icon_shaded(search_window%,1,FALSE)
+ PROCicon_set_shaded(search_window%,1,FALSE)
 ELSE
  SYS "Hourglass_Off"
 ENDIF
@@ -2621,7 +2621,7 @@ IF multitask% THEN
    SYS "MessageTrans_Lookup",message_block%,"Searching",icon_text%,255,"..."+MID$(dir$,text_width%+2)
   ENDIF
  ENDIF
- PROCforce_icon_redraw(data_block%!32,0)
+ PROCicon_redraw(data_block%!32,0)
 ENDIF
 :
 next%=0
@@ -4100,7 +4100,7 @@ LOCAL select%
 select%=FNicon_selected(save_window%,4)
 save_box_names$(data_save_type%,ABS(NOT select%))=$FNicon_indirection(save_window%,2)
 $FNicon_indirection(save_window%,2)=save_box_names$(data_save_type%,ABS(select%))
-PROCforce_icon_redraw(save_window%,2)
+PROCicon_redraw(save_window%,2)
 PROCput_caret_at_end(save_window%,2)
 ENDPROC
 :
@@ -4174,7 +4174,7 @@ ENDIF
 :
 PROCadd_path_to_search_buffer(buffer%,size%,path$,over%)
 IF FNis_caret_in_icon(window%,icon%) THEN SYS "Wimp_SetCaretPosition",window%,icon%,,,-1,c%
-PROCforce_icon_redraw(window%,icon%)
+PROCicon_redraw(window%,icon%)
 ENDPROC
 :
 :
@@ -4265,7 +4265,7 @@ $FNicon_indirection(history_add_window%,1)=name$
 :
 IF FNwindow_is_open(history_add_window%) THEN
  PROCwindow_open(history_add_window%)
- PROCforce_icon_redraw(history_add_window%,1)
+ PROCicon_redraw(history_add_window%,1)
 ELSE
  SYS "Wimp_GetPointerInfo",,q%
  PROCwindow_open_at(history_add_window%,!q%-64,q%!4)
@@ -4620,23 +4620,23 @@ REM ============================================================================
 DEF PROCopen_choices_window(x%,y%)
 :
 $FNicon_indirection(choices_window%,6)=PROCconfig_read_string("SearchPath")
-PROCset_icon_selected(choices_window%,7,PROCconfig_read_boolean("Multitask"))
-PROCset_icon_selected(choices_window%,8,PROCconfig_read_boolean("ImageFS"))
-PROCset_icon_selected(choices_window%,9,PROCconfig_read_boolean("SuppressErrors"))
-PROCset_icon_selected(choices_window%,22,PROCconfig_read_boolean("FullInfoDisplay"))
+PROCicon_set_selected(choices_window%,7,PROCconfig_read_boolean("Multitask"))
+PROCicon_set_selected(choices_window%,8,PROCconfig_read_boolean("ImageFS"))
+PROCicon_set_selected(choices_window%,9,PROCconfig_read_boolean("SuppressErrors"))
+PROCicon_set_selected(choices_window%,22,PROCconfig_read_boolean("FullInfoDisplay"))
 $FNicon_indirection(choices_window%,13)=STR$(PROCconfig_read_integer("HistorySize"))
-PROCset_icon_selected(choices_window%,21,PROCconfig_read_boolean("FileMenuSprites"))
-PROCset_icon_selected(choices_window%,20,PROCconfig_read_boolean("ScrollResults"))
-PROCset_icon_selected(choices_window%,15,PROCconfig_read_boolean("ConfirmHistoryAdd"))
-PROCset_icon_selected(choices_window%,18,PROCconfig_read_boolean("QuitAsPlugin") AND (os_version%>=169))
-PROCset_icon_selected(choices_window%,19,PROCconfig_read_boolean("SearchWindAsPlugin") AND (os_version%>=169))
+PROCicon_set_selected(choices_window%,21,PROCconfig_read_boolean("FileMenuSprites"))
+PROCicon_set_selected(choices_window%,20,PROCconfig_read_boolean("ScrollResults"))
+PROCicon_set_selected(choices_window%,15,PROCconfig_read_boolean("ConfirmHistoryAdd"))
+PROCicon_set_selected(choices_window%,18,PROCconfig_read_boolean("QuitAsPlugin") AND (os_version%>=169))
+PROCicon_set_selected(choices_window%,19,PROCconfig_read_boolean("SearchWindAsPlugin") AND (os_version%>=169))
 FOR icon%=16 TO 19
- PROCset_icon_shaded(choices_window%,icon%,os_version%<169)
+ PROCicon_set_shaded(choices_window%,icon%,os_version%<169)
 NEXT icon%
 IF FNwindow_is_open(choices_window%) THEN
- PROCforce_icon_redraw(choices_window%,6)
+ PROCicon_redraw(choices_window%,6)
  IF FNis_caret_in_icon(choices_window%,6) THEN PROCput_caret_at_end(choices_window%,6)
- PROCforce_icon_redraw(choices_window%,13)
+ PROCicon_redraw(choices_window%,13)
  IF FNis_caret_in_icon(choices_window%,13) THEN PROCput_caret_at_end(choices_window%,10)
 ELSE
  PROCwindow_open_centred_at(choices_window%,x%,y%)
