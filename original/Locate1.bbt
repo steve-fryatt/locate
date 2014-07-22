@@ -499,7 +499,7 @@ CASE b%!16 OF
                 ENDIF
                 next_object$=filer_action_directory$+"."+next_object$
                 SYS "OS_File",23,next_object$ TO ,,,,,,object_type%
-                IF object_type%>=&1000 THEN PROCadd_path_to_search_buffer(filer_action_path%,FNread_int_config("PathBufSize"),next_object$,FALSE)
+                IF object_type%>=&1000 THEN PROCadd_path_to_search_buffer(filer_action_path%,PROCconfig_read_integer("PathBufSize"),next_object$,FALSE)
                ENDWHILE
  WHEN &405   : IF b%!20=9 AND filer_action_status%<>1 THEN
                 IF filer_action_status%=2 THEN
@@ -507,7 +507,7 @@ CASE b%!16 OF
                  filer_action_parent_handle%=b%!4
                  filer_action_options%=FNset_default_search_options(filer_action_path%,FNzero_string(b%+28))
                  PROCfree_block(heap_handle%,filer_action_path%)
-                 IF FNread_opt_config("SearchWindAsPlugin") THEN
+                 IF PROCconfig_read_boolean("SearchWindAsPlugin") THEN
                   SYS "Wimp_GetPointerInfo",,q%
                   PROCopen_search_window(!q%,q%!4,filer_action_options%)
                  ELSE
@@ -516,7 +516,7 @@ CASE b%!16 OF
                 ELSE
                  b%!12=b%!8
                  SYS "Wimp_SendMessage",17,b%,b%!4
-                 filer_action_path%=FNclaim_block(heap_handle%,FNread_int_config("PathBufSize"))
+                 filer_action_path%=FNclaim_block(heap_handle%,PROCconfig_read_integer("PathBufSize"))
                  ?filer_action_path%=0
                  filer_action_directory$=""
                  filer_action_status%=1
@@ -854,27 +854,27 @@ PROCcreate_heap(heap_handle%,task_name$,16*1024*1024,0)
 :
 REM Set up the options
 :
-PROCinitialise_config(13,task_name$)
-PROCinit_str_config("SearchPath","ADFS::4.$")
-PROCinit_int_config("PathBufSize",4095)
-PROCinit_opt_config("Multitask",TRUE)
-PROCinit_opt_config("ImageFS",FALSE)
-PROCinit_opt_config("SuppressErrors",TRUE)
-PROCinit_int_config("HistorySize",10)
-PROCinit_opt_config("ConfirmHistoryAdd",TRUE)
-PROCinit_opt_config("FileMenuSprites",FALSE)
-PROCinit_opt_config("ScrollResults",TRUE)
-PROCinit_int_config("OSGBPBReadSize",1000)
-PROCinit_opt_config("QuitAsPlugin",FALSE)
-PROCinit_opt_config("SearchWindAsPlugin",FALSE)
-PROCinit_opt_config("FullInfoDisplay",FALSE)
+PROCconfig_initialise(13,task_name$)
+PROCconfig_init_string("SearchPath","ADFS::4.$")
+PROCconfig_init_integer("PathBufSize",4095)
+PROCconfig_init_boolean("Multitask",TRUE)
+PROCconfig_init_boolean("ImageFS",FALSE)
+PROCconfig_init_boolean("SuppressErrors",TRUE)
+PROCconfig_init_integer("HistorySize",10)
+PROCconfig_init_boolean("ConfirmHistoryAdd",TRUE)
+PROCconfig_init_boolean("FileMenuSprites",FALSE)
+PROCconfig_init_boolean("ScrollResults",TRUE)
+PROCconfig_init_integer("OSGBPBReadSize",1000)
+PROCconfig_init_boolean("QuitAsPlugin",FALSE)
+PROCconfig_init_boolean("SearchWindAsPlugin",FALSE)
+PROCconfig_init_boolean("FullInfoDisplay",FALSE)
 :
 choices_load$="Choices:Locate.Choices"
 SYS "XOS_File",17,choices_load$ TO choices_type% ;flags%
 IF (flags% AND 1)<>0 OR choices_type%<>1 THEN choices_load$="Locate:Choices"
-choices_save$=FNload_config_file(choices_load$)
+choices_save$=FNconfig_load_file(choices_load$)
 :
-$a%=FNread_str_config("SearchPath")
+$a%=PROCconfig_read_string("SearchPath")
 default_search_options%=FNset_default_search_options(a%,"")
 current_search_options%=0
 :
@@ -888,8 +888,8 @@ search_pane%=0
 :
 PROCopen_templates(resource_path$+"Templates")
 PROCload_template("Search",b%,ind_data%,ind_data_size%,-1)
-b%!748=FNclaim_block(heap_handle%,FNread_int_config("PathBufSize"))
-b%!756=FNread_int_config("PathBufSize")
+b%!748=FNclaim_block(heap_handle%,PROCconfig_read_integer("PathBufSize"))
+b%!756=PROCconfig_read_integer("PathBufSize")
 SYS "Wimp_CreateWindow",,b% TO search_window%
 PROCload_template("SizePane",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO search_panes%(0)
@@ -908,8 +908,8 @@ SYS "Wimp_CreateWindow",,b% TO info_window%
 PROCload_template("ObjectInfo",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO object_info_window%
 PROCload_template("Choices",b%,ind_data%,ind_data_size%,-1)
-REMb%!300=FNclaim_block(heap_handle%,FNread_int_config("PathBufSize"))
-REMb%!308=FNread_int_config("PathBufSize")
+REMb%!300=FNclaim_block(heap_handle%,PROCconfig_read_integer("PathBufSize"))
+REMb%!308=PROCconfig_read_integer("PathBufSize")
 SYS "Wimp_CreateWindow",,b% TO choices_window%
 PROCload_template("SaveAs",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO save_window%
@@ -1021,10 +1021,10 @@ REM Also set a flag to indicate if we must quit once the work has been done.
 :
 SYS "OS_Byte",129,0,&FF TO ,os_version%
 started_as_plugin%=(INSTR(command_line$,"-plugin")<>0)
-quit_after_plugin%=(started_as_plugin% AND FNread_opt_config("QuitAsPlugin"))
+quit_after_plugin%=(started_as_plugin% AND PROCconfig_read_boolean("QuitAsPlugin"))
 :
 IF started_as_plugin% THEN
- filer_action_path%=FNclaim_block(heap_handle%,FNread_int_config("PathBufSize"))
+ filer_action_path%=FNclaim_block(heap_handle%,PROCconfig_read_integer("PathBufSize"))
  ?filer_action_path%=0
  filer_action_directory$=""
  filer_action_status%=1
@@ -1853,10 +1853,10 @@ PROCstore_word(heap_handle%,options%,ptr%,0)                : REM Default to pan
 PROCstore_long_string(heap_handle%,options%,ptr%,path%)
 PROCstore_string(heap_handle%,options%,ptr%,name$)
 PROCstore_word(heap_handle%,options%,ptr%,TRUE)
-bits%=%0001 AND FNread_opt_config("Multitask")
-bits%+=%0010 AND FNread_opt_config("ImageFS")
-bits%+=%0100 AND FNread_opt_config("SuppressErrors")
-bits%+=%1000 AND FNread_opt_config("FullInfoDisplay")
+bits%=%0001 AND PROCconfig_read_boolean("Multitask")
+bits%+=%0010 AND PROCconfig_read_boolean("ImageFS")
+bits%+=%0100 AND PROCconfig_read_boolean("SuppressErrors")
+bits%+=%1000 AND PROCconfig_read_boolean("FullInfoDisplay")
 PROCstore_word(heap_handle%,options%,ptr%,bits%)
 PROCstore_word(heap_handle%,options%,ptr%,0)
 PROCstore_word(heap_handle%,options%,ptr%,0)
@@ -2038,7 +2038,7 @@ data_block%!24=0                                  : REM Number of matches linked
 data_block%!28=results_title_offset%              : REM Pointer to the next result to be linked
 data_block%!32=0                                  : REM Window handle of results pane (not used)
 data_block%!36=0                                  : REM Display flags (full info is done in the next line)
-PROCset_full_info(data_block%,FNread_opt_config("FullInfoDisplay"))
+PROCset_full_info(data_block%,PROCconfig_read_boolean("FullInfoDisplay"))
 data_block%!44=0                                  : REM -> File info data
 data_block%!48=0                                  : REM Number of selectable items
 :
@@ -2050,10 +2050,10 @@ data_ptr%=results_title_offset%
 :
 REM Set up the search details.
 :
-IF FNread_opt_config("ConfirmHistoryAdd") THEN
+IF PROCconfig_read_boolean("ConfirmHistoryAdd") THEN
  PROCadd_search_to_pending_history(data_block%!16,$(search_info%!580)+" ("+extras$+")")
 ELSE
- PROCadd_search_to_history(search_history_list%,FNread_int_config("HistorySize"),data_block%!16,$(search_info%!580)+" ("+extras$+")")
+ PROCadd_search_to_history(search_history_list%,PROCconfig_read_integer("HistorySize"),data_block%!16,$(search_info%!580)+" ("+extras$+")")
 ENDIF
 :
 REM Create and open results window & pane.
@@ -2534,7 +2534,7 @@ IF data_block%!12>0 AND data_block%!12>data_block%!24 THEN
   :
   REM Scroll down to the end.
   :
-  IF FNread_opt_config("ScrollResults") THEN
+  IF PROCconfig_read_boolean("ScrollResults") THEN
    SYS "Wimp_GetWindowInfo",,(q% OR 1)
    q%!24=-((q%!56-q%!48)-(q%!16-q%!8))
    SYS "Wimp_OpenWindow",,q%
@@ -2596,7 +2596,7 @@ LOCAL next%,read%,file_name$,icon_height%,indirected%,sprite$,this_icon%,flags%,
 LOCAL file_name$,matches%,err%,recover%,truncated_dir$,icon_text%,text_width%,read_size%,errors%,result%
 LOCAL ERROR
 :
-read_size%=FNread_int_config("OSGBPBReadSize")
+read_size%=PROCconfig_read_integer("OSGBPBReadSize")
 :
 recover%=FALSE
 errors%=0
@@ -4279,7 +4279,7 @@ ENDPROC
 DEF PROCadd_pending_history_entry
 
 IF pending_history_block%<>-1 THEN
- PROCadd_search_to_history(search_history_list%,FNread_int_config("HistorySize"),pending_history_block%,$FNicon_indirection(history_add_window%,1))
+ PROCadd_search_to_history(search_history_list%,PROCconfig_read_integer("HistorySize"),pending_history_block%,$FNicon_indirection(history_add_window%,1))
  PROCdelete_search_options(pending_history_block%,%100)
  pending_history_block%=-1
  PROCwindow_close(history_add_window%)
@@ -4477,7 +4477,7 @@ LOCAL menu_buf%,name_buf%,spr_buf%,temp_buf%,type%,items%,name1%,name2%,length%,
 LOCAL item_size%,item_width%
 :
 types%=FNcount_defined_filetypes + 1  : REM +1 to allow for "Untyped".
-sprites%=FNread_opt_config("FileMenuSprites")
+sprites%=PROCconfig_read_boolean("FileMenuSprites")
 :
 IF sprites% THEN
  REM 48 = 24 (menu item size) + 13 (menu text+type+2 terminators) + 11 (Ssmall_xxx len)
@@ -4619,17 +4619,17 @@ REM ============================================================================
 :
 DEF PROCopen_choices_window(x%,y%)
 :
-$FNicon_indirection(choices_window%,6)=FNread_str_config("SearchPath")
-PROCset_icon_selected(choices_window%,7,FNread_opt_config("Multitask"))
-PROCset_icon_selected(choices_window%,8,FNread_opt_config("ImageFS"))
-PROCset_icon_selected(choices_window%,9,FNread_opt_config("SuppressErrors"))
-PROCset_icon_selected(choices_window%,22,FNread_opt_config("FullInfoDisplay"))
-$FNicon_indirection(choices_window%,13)=STR$(FNread_int_config("HistorySize"))
-PROCset_icon_selected(choices_window%,21,FNread_opt_config("FileMenuSprites"))
-PROCset_icon_selected(choices_window%,20,FNread_opt_config("ScrollResults"))
-PROCset_icon_selected(choices_window%,15,FNread_opt_config("ConfirmHistoryAdd"))
-PROCset_icon_selected(choices_window%,18,FNread_opt_config("QuitAsPlugin") AND (os_version%>=169))
-PROCset_icon_selected(choices_window%,19,FNread_opt_config("SearchWindAsPlugin") AND (os_version%>=169))
+$FNicon_indirection(choices_window%,6)=PROCconfig_read_string("SearchPath")
+PROCset_icon_selected(choices_window%,7,PROCconfig_read_boolean("Multitask"))
+PROCset_icon_selected(choices_window%,8,PROCconfig_read_boolean("ImageFS"))
+PROCset_icon_selected(choices_window%,9,PROCconfig_read_boolean("SuppressErrors"))
+PROCset_icon_selected(choices_window%,22,PROCconfig_read_boolean("FullInfoDisplay"))
+$FNicon_indirection(choices_window%,13)=STR$(PROCconfig_read_integer("HistorySize"))
+PROCset_icon_selected(choices_window%,21,PROCconfig_read_boolean("FileMenuSprites"))
+PROCset_icon_selected(choices_window%,20,PROCconfig_read_boolean("ScrollResults"))
+PROCset_icon_selected(choices_window%,15,PROCconfig_read_boolean("ConfirmHistoryAdd"))
+PROCset_icon_selected(choices_window%,18,PROCconfig_read_boolean("QuitAsPlugin") AND (os_version%>=169))
+PROCset_icon_selected(choices_window%,19,PROCconfig_read_boolean("SearchWindAsPlugin") AND (os_version%>=169))
 FOR icon%=16 TO 19
  PROCset_icon_shaded(choices_window%,icon%,os_version%<169)
 NEXT icon%
@@ -4656,19 +4656,19 @@ DEF PROCset_choices(save%)
 :
 LOCAL new_choices%,object%,len%
 :
-PROCset_str_config("SearchPath",$FNicon_indirection(choices_window%,6))
-PROCset_opt_config("Multitask",FNicon_selected(choices_window%,7))
-PROCset_opt_config("ImageFS",FNicon_selected(choices_window%,8))
-PROCset_opt_config("SuppressErrors",FNicon_selected(choices_window%,9))
-PROCset_int_config("HistorySize",VAL($FNicon_indirection(choices_window%,13)))
-PROCset_opt_config("ConfirmHistoryAdd",FNicon_selected(choices_window%,15))
-PROCset_opt_config("QuitAsPlugin",FNicon_selected(choices_window%,18))
-PROCset_opt_config("SearchWindAsPlugin",FNicon_selected(choices_window%,19))
-PROCset_opt_config("ScrollResults",FNicon_selected(choices_window%,20))
-PROCset_opt_config("FileMenuSprites",FNicon_selected(choices_window%,21))
-PROCset_opt_config("FullInfoDisplay",FNicon_selected(choices_window%,22))
+PROCconfig_set_string("SearchPath",$FNicon_indirection(choices_window%,6))
+PROCconfig_set_boolean("Multitask",FNicon_selected(choices_window%,7))
+PROCconfig_set_boolean("ImageFS",FNicon_selected(choices_window%,8))
+PROCconfig_set_boolean("SuppressErrors",FNicon_selected(choices_window%,9))
+PROCconfig_set_integer("HistorySize",VAL($FNicon_indirection(choices_window%,13)))
+PROCconfig_set_boolean("ConfirmHistoryAdd",FNicon_selected(choices_window%,15))
+PROCconfig_set_boolean("QuitAsPlugin",FNicon_selected(choices_window%,18))
+PROCconfig_set_boolean("SearchWindAsPlugin",FNicon_selected(choices_window%,19))
+PROCconfig_set_boolean("ScrollResults",FNicon_selected(choices_window%,20))
+PROCconfig_set_boolean("FileMenuSprites",FNicon_selected(choices_window%,21))
+PROCconfig_set_boolean("FullInfoDisplay",FNicon_selected(choices_window%,22))
 :
-PROCtrim_search_history(search_history_list%,FNread_int_config("HistorySize"))
+PROCtrim_search_history(search_history_list%,PROCconfig_read_integer("HistorySize"))
 :
 IF save% THEN
  IF choices_save$="" THEN
@@ -4685,11 +4685,11 @@ IF save% THEN
   ENDIF
  ENDIF
  :
- PROCsave_config_file(choices_save$)
+ PROCconfig_save_file(choices_save$)
 ENDIF
 :
 PROCfree_block(heap_handle%,default_search_options%)
-$a%=FNread_str_config("SearchPath")
+$a%=PROCconfig_read_string("SearchPath")
 default_search_options%=FNset_default_search_options(a%,"")
 ENDPROC
 :
