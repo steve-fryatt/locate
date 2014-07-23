@@ -465,36 +465,36 @@ CASE b%!16 OF
  WHEN &0     : quit%=TRUE
  WHEN &2     : CASE drag_window_handle% OF
                 WHEN search_window%,-2 : IF b%!36<>-1 THEN
-                                          PROCadd_path_to_search_list(search_window%,20,FNzero_string(b%+44),-1,TRUE)
+                                          PROCadd_path_to_search_list(search_window%,20,FNstring_read((b%+44),-1,TRUE)
                                          ENDIF
                 WHEN save_window%   : PROCsave_results_to_disc
                ENDCASE
  WHEN &3     : IF (b%!20=search_window% AND b%!24=20) OR (b%!20=choices_window% AND b%!24=6) THEN
-                PROCadd_path_to_search_list(b%!20,b%!24,FNzero_string(b%+44),b%!40,FALSE)
+                PROCadd_path_to_search_list(b%!20,b%!24,FNstring_read((b%+44),b%!40,FALSE)
                ENDIF
                IF b%!20=-2 THEN
                 IF b%!40=&1A1 THEN
-                 PROCload_data_file(FNzero_string(b%+44),TRUE)
+                 PROCload_data_file(FNstring_read((b%+44),TRUE)
                 ELSE
-                 PROCopen_dir_search_window(FNzero_string(b%+44),b%!40)
+                 PROCopen_dir_search_window(FNstring_read((b%+44),b%!40)
                 ENDIF
                ENDIF
- WHEN &5     : IF b%!40=&1A1 THEN PROCload_data_file(FNzero_string(b%+44),TRUE)
+ WHEN &5     : IF b%!40=&1A1 THEN PROCload_data_file(FNstring_read((b%+44),TRUE)
  WHEN &6     : IF drag_window_handle%=save_window% THEN PROCsave_results_in_ram
  WHEN &F     : IF global_clipboard%<>-1 AND b%!4<>task_handle% THEN
                 PROCfree_block(heap_handle%,global_clipboard%)
                 global_clipboard%=-1
                ENDIF
  WHEN &10    : IF global_clipboard%<>-1 THEN PROCsend_clipboard_data
- WHEN &403   : filer_action_directory$=FNzero_string(b%+20) : filer_action_status%=2
- WHEN &404   : selection_list$=FNzero_string(b%+20)
+ WHEN &403   : filer_action_directory$=FNstring_read((b%+20) : filer_action_status%=2
+ WHEN &404   : selection_list$=FNstring_read((b%+20)
                WHILE selection_list$<>""
                 space_index%=INSTR(selection_list$," ")
                 IF space_index%>0 THEN
                  next_object$=LEFT$(selection_list$, space_index%-1)
-                 selection_list$=FNstrip_surrounding_whitespace(MID$(selection_list$, space_index%+1))
+                 selection_list$=FNstring_trim(MID$(selection_list$, space_index%+1))
                 ELSE
-                 next_object$=FNstrip_surrounding_whitespace(selection_list$)
+                 next_object$=FNstring_trim(selection_list$)
                  selection_list$=""
                 ENDIF
                 next_object$=filer_action_directory$+"."+next_object$
@@ -505,7 +505,7 @@ CASE b%!16 OF
                 IF filer_action_status%=2 THEN
                  IF ?filer_action_path%=0 THEN $filer_action_path%=filer_action_directory$
                  filer_action_parent_handle%=b%!4
-                 filer_action_options%=FNset_default_search_options(filer_action_path%,FNzero_string(b%+28))
+                 filer_action_options%=FNset_default_search_options(filer_action_path%,FNstring_read((b%+28))
                  PROCfree_block(heap_handle%,filer_action_path%)
                  IF PROCconfig_read_boolean("SearchWindAsPlugin") THEN
                   SYS "Wimp_GetPointerInfo",,q%
@@ -2173,7 +2173,7 @@ ignore_case%=FNextract_word(parameters%,ptr%)
 IF $(search_info%!580)<>"" THEN
  !search_info%=!search_info% OR &0001
  IF ignore_case% THEN
-  $(search_info%!580)=FNto_lower($(search_info%!580))
+  $(search_info%!580)=FNstring_to_lower($(search_info%!580))
   search_info%!4=search_info%!4 OR &0004
  ENDIF
 ENDIF
@@ -2373,7 +2373,7 @@ type_option%=FNextract_word(parameters%,ptr%)
 type_logic%=FNextract_word(parameters%,ptr%)
 text_types$=FNextract_string(parameters%,ptr%)
 :
-untyped$=FNto_lower(FNmessage_trans("Untyped"))
+untyped$=FNstring_to_lower(FNmessage_trans("Untyped"))
 :
 search_info%!56=%111
 IF (type_option% AND %001)=0 THEN
@@ -2404,7 +2404,7 @@ ELSE
     ENDCASE
     !search_info%=!search_info% OR &0200
    ELSE
-    IF FNto_lower(text_type$)=untyped$ THEN
+    IF FNstring_to_lower(text_type$)=untyped$ THEN
      search_info%!56=search_info%!56 OR &100
      !search_info%=!search_info% OR &0200
     ENDIF
@@ -2462,13 +2462,13 @@ IF content_logic%>0 THEN
  $(search_info%!584)=content_text$
  !search_info%=!search_info% OR &2000
  IF content_opts% AND %01 THEN
-  $(search_info%!584)=FNto_lower($(search_info%!584))
+  $(search_info%!584)=FNstring_to_lower($(search_info%!584))
   search_info%!4=search_info%!4 OR &0008
  ENDIF
  IF content_opts% AND %10 THEN
   index%=INSTR($(search_info%!584),"\")
   WHILE index%>0
-   CASE FNto_lower(MID$($(search_info%!584),index%+1,1)) OF
+   CASE FNstring_to_lower(MID$($(search_info%!584),index%+1,1)) OF
     WHEN "a" : ctrl$=CHR$(7)
     WHEN "b" : ctrl$=CHR$(8)
     WHEN "f" : ctrl$=CHR$(12)
@@ -2616,8 +2616,8 @@ IF multitask% THEN
    SYS "Wimp_TextOp",1,icon_text%,0 TO text_width%
   ENDWHILE
  ELSE
-  IF LEN(FNctrl_string(FNicon_indirection(data_block%!32,0)))*16>results_pane_width% THEN
-   text_width%=LEN(FNctrl_string(FNicon_indirection(data_block%!32,0)))+3-results_pane_width%/16
+  IF LEN(FNstring_read((FNicon_indirection(data_block%!32,0)))*16>results_pane_width% THEN
+   text_width%=LEN(FNstring_read((FNicon_indirection(data_block%!32,0)))+3-results_pane_width%/16
    SYS "MessageTrans_Lookup",message_block%,"Searching",icon_text%,255,"..."+MID$(dir$,text_width%+2)
   ENDIF
  ENDIF
@@ -2631,17 +2631,17 @@ REPEAT
  IF (flags% AND 1) THEN
   IF throw_errors% THEN
    recover%=TRUE
-   ERROR !err%,FNctrl_string(err%+4)
+   ERROR !err%,FNstring_read((err%+4)
   ELSE
    IF NOT multitask% THEN SYS "OS_Byte",229,1,0
-   PROCadd_results_entry(data_block%,data_ptr%,dir$+": '"+FNctrl_string(err%+4)+"'","error",%011)
+   PROCadd_results_entry(data_block%,data_ptr%,dir$+": '"+FNstring_read((err%+4)+"'","error",%011)
    IF NOT multitask% THEN SYS "OS_Byte",229,0,0
    =errors%
   ENDIF
  ELSE
   file_ptr%=os_gbpb_block%
   WHILE (NOT exit%) AND read%>0
-   file_name$=FNctrl_string(file_ptr%+20)
+   file_name$=FNstring_read((file_ptr%+20)
    :
    IF LEN(dir$)+LEN(file_name$)<254 THEN
     $(criteria%!588)=dir$+"."+file_name$+CHR$(0)
@@ -4124,7 +4124,7 @@ ox%=q%!4-q%!20
 oy%=q%!16-q%!24
 q%!4=icon%
 SYS "Wimp_GetIconState",,q%
-sprite$=FNctrl_string(q%!28)
+sprite$=FNstring_read((q%!28)
 q%!4=5
 q%!8=ox%+q%!8
 q%!12=oy%+q%!12
@@ -4243,7 +4243,7 @@ ELSE
  next%+=1 : REM Skip over comma.
 ENDIF
 :
-=FNstrip_surrounding_whitespace(dir$)
+=FNstring_trim(dir$)
 :
 :
 :
@@ -4501,7 +4501,7 @@ REPEAT
  SYS "XOS_ReadVarVal","File$Type_*",buffer%,9,next%,0 TO ,,length%,next%
  IF length%<>0 THEN
   buffer%?length%=13
-  $(buffer%+9)=FNctrl_string(next%+10)
+  $(buffer%+9)=FNstring_read((next%+10)
   buffer%+=13
  ENDIF
 UNTIL length%=0
@@ -4533,7 +4533,7 @@ FOR items%=0 TO types%-1
  IF menu_buf%!16<item_width% THEN menu_buf%!16=item_width%
  :
  IF sprites% THEN
-  type$=FNto_lower($(name_buf%+(items%*13)+9))
+  type$=FNstring_to_lower($(name_buf%+(items%*13)+9))
   spr$="small_"
   SYS"XWimp_SpriteOp",24,,spr$+type$ TO ;err%
   IF (err% AND 1) THEN
@@ -4605,7 +4605,7 @@ DEF FNfile_type_num_to_str(type_num%)
 :
 REM This takes a decimal number, and returns a lowercase hex string.
 :
-=FNto_lower(RIGHT$("000"+STR$~type_num%,3))
+=FNstring_to_lower(RIGHT$("000"+STR$~type_num%,3))
 :
 :
 :
@@ -5010,10 +5010,10 @@ REM If it's an error pointer, do something with the error.
 IF (return%<>0 AND return%<>1) THEN
  IF throw_errors% THEN
   recover%=TRUE
-  ERROR !return%, FNzero_string(return%+4)
+  ERROR !return%, FNstring_read((return%+4)
  ELSE
   IF NOT multitask% THEN SYS "OS_Byte",229,1,0
-  PROCadd_results_entry(data_block%,data_ptr%,dir$+": '"+FNctrl_string(return%+4)+"'","error",%011)
+  PROCadd_results_entry(data_block%,data_ptr%,dir$+": '"+FNstring_read((return%+4)+"'","error",%011)
   IF NOT multitask% THEN SYS "OS_Byte",229,0,0
   =1 : REM Exit not equalling TRUE or FALSE, so that the caller can fall out.
  ENDIF
