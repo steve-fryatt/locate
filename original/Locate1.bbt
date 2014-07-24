@@ -353,7 +353,7 @@ CASE menu_up% OF
   PROCicon_redraw(search_panes%(0),2)
   search_size_logic%=!b%
   FOR loop%=3 TO 9
-   PROCset_icon_state(search_panes%(0),loop%,0,(!b%<=4 AND loop%>=6) OR !b%=0,0)
+   PROCicon_set_state(search_panes%(0),loop%,0,(!b%<=4 AND loop%>=6) OR !b%=0,0)
   NEXT loop%
   PROCtick_menu_item(size_logic_menu%,search_size_logic%)
   PROCsearch_window_caret_clear
@@ -649,7 +649,7 @@ ELSE
                          WHEN 2 : save_data_block%=FNbuild_search_save_block(results_window_menu_ptr%)
                          WHEN 3 : save_data_block%=FNbuild_search_save_block(-1)
                         ENDCASE
-                        $(b%+1044)=FNleaf_name($FNicon_indirection(save_window%,2))+CHR$(0)
+                        $(b%+1044)=FNstring_leafname($FNicon_indirection(save_window%,2))+CHR$(0)
                         b%!1036=!save_data_block%  : REM File size
                         b%!1040=save_data_block%!8 : REM File type
                         b%!1000=(48+LEN($(b%+1044))) AND (NOT %11)
@@ -1257,7 +1257,7 @@ LOCAL settings%,loop%,pane%,ptr%,word%
 REM Check to see if a search window is already open.
 :
 IF current_search_options%=0 THEN
- IF object_type%<&1000 THEN path$=FNpath_name(path$)
+ IF object_type%<&1000 THEN path$=FNstring_pathname(path$)
  $a%=path$
  settings%=FNset_default_search_options(a%,"")
  !settings%=!settings% OR %10
@@ -1351,7 +1351,7 @@ ptr%=8
 pane%=FNextract_word(settings%,ptr%)
 IF set_pane% THEN
  FOR loop%=6 TO 10
-  PROCset_icon_state(search_window%,loop%,(loop%-6)=pane%,0,0)
+  PROCset_icon_selected(search_window%,loop%,(loop%-6)=pane%)
  NEXT loop%
 ENDIF
 :
@@ -2932,7 +2932,7 @@ IF data%!20=1 THEN
  found%=FALSE
  WHILE loop%<data%!24 AND (NOT found%)
   IF (redraw%!(loop%*32+8) AND &100) THEN
-   $FNicon_indirection(object_info_window%,0)=FNleaf_name($(data%+(redraw%!(loop%*32))))
+   $FNicon_indirection(object_info_window%,0)=FNstring_leafname($(data%+(redraw%!(loop%*32))))
    type$=$(data%!44+redraw%!(loop%*32+20))
    SYS "XOS_FSControl",31,type$ TO ,,type% ;flags%
    IF (flags% AND 1)=0 THEN type$+=" ("+RIGHT$("000"+STR$~(type%),3)+")"
@@ -3312,7 +3312,7 @@ IF data_block%<>-1 THEN
     SYS "OS_File",17,file_name$ TO object_type%
     IF object_type%>0 THEN
      CASE b%!8 OF
-      WHEN 1 : OSCLI("%Filer_OpenDir "+FNpath_name(file_name$))
+      WHEN 1 : OSCLI("%Filer_OpenDir "+FNstring_pathname(file_name$))
       WHEN 4 : OSCLI("%Filer_Run "+file_name$)
      ENDCASE
     ELSE
@@ -3372,7 +3372,7 @@ IF data%!20=1 THEN
  found%=FALSE
  WHILE loop%<data%!24 AND (NOT found%)
   IF (redraw%!(loop%*32+8) AND &100) THEN
-   OSCLI("%Filer_OpenDir "+FNpath_name($(data%+(redraw%!(loop%*32)))))
+   OSCLI("%Filer_OpenDir "+FNstring_pathname($(data%+(redraw%!(loop%*32)))))
    found%=TRUE
   ENDIF
   loop%+=1
@@ -4082,7 +4082,7 @@ ENDIF
 type%=new_type%
 $FNicon_indirection(save_window%,2)=save_box_names$(type%,ABS(save_box_select%(type%)))
 $FNicon_indirection(save_window%,3)=save_box_sprites$(type%)
-PROCset_icon_state(save_window%,4,save_box_select%(type%),results_window_menu_ptr%!20=0,FALSE)
+PROCicon_set_state(save_window%,4,save_box_select%(type%),results_window_menu_ptr%!20=0,FALSE)
 ENDPROC
 :
 :
@@ -4164,7 +4164,7 @@ buffer%=q%!28 : size%=q%!36
 :
 REM If the object is a file, strip the leafname from the filename given.
 :
-IF type%<&1000 THEN path$=FNpath_name(path$)
+IF type%<&1000 THEN path$=FNstring_pathname(path$)
 :
 REM If overwrite is not forced on us, decide what to do based on user preference and the state of the Shift key.
 :
