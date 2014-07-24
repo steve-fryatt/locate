@@ -86,7 +86,7 @@ SRCZIPFLAGS := -x "*/.svn/*" -r -y -9
 BUZIPFLAGS := -x "*/.svn/*" -r -y -9
 BINDHELPFLAGS := -f -r -v
 MENUGENFLAGS := -d
-TOKENIZEFLAGS := 
+TOKENIZEFLAGS := -warn p
 
 
 # Includes and libraries.
