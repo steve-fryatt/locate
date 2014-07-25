@@ -12,6 +12,7 @@ LIBRARY "BASIC:Date"
 LIBRARY "BASIC:Icon"
 LIBRARY "BASIC:Resources"
 LIBRARY "BASIC:String"
+LIBRARY "BASIC:Template"
 LIBRARY "BASIC:URL"
 LIBRARY "BASIC:WimpError"
 LIBRARY "BASIC:WimpSprite"
@@ -133,7 +134,7 @@ CASE b%!12 OF
     WHEN 1 : IF b%!8=4 THEN PROCclose_search_window : PROCsearch(FNget_current_search_options) : PROCterminate_plugin
     WHEN 6,7,8,9,10 : IF b%!8=1 THEN PROCicon_set_selected(search_window%,b%!16,TRUE)
                       SYS "Wimp_GetCaretPosition",,q%
-                      IF !q%=search_panes%(search_pane%) THEN PROCput_caret_at_end(search_window%,4)
+                      IF !q%=search_panes%(search_pane%) THEN PROCicon_put_caret_at_end(search_window%,4)
                       PROCwindow_close(search_panes%(search_pane%))
                       PROCopen_search_pane(b%!16-6,0,0)
     WHEN 11 : CASE b%!8 OF
@@ -421,7 +422,7 @@ CASE menu_up% OF
     $FNicon_indirection(search_panes%(2),5)+=","+$FNmenu_indirection(file_type_menu%,!b%)
    ENDIF
    PROCicon_redraw(search_panes%(2),5)
-   IF FNis_caret_in_icon(search_panes%(2),5) THEN PROCput_caret_at_end(search_panes%(2),5)
+   IF FNicon_test_for_caret(search_panes%(2),5) THEN PROCicon_put_caret_at_end(search_panes%(2),5)
   ELSE
    PROCwimperror_report(FNmessage_trans("TypeBufFull"),2,%10,"")
   ENDIF
@@ -886,47 +887,47 @@ DIM results_window_def% 400, results_pane_def% 200
 DIM search_panes%(4)
 search_pane%=0
 :
-PROCopen_templates(resource_path$+"Templates")
-PROCload_template("Search",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_open(resource_path$+"Templates")
+PROCtemplate_load("Search",b%,ind_data%,ind_data_size%,-1)
 b%!748=FNclaim_block(heap_handle%,PROCconfig_read_integer("PathBufSize"))
 b%!756=PROCconfig_read_integer("PathBufSize")
 SYS "Wimp_CreateWindow",,b% TO search_window%
-PROCload_template("SizePane",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("SizePane",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO search_panes%(0)
-PROCload_template("DatePane",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("DatePane",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO search_panes%(1)
-PROCload_template("TypePane",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("TypePane",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO search_panes%(2)
-PROCload_template("AttribPane",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("AttribPane",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO search_panes%(3)
-PROCload_template("ContentPane",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("ContentPane",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO search_panes%(4)
-PROCload_template("SetTime",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("SetTime",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO time_window%
-PROCload_template("ProgInfo",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("ProgInfo",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO info_window%
-PROCload_template("ObjectInfo",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("ObjectInfo",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO object_info_window%
-PROCload_template("Choices",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("Choices",b%,ind_data%,ind_data_size%,-1)
 REMb%!300=FNclaim_block(heap_handle%,PROCconfig_read_integer("PathBufSize"))
 REMb%!308=PROCconfig_read_integer("PathBufSize")
 SYS "Wimp_CreateWindow",,b% TO choices_window%
-PROCload_template("SaveAs",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("SaveAs",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO save_window%
-PROCload_template("Paused",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("Paused",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO pause_window%
-PROCload_template("HistoryAdd",b%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("HistoryAdd",b%,ind_data%,ind_data_size%,-1)
 SYS "Wimp_CreateWindow",,b% TO history_add_window%
-PROCload_template("Results",results_window_def%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("Results",results_window_def%,ind_data%,ind_data_size%,-1)
 results_window_height%=(results_window_def%!12-results_window_def%!4)
 results_window_def%!84=0
 results_icon_def%=results_window_def%+88
 results_icon_width%=(results_icon_def%!8-!results_icon_def%)
 results_icon_height%=(results_icon_def%!12-results_icon_def%!4)
-PROCload_template("ResultsPane",results_pane_def%,ind_data%,ind_data_size%,-1)
+PROCtemplate_load("ResultsPane",results_pane_def%,ind_data%,ind_data_size%,-1)
 results_pane_width%=(results_pane_def%!96-results_pane_def%!88)-8
 results_pane_height%=(results_pane_def%!12-results_pane_def%!4)
-PROCclose_templates
+PROCtemplate_close
 :
 results_window_def%!64=FNwimpsprite_load_user_sprites("<Locate$Sprites>.Sprites")
 :
@@ -1231,7 +1232,7 @@ IF current_search_options%=0 THEN
  PROCicon_set_selected(search_window%,13,FALSE)
  PROCopen_search_pane(pane%,x%,y%)
  :
- IF FNwindow_is_open(search_window%) THEN PROCput_caret_at_end(search_window%,4)
+ IF FNwindow_is_open(search_window%) THEN PROCicon_put_caret_at_end(search_window%,4)
 ELSE
  :
  REM Re-open the window on the top of the stack.
@@ -1269,7 +1270,7 @@ IF current_search_options%=0 THEN
  SYS "Wimp_GetPointerInfo",,q%
  PROCopen_search_pane(pane%,!q%,q%!4)
  :
- IF FNwindow_is_open(search_window%) THEN PROCput_caret_at_end(search_window%,4)
+ IF FNwindow_is_open(search_window%) THEN PROCicon_put_caret_at_end(search_window%,4)
 ELSE
  :
  REM Re-open the window on the top of the stack.
@@ -1328,7 +1329,7 @@ REM Move the caret somewhere sensible.
 PROCsearch_window_caret_clear
 SYS "Wimp_GetCaretPosition",,q%
 IF !q%=search_window% OR !q%=search_panes%(0) OR !q%=search_panes%(1) OR !q%=search_panes%(2) THEN
- PROCput_caret_at_end(!q%,q%!4)
+ PROCicon_put_caret_at_end(!q%,q%!4)
 ENDIF
 ENDPROC
 :
@@ -1565,120 +1566,120 @@ DEF PROCsearch_window_keypress
 CASE b%!24 OF
  WHEN &18E,&18A : CASE !b% OF
   WHEN search_window% : CASE b%!4 OF
-    WHEN 20 : PROCput_caret_at_end(search_window%,4)
+    WHEN 20 : PROCicon_put_caret_at_end(search_window%,4)
     WHEN 4 : CASE search_pane% OF
       WHEN 0 : IF FNicon_shaded(search_panes%(0),3) THEN
-                PROCput_caret_at_end(search_window%,20)
+                PROCicon_put_caret_at_end(search_window%,20)
                ELSE
-                PROCput_caret_at_end(search_panes%(0),3)
+                PROCicon_put_caret_at_end(search_panes%(0),3)
                ENDIF
       WHEN 1 : IF FNicon_selected(search_panes%(1),0) THEN
                 IF FNicon_shaded(search_panes%(1),5) THEN
-                 PROCput_caret_at_end(search_window%,20)
+                 PROCicon_put_caret_at_end(search_window%,20)
                 ELSE
-                 PROCput_caret_at_end(search_panes%(1),5)
+                 PROCicon_put_caret_at_end(search_panes%(1),5)
                 ENDIF
                ELSE
                 IF FNicon_shaded(search_panes%(1),13) THEN
-                 PROCput_caret_at_end(search_window%,20)
+                 PROCicon_put_caret_at_end(search_window%,20)
                 ELSE
-                 PROCput_caret_at_end(search_panes%(1),13)
+                 PROCicon_put_caret_at_end(search_panes%(1),13)
                 ENDIF
                ENDIF
       WHEN 2 : IF FNicon_shaded(search_panes%(2),5) THEN
-                PROCput_caret_at_end(search_window%,20)
+                PROCicon_put_caret_at_end(search_window%,20)
                ELSE
-                PROCput_caret_at_end(search_panes%(2),5)
+                PROCicon_put_caret_at_end(search_panes%(2),5)
                ENDIF
       WHEN 4 : IF FNicon_shaded(search_panes%(4),3) THEN
-                PROCput_caret_at_end(search_window%,20)
+                PROCicon_put_caret_at_end(search_window%,20)
                ELSE
-                PROCput_caret_at_end(search_panes%(4),3)
+                PROCicon_put_caret_at_end(search_panes%(4),3)
                ENDIF
      ENDCASE
    ENDCASE
   WHEN search_panes%(0) : CASE b%!4 OF
     WHEN 3 : IF FNicon_shaded(search_panes%(0),7) THEN
-              PROCput_caret_at_end(search_window%,20)
+              PROCicon_put_caret_at_end(search_window%,20)
              ELSE
-              PROCput_caret_at_end(search_panes%(0),7)
+              PROCicon_put_caret_at_end(search_panes%(0),7)
              ENDIF
-    WHEN 7 : PROCput_caret_at_end(search_window%,20)
+    WHEN 7 : PROCicon_put_caret_at_end(search_window%,20)
    ENDCASE
   WHEN search_panes%(1) : CASE b%!4 OF
     WHEN 5  : IF FNicon_shaded(search_panes%(1),8) OR FNicon_selected(search_panes%(1),1) THEN
-               PROCput_caret_at_end(search_window%,20)
+               PROCicon_put_caret_at_end(search_window%,20)
               ELSE
-               PROCput_caret_at_end(search_panes%(1),8)
+               PROCicon_put_caret_at_end(search_panes%(1),8)
               ENDIF
-    WHEN 8  : PROCput_caret_at_end(search_window%,20)
+    WHEN 8  : PROCicon_put_caret_at_end(search_window%,20)
     WHEN 13 : IF FNicon_shaded(search_panes%(1),18) OR FNicon_selected(search_panes%(1),0) THEN
-              PROCput_caret_at_end(search_window%,20)
+              PROCicon_put_caret_at_end(search_window%,20)
              ELSE
-              PROCput_caret_at_end(search_panes%(1),18)
+              PROCicon_put_caret_at_end(search_panes%(1),18)
              ENDIF
-    WHEN 18 : PROCput_caret_at_end(search_window%,20)
+    WHEN 18 : PROCicon_put_caret_at_end(search_window%,20)
    ENDCASE
-  WHEN search_panes%(2) : IF b%!4=5 THEN PROCput_caret_at_end(search_window%,20)
-  WHEN search_panes%(4) : IF b%!4=3 THEN PROCput_caret_at_end(search_window%,20)
+  WHEN search_panes%(2) : IF b%!4=5 THEN PROCicon_put_caret_at_end(search_window%,20)
+  WHEN search_panes%(4) : IF b%!4=3 THEN PROCicon_put_caret_at_end(search_window%,20)
  ENDCASE
  WHEN &18F,&19A : CASE !b% OF
   WHEN search_window% : CASE b%!4 OF
-    WHEN 4 : PROCput_caret_at_end(search_window%,20)
+    WHEN 4 : PROCicon_put_caret_at_end(search_window%,20)
     WHEN 20 : CASE search_pane% OF
       WHEN 0 : IF FNicon_shaded(search_panes%(0),7) THEN
                 IF FNicon_shaded(search_panes%(0),3) THEN
-                 PROCput_caret_at_end(search_window%,4)
+                 PROCicon_put_caret_at_end(search_window%,4)
                 ELSE
-                 PROCput_caret_at_end(search_panes%(0),3)
+                 PROCicon_put_caret_at_end(search_panes%(0),3)
                 ENDIF
                ELSE
-                PROCput_caret_at_end(search_panes%(0),7)
+                PROCicon_put_caret_at_end(search_panes%(0),7)
                ENDIF
       WHEN 1 : IF FNicon_selected(search_panes%(1),0) THEN
                 IF FNicon_shaded(search_panes%(1),8) THEN
                  IF FNicon_shaded(search_panes%(1),5) THEN
-                  PROCput_caret_at_end(search_window%,4)
+                  PROCicon_put_caret_at_end(search_window%,4)
                  ELSE
-                  PROCput_caret_at_end(search_panes%(1),5)
+                  PROCicon_put_caret_at_end(search_panes%(1),5)
                  ENDIF
                 ELSE
-                 PROCput_caret_at_end(search_panes%(1),8)
+                 PROCicon_put_caret_at_end(search_panes%(1),8)
                 ENDIF
                ELSE
                 IF FNicon_shaded(search_panes%(1),18) THEN
                  IF FNicon_shaded(search_panes%(1),13) THEN
-                  PROCput_caret_at_end(search_window%,4)
+                  PROCicon_put_caret_at_end(search_window%,4)
                  ELSE
-                  PROCput_caret_at_end(search_panes%(1),13)
+                  PROCicon_put_caret_at_end(search_panes%(1),13)
                  ENDIF
                 ELSE
-                 PROCput_caret_at_end(search_panes%(1),18)
+                 PROCicon_put_caret_at_end(search_panes%(1),18)
                 ENDIF
                ENDIF
       WHEN 2 : IF FNicon_shaded(search_panes%(2),5) THEN
-                PROCput_caret_at_end(search_window%,4)
+                PROCicon_put_caret_at_end(search_window%,4)
                ELSE
-                PROCput_caret_at_end(search_panes%(2),5)
+                PROCicon_put_caret_at_end(search_panes%(2),5)
                ENDIF
       WHEN 4 : IF FNicon_shaded(search_panes%(4),3) THEN
-                PROCput_caret_at_end(search_window%,4)
+                PROCicon_put_caret_at_end(search_window%,4)
                ELSE
-                PROCput_caret_at_end(search_panes%(4),3)
+                PROCicon_put_caret_at_end(search_panes%(4),3)
                ENDIF
      ENDCASE
    ENDCASE
   WHEN search_panes%(0) : CASE b%!4 OF
-    WHEN 3 : PROCput_caret_at_end(search_window%,4)
-    WHEN 7 : PROCput_caret_at_end(search_panes%(0),3)
+    WHEN 3 : PROCicon_put_caret_at_end(search_window%,4)
+    WHEN 7 : PROCicon_put_caret_at_end(search_panes%(0),3)
    ENDCASE
   WHEN search_panes%(1) : CASE b%!4 OF
-    WHEN 5,13 : PROCput_caret_at_end(search_window%,4)
-    WHEN 8    : PROCput_caret_at_end(search_panes%(1),5)
-    WHEN 18   : PROCput_caret_at_end(search_panes%(1),13)
+    WHEN 5,13 : PROCicon_put_caret_at_end(search_window%,4)
+    WHEN 8    : PROCicon_put_caret_at_end(search_panes%(1),5)
+    WHEN 18   : PROCicon_put_caret_at_end(search_panes%(1),13)
    ENDCASE
-  WHEN search_panes%(2) : IF b%!4=5 THEN PROCput_caret_at_end(search_window%,4)
-  WHEN search_panes%(4) : IF b%!4=3 THEN PROCput_caret_at_end(search_window%,4)
+  WHEN search_panes%(2) : IF b%!4=5 THEN PROCicon_put_caret_at_end(search_window%,4)
+  WHEN search_panes%(4) : IF b%!4=3 THEN PROCicon_put_caret_at_end(search_window%,4)
  ENDCASE
 ENDCASE
 ENDPROC
@@ -1700,38 +1701,38 @@ CASE !q% OF
  WHEN search_panes%(0)
   IF q%!4=7 AND FNicon_shaded(search_panes%(0),7) THEN
    IF FNicon_shaded(search_panes%(0),3) THEN
-    PROCput_caret_at_end(search_window%,4)
+    PROCicon_put_caret_at_end(search_window%,4)
    ELSE
-    PROCput_caret_at_end(search_panes%(0),3)
+    PROCicon_put_caret_at_end(search_panes%(0),3)
    ENDIF
   ENDIF
-  IF q%!4=3 AND FNicon_shaded(search_panes%(0),3) THEN PROCput_caret_at_end(search_window%,4)
+  IF q%!4=3 AND FNicon_shaded(search_panes%(0),3) THEN PROCicon_put_caret_at_end(search_window%,4)
  WHEN search_panes%(1)
   IF q%!4=8 AND FNicon_shaded(search_panes%(1),8) THEN
    IF FNicon_shaded(search_panes%(1),5) THEN
-    PROCput_caret_at_end(search_window%,4)
+    PROCicon_put_caret_at_end(search_window%,4)
    ELSE
-    PROCput_caret_at_end(search_panes%(1),5)
+    PROCicon_put_caret_at_end(search_panes%(1),5)
    ENDIF
   ENDIF
-  IF q%!4=5 AND FNicon_shaded(search_panes%(1),5) THEN PROCput_caret_at_end(search_window%,4)
+  IF q%!4=5 AND FNicon_shaded(search_panes%(1),5) THEN PROCicon_put_caret_at_end(search_window%,4)
   IF q%!4=18 AND FNicon_shaded(search_panes%(1),18) THEN
    IF FNicon_shaded(search_panes%(1),13) THEN
-    PROCput_caret_at_end(search_window%,4)
+    PROCicon_put_caret_at_end(search_window%,4)
    ELSE
-    PROCput_caret_at_end(search_panes%(1),13)
+    PROCicon_put_caret_at_end(search_panes%(1),13)
    ENDIF
   ENDIF
-  IF q%!4=13 AND FNicon_shaded(search_panes%(1),13) THEN PROCput_caret_at_end(search_window%,4)
+  IF q%!4=13 AND FNicon_shaded(search_panes%(1),13) THEN PROCicon_put_caret_at_end(search_window%,4)
   IF FNicon_selected(search_panes%(1),0) THEN
-   IF q%!4=13 OR q%!4=18 THEN PROCput_caret_at_end(search_window%,4)
+   IF q%!4=13 OR q%!4=18 THEN PROCicon_put_caret_at_end(search_window%,4)
   ELSE
-   IF q%!4=5 OR q%!4=8 THEN PROCput_caret_at_end(search_window%,4)
+   IF q%!4=5 OR q%!4=8 THEN PROCicon_put_caret_at_end(search_window%,4)
   ENDIF
  WHEN search_panes%(2)
-  IF q%!4=5 AND FNicon_shaded(search_panes%(2),5) THEN PROCput_caret_at_end(search_window%,4)
+  IF q%!4=5 AND FNicon_shaded(search_panes%(2),5) THEN PROCicon_put_caret_at_end(search_window%,4)
  WHEN search_panes%(4)
-  IF q%!4=3 AND FNicon_shaded(search_panes%(4),3) THEN PROCput_caret_at_end(search_window%,4)
+  IF q%!4=3 AND FNicon_shaded(search_panes%(4),3) THEN PROCicon_put_caret_at_end(search_window%,4)
 ENDCASE
 ENDPROC
 :
@@ -1951,7 +1952,7 @@ IF re_open% THEN
  PROCicon_redraw(time_window%,7)
 ELSE
  PROCwindow_open_centred_at(time_window%,x%,y%)
- PROCput_caret_at_end(time_window%,4)
+ PROCicon_put_caret_at_end(time_window%,4)
 ENDIF
 ENDPROC
 :
@@ -1996,8 +1997,8 @@ FOR icon%=11 TO 18
  PROCicon_set_shaded(time_window%,icon%,NOT time%)
 NEXT icon%
 :
-IF NOT time% AND (FNis_caret_in_icon(time_window%,13) OR FNis_caret_in_icon(time_window%,14)) THEN
- PROCput_caret_at_end(time_window%,7)
+IF NOT time% AND (FNicon_test_for_caret(time_window%,13) OR FNicon_test_for_caret(time_window%,14)) THEN
+ PROCicon_put_caret_at_end(time_window%,7)
 ENDIF
 ENDPROC
 
@@ -4101,7 +4102,7 @@ select%=FNicon_selected(save_window%,4)
 save_box_names$(data_save_type%,ABS(NOT select%))=$FNicon_indirection(save_window%,2)
 $FNicon_indirection(save_window%,2)=save_box_names$(data_save_type%,ABS(select%))
 PROCicon_redraw(save_window%,2)
-PROCput_caret_at_end(save_window%,2)
+PROCicon_put_caret_at_end(save_window%,2)
 ENDPROC
 :
 :
@@ -4173,7 +4174,7 @@ IF NOT over% THEN
 ENDIF
 :
 PROCadd_path_to_search_buffer(buffer%,size%,path$,over%)
-IF FNis_caret_in_icon(window%,icon%) THEN SYS "Wimp_SetCaretPosition",window%,icon%,,,-1,c%
+IF FNicon_test_for_caret(window%,icon%) THEN SYS "Wimp_SetCaretPosition",window%,icon%,,,-1,c%
 PROCicon_redraw(window%,icon%)
 ENDPROC
 :
@@ -4270,7 +4271,7 @@ ELSE
  SYS "Wimp_GetPointerInfo",,q%
  PROCwindow_open_at(history_add_window%,!q%-64,q%!4)
 ENDIF
-PROCput_caret_at_end(history_add_window%,1)
+PROCicon_put_caret_at_end(history_add_window%,1)
 ENDPROC
 :
 :
@@ -4635,12 +4636,12 @@ FOR icon%=16 TO 19
 NEXT icon%
 IF FNwindow_is_open(choices_window%) THEN
  PROCicon_redraw(choices_window%,6)
- IF FNis_caret_in_icon(choices_window%,6) THEN PROCput_caret_at_end(choices_window%,6)
+ IF FNicon_test_for_caret(choices_window%,6) THEN PROCicon_put_caret_at_end(choices_window%,6)
  PROCicon_redraw(choices_window%,13)
- IF FNis_caret_in_icon(choices_window%,13) THEN PROCput_caret_at_end(choices_window%,10)
+ IF FNicon_test_for_caret(choices_window%,13) THEN PROCicon_put_caret_at_end(choices_window%,10)
 ELSE
  PROCwindow_open_centred_at(choices_window%,x%,y%)
- PROCput_caret_at_end(choices_window%,6)
+ PROCicon_put_caret_at_end(choices_window%,6)
 ENDIF
 ENDPROC
 :
