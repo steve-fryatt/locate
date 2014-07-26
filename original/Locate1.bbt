@@ -96,7 +96,7 @@ IF data_block%<>-1 THEN
  SYS "Wimp_RedrawWindow",,B% TO A%
  CALL main_code%+window_redraw%
 ELSE
- ERROR 255,FNmessage_trans("BadRdrwHndl")
+ ERROR 255,FNmessage_lookup("BadRdrwHndl")
 ENDIF
 ENDPROC
 :
@@ -265,7 +265,7 @@ CASE b%!12 OF
    WHEN 3 : search_pause_abort%=TRUE
   ENDCASE
  WHEN info_window% : CASE b%!16 OF
-   WHEN 8 : PROCurl_launch(FNmessage_trans("SupportURL")) : PROCmenu_create(-1,0,0)
+   WHEN 8 : PROCurl_launch(FNmessage_lookup("SupportURL")) : PROCmenu_create(-1,0,0)
   ENDCASE
  OTHERWISE : PROCresults_window_click
 ENDCASE
@@ -424,7 +424,7 @@ CASE FNmenu_current_handle OF
    PROCicon_redraw(search_panes%(2),5)
    IF FNicon_test_for_caret(search_panes%(2),5) THEN PROCicon_put_caret_at_end(search_panes%(2),5)
   ELSE
-   PROCwimperror_report(FNmessage_trans("TypeBufFull"),2,%10,"")
+   PROCwimperror_report(FNmessage_lookup("TypeBufFull"),2,%10,"")
   ENDIF
   IF NOT re_open% THEN
    PROCfree_block(heap_handle%,file_type_menu%)
@@ -712,7 +712,7 @@ IF data_load_item%<data_load_block%!12 THEN
 ELSE
  poll_mask%=&03CB1 : send_data_load%=FALSE
  PROCfree_block(heap_handle%,data_load_buffer%)
- IF data_load_errors%>0 THEN PROCwimperror_report(FNmessage_trans("NotThereDrag"),2,%10,"")
+ IF data_load_errors%>0 THEN PROCwimperror_report(FNmessage_lookup("NotThereDrag"),2,%10,"")
 ENDIF
 ENDPROC
 :
@@ -777,8 +777,8 @@ SYS "MessageTrans_FileInfo",,resource_path$+"Messages" TO flags%,,message_size%
 DIM message_buffer% message_size%
 SYS "MessageTrans_OpenFile",message_block%,resource_path$+"Messages",message_buffer%
 :
-task_name$=FNmessage_trans("TaskName")
-task_sprite$=FNmessage_trans("TaskSpr")
+task_name$=FNmessage_lookup("TaskName")
+task_sprite$=FNmessage_lookup("TaskSpr")
 PROCwimperror_initialise(task_name$,task_sprite$)
 wimp_needed%=310
 :
@@ -825,9 +825,9 @@ poll_mask%=&03CB1
 REM The heap handling code, and the heap itself
 :
 SYS "OS_File",20,"Locate:HeapCode" TO code_type%,,,,heap_code_size%
-IF code_type%=0 THEN ERROR 255,FNmessage_trans("NoHeapCode")
+IF code_type%=0 THEN ERROR 255,FNmessage_lookup("NoHeapCode")
 SYS "OS_File",20,"Locate:Code" TO code_type%,,,,main_code_size%
-IF code_type%=0 THEN ERROR 255,FNmessage_trans("NoCode")
+IF code_type%=0 THEN ERROR 255,FNmessage_lookup("NoCode")
 DIM heap_code% heap_code_size%+main_code_size%
 main_code%=heap_code%+heap_code_size%
 SYS "OS_File",255,"Locate:HeapCode",heap_code%
@@ -930,7 +930,7 @@ PROCtemplate_close
 :
 results_window_def%!64=FNwimpsprite_load_user_sprites("<Locate$Sprites>.Sprites")
 :
-$FNicon_indirection(info_window%,6)=FNmessage_trans("Version")
+$FNicon_indirection(info_window%,6)=FNmessage_lookup("Version")
 :
 REM Load the menu definitions.
 :
@@ -2089,7 +2089,7 @@ next_dir%=0
 REPEAT
  index_dir$=FNenumerate_index_dirs(index_dir_list%, next_dir%)
  IF index_dir$="" THEN
-  PROCwimperror_report(FNmessage_trans("NoPaths"),1,%01,"")
+  PROCwimperror_report(FNmessage_lookup("NoPaths"),1,%01,"")
  ELSE
   errors%=FNsearch_files(index_dir$,search_info%,data_block%,data_ptr%,exit%,multitask%,NOT image_fs%,NOT suppress_fs_errors%)
  ENDIF
@@ -2099,7 +2099,7 @@ IF search_info%!584<>0 THEN PROCfree_block(heap_handle%,search_info%!584) : REM 
 IF search_info%!596<>0 THEN PROCfree_block(heap_handle%,search_info%!596) : REM buffers if necessary
 PROCfree_block(heap_handle%,search_info%)
 :
-IF data_block%!12=0 THEN PROCadd_results_entry(data_block%,data_ptr%,FNmessage_trans("NoFiles"),"none",%111)
+IF data_block%!12=0 THEN PROCadd_results_entry(data_block%,data_ptr%,FNmessage_lookup("NoFiles"),"none",%111)
 :
 IF exit% AND (NOT abort_search%) THEN
  IF data_block%<>0 THEN
@@ -2210,7 +2210,7 @@ CASE size_logic% OF
            !search_info%=!search_info% OR &0002
            search_info%!4=search_info%!4 OR &0000
           ENDIF
-          extras$+=FNmessage_trans("SizeFlag")
+          extras$+=FNmessage_lookup("SizeFlag")
  WHEN 2 : IF size_unit1%>0 THEN
            search_info%!16=FNscale_bytes(size1%,size_unit1%,TRUE)+1
            search_info%!20=FNscale_bytes(size1%,size_unit1%,FALSE)-1
@@ -2221,25 +2221,25 @@ CASE size_logic% OF
            !search_info%=!search_info% OR &0004
            search_info%!4=search_info%!4 OR &0000
           ENDIF
-           extras$+=FNmessage_trans("SizeFlag")
+           extras$+=FNmessage_lookup("SizeFlag")
  WHEN 3 : search_info%!16=FNscale_bytes(size1%,size_unit1%,FALSE)
           !search_info%=!search_info% OR &0008
           search_info%!4=search_info%!4 OR &0000
-          extras$+=FNmessage_trans("SizeFlag")
+          extras$+=FNmessage_lookup("SizeFlag")
  WHEN 4 : search_info%!20=FNscale_bytes(size1%,size_unit1%,TRUE)
           !search_info%=!search_info% OR &0010
           search_info%!4=search_info%!4 OR &0000
-          extras$+=FNmessage_trans("SizeFlag")
+          extras$+=FNmessage_lookup("SizeFlag")
  WHEN 5 : search_info%!16=FNscale_bytes(size1%,size_unit1%,FALSE)
           search_info%!20=FNscale_bytes(size2%,size_unit2%,TRUE)
           !search_info%=!search_info% OR &0018
           search_info%!4=search_info%!4 OR &0000
-          extras$+=FNmessage_trans("SizeFlag")
+          extras$+=FNmessage_lookup("SizeFlag")
  WHEN 6 : search_info%!16=FNscale_bytes(size2%,size_unit2%,TRUE)
           search_info%!20=FNscale_bytes(size1%,size_unit1%,FALSE)
           !search_info%=!search_info% OR &0018
           search_info%!4=search_info%!4 OR &0001
-          extras$+=FNmessage_trans("SizeFlag")
+          extras$+=FNmessage_lookup("SizeFlag")
 ENDCASE
 :
 REM Dates
@@ -2269,7 +2269,7 @@ IF date_logic%>=1 AND date_age%=FALSE THEN
             !search_info%=!search_info% OR &0020
             search_info%!4=search_info%!4 OR &0000
            ENDIF
-           extras$+=FNmessage_trans("DateFlag")
+           extras$+=FNmessage_lookup("DateFlag")
   WHEN 2 : IF date_level1%<=1 THEN
             SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+40,q%
             search_info%!48=search_info%!40
@@ -2285,11 +2285,11 @@ IF date_logic%>=1 AND date_age%=FALSE THEN
            !search_info%=!search_info% OR &0040
            search_info%!4=search_info%!4 OR &0000
            ENDIF
-           extras$+=FNmessage_trans("DateFlag")
+           extras$+=FNmessage_lookup("DateFlag")
   WHEN 3 : SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+40,q%
            !search_info%=!search_info% OR &0080
            search_info%!4=search_info%!4 OR &0000
-           extras$+=FNmessage_trans("DateFlag")
+           extras$+=FNmessage_lookup("DateFlag")
   WHEN 4 : SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+48,q%
             CASE date_level1% OF
              WHEN 0 : PROCadd_date_offset(search_info%+48,8640000) : REM A Whole day
@@ -2297,7 +2297,7 @@ IF date_logic%>=1 AND date_age%=FALSE THEN
             ENDCASE
            !search_info%=!search_info% OR &0100
            search_info%!4=search_info%!4 OR &0000
-           extras$+=FNmessage_trans("DateFlag")
+           extras$+=FNmessage_lookup("DateFlag")
   WHEN 5 : SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+40,q%
            SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+48,q%+32
             CASE date_level1% OF
@@ -2306,7 +2306,7 @@ IF date_logic%>=1 AND date_age%=FALSE THEN
             ENDCASE
            !search_info%=!search_info% OR &0180
            search_info%!4=search_info%!4 OR &0000
-           extras$+=FNmessage_trans("DateFlag")
+           extras$+=FNmessage_lookup("DateFlag")
   WHEN 6 : SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+48,q%
            SYS "Territory_ConvertOrdinalsToTime",-1,search_info%+40,q%+32
             CASE date_level1% OF
@@ -2315,7 +2315,7 @@ IF date_logic%>=1 AND date_age%=FALSE THEN
             ENDCASE
            !search_info%=!search_info% OR &0180
            search_info%!4=search_info%!4 OR &0002
-           extras$+=FNmessage_trans("DateFlag")
+           extras$+=FNmessage_lookup("DateFlag")
  ENDCASE
 ENDIF
 :
@@ -2341,30 +2341,30 @@ IF age_logic%>=1 AND date_age%=TRUE THEN
            PROCscale_date(search_info%+48,age_unit1%,age1%,TRUE)
            !search_info%=!search_info% OR &0180
            search_info%!4=search_info%!4 OR &0000
-           extras$+=FNmessage_trans("AgeFlag")
+           extras$+=FNmessage_lookup("AgeFlag")
   WHEN 2 : PROCscale_date(search_info%+40,age_unit1%,age1%,TRUE)
            PROCscale_date(search_info%+48,age_unit1%,age1%,FALSE)
            !search_info%=!search_info% OR &0180
            search_info%!4=search_info%!4 OR &0002
-           extras$+=FNmessage_trans("AgeFlag")
+           extras$+=FNmessage_lookup("AgeFlag")
   WHEN 3 : PROCscale_date(search_info%+40,age_unit1%,age1%,FALSE)
            !search_info%=!search_info% OR &0080
            search_info%!4=search_info%!4 OR &0000
-           extras$+=FNmessage_trans("AgeFlag")
+           extras$+=FNmessage_lookup("AgeFlag")
   WHEN 4 : PROCscale_date(search_info%+48,age_unit1%,age1%,FALSE)
            !search_info%=!search_info% OR &0100
            search_info%!4=search_info%!4 OR &0000
-           extras$+=FNmessage_trans("AgeFlag")
+           extras$+=FNmessage_lookup("AgeFlag")
   WHEN 5 : PROCscale_date(search_info%+40,age_unit2%,age2%,FALSE)
            PROCscale_date(search_info%+48,age_unit1%,age1%,FALSE)
            !search_info%=!search_info% OR &0180
            search_info%!4=search_info%!4 OR &0000
-           extras$+=FNmessage_trans("AgeFlag")
+           extras$+=FNmessage_lookup("AgeFlag")
   WHEN 6 : PROCscale_date(search_info%+40,age_unit1%,age1%,FALSE)
            PROCscale_date(search_info%+48,age_unit2%,age2%,FALSE)
            !search_info%=!search_info% OR &0180
            search_info%!4=search_info%!4 OR &0002
-           extras$+=FNmessage_trans("AgeFlag")
+           extras$+=FNmessage_lookup("AgeFlag")
  ENDCASE
 ENDIF
 :
@@ -2374,7 +2374,7 @@ type_option%=FNextract_word(parameters%,ptr%)
 type_logic%=FNextract_word(parameters%,ptr%)
 text_types$=FNextract_string(parameters%,ptr%)
 :
-untyped$=FNstring_to_lower(FNmessage_trans("Untyped"))
+untyped$=FNstring_to_lower(FNmessage_lookup("Untyped"))
 :
 search_info%!56=%111
 IF (type_option% AND %001)=0 THEN
@@ -2421,7 +2421,7 @@ IF (type_option% AND %100)=0 THEN
  search_info%!56=search_info%!56 AND (NOT %100)
  !search_info%=!search_info% OR &0800
 ENDIF
-IF (!search_info% AND &0E00) THEN extras$+=FNmessage_trans("TypeFlag")
+IF (!search_info% AND &0E00) THEN extras$+=FNmessage_lookup("TypeFlag")
 :
 REM Attributes
 :
@@ -2444,7 +2444,7 @@ IF att_option% AND %10000 THEN search_info%!576=search_info%!576 OR (%100000 AND
 
 IF search_info%!572 THEN
  !search_info%=!search_info% OR &1000
- extras$+=FNmessage_trans("AttrFlag")
+ extras$+=FNmessage_lookup("AttrFlag")
 ENDIF
 :
 :
@@ -2487,7 +2487,7 @@ IF content_logic%>0 THEN
  $(search_info%!584)="*"+$(search_info%!584)+"*"
  IF content_logic%=1 THEN search_info%!592=1 ELSE search_info%!592=0
  search_info%!596=FNclaim_block(heap_handle%,&4000) : REM File load buffer
- extras$+=FNmessage_trans("ContFlag")
+ extras$+=FNmessage_lookup("ContFlag")
  $(search_info%!584)=$(search_info%!584)+CHR$(0)
 ENDIF
 search_info%!588=search_info%+600 : REM Watch that this doesn't get overwritten.
@@ -2701,10 +2701,10 @@ REPEAT
    ELSE
     IF throw_errors% THEN
      recover%=TRUE
-     ERROR 255,FNmessage_trans("NameTooLong")
+     ERROR 255,FNmessage_lookup("NameTooLong")
     ELSE
      IF NOT multitask% THEN SYS "OS_Byte",229,1,0
-     PROCadd_results_entry(data_block%,data_ptr%,FNmessage_trans("NameTooLong"),"error",%011)
+     PROCadd_results_entry(data_block%,data_ptr%,FNmessage_lookup("NameTooLong"),"error",%011)
      IF NOT multitask% THEN SYS "OS_Byte",229,0,0
      =errors%
     ENDIF
@@ -2745,7 +2745,7 @@ OSCLI("Report os_gbpb_block%")
 VDU 4 : PRINT REPORT$
 :
 IF ERR=17 THEN
- PROCwimperror_report(FNmessage_trans("AbrtSrch"),1,%01,"")
+ PROCwimperror_report(FNmessage_lookup("AbrtSrch"),1,%01,"")
  exit%=TRUE
 ELSE
  IF recover% THEN
@@ -2833,9 +2833,9 @@ IF ((redraw%!(item%*32+8)) AND %10)=0 THEN
    text2$=$q%
   ELSE
    CASE type% OF
-    WHEN -1    : text2$=FNmessage_trans("Untyped")
-    WHEN &1000 : text2$=FNmessage_trans("Dir")
-    WHEN &2000 : text2$=FNmessage_trans("App")
+    WHEN -1    : text2$=FNmessage_lookup("Untyped")
+    WHEN &1000 : text2$=FNmessage_lookup("Dir")
+    WHEN &2000 : text2$=FNmessage_lookup("App")
    ENDCASE
   ENDIF
   size%+=(LEN(text2$)+1)
@@ -2876,7 +2876,7 @@ IF ((redraw%!(item%*32+8)) AND %10)=0 THEN
  ELSE
   REM Only allocate the "Not here" text the first time it is needed; thereafter, just re-use it.
   IF data_block%!44=0 OR !((data_block%!44)+4)=0 THEN
-   not_here$=FNmessage_trans("NotHere")
+   not_here$=FNmessage_lookup("NotHere")
    ptr%=FNextend_file_info_block(data_block%,LEN(not_here$)+1)
    $ptr%=not_here$
    !(data_block%!44)+=LEN(not_here$)+1
@@ -3319,7 +3319,7 @@ IF data_block%<>-1 THEN
     ELSE
      redraw_list%!(icon%*32+8)=redraw_list%!(icon%*32+8) OR &200
      PROCredraw_results_icon(data_block%,icon%)
-     PROCwimperror_report(FNmessage_trans("NotThere"),2,%10,"")
+     PROCwimperror_report(FNmessage_lookup("NotThere"),2,%10,"")
     ENDIF
    ENDIF
  ENDCASE
@@ -3855,7 +3855,7 @@ IF save_data_block%<>0 THEN
 ENDIF
 :
 PROCmenu_create(-1,0,0)
-PROCwimperror_report(FNmessage_trans("RAMXferFail"),2,%01,"")
+PROCwimperror_report(FNmessage_lookup("RAMXferFail"),2,%01,"")
 ENDPROC
 :
 :
@@ -3872,7 +3872,7 @@ REM Save direct if we have a full filename (ignore the DTP).
 :
 LOCAL save_block%
 :
-IF INSTR($FNicon_indirection(save_window%,2),".")=0 THEN PROCwimperror_report(FNmessage_trans("BadSave"),1,%01,"") : ENDPROC
+IF INSTR($FNicon_indirection(save_window%,2),".")=0 THEN PROCwimperror_report(FNmessage_lookup("BadSave"),1,%01,"") : ENDPROC
 :
 CASE data_save_type% OF
  WHEN 0 : save_block%=FNbuild_data_save_block(data%)
@@ -3906,7 +3906,7 @@ IF ack% THEN
 ENDIF
 :
 REM We can't manage to load *and* search simultaneously, so ignore the load.
-IF searching_data_block%<>0 THEN PROCwimperror_report(FNmessage_trans("NoLoadNow"),1,%10,"") : ENDPROC
+IF searching_data_block%<>0 THEN PROCwimperror_report(FNmessage_lookup("NoLoadNow"),1,%10,"") : ENDPROC
 :
 SYS "Hourglass_On"
 :
@@ -3922,7 +3922,7 @@ IF handle% THEN
  version%=q%!4
  :
  IF !q%<>&48435253 OR version%>1 THEN
-  PROCwimperror_report(FNmessage_trans("BadFile"),1,%10,"")
+  PROCwimperror_report(FNmessage_lookup("BadFile"),1,%10,"")
   SYS "OS_Find",0,handle%
  ELSE
   SYS "OS_GBPB",4,handle%,q%,4
@@ -4038,7 +4038,7 @@ IF handle% THEN SYS "XOS_Find",0,handle%
 IF b1% THEN PROCfree_block(heap_handle%,b1%)
 IF b2% THEN PROCfree_block(heap_handle%,b2%)
 IF b3% THEN PROCfree_block(heap_handle%,b3%)
-PROCwimperror_report(FNmessage_trans("FileError"),2,%10,"")
+PROCwimperror_report(FNmessage_lookup("FileError"),2,%10,"")
 ENDPROC
 :
 :
@@ -4054,14 +4054,14 @@ REM ============================================================================
 DEF PROCinit_save_box_texts
 :
 data_save_type%=-1
-save_box_names$(0,0)=FNmessage_trans("FileName")
-save_box_names$(1,0)=FNmessage_trans("ExptName")
-save_box_names$(2,0)=FNmessage_trans("SrchName")
-save_box_names$(3,0)=FNmessage_trans("SrchName")
-save_box_names$(0,1)=FNmessage_trans("SelectName")
-save_box_names$(1,1)=FNmessage_trans("SelectName")
-save_box_names$(2,1)=FNmessage_trans("SelectName")
-save_box_names$(3,1)=FNmessage_trans("SelectName")
+save_box_names$(0,0)=FNmessage_lookup("FileName")
+save_box_names$(1,0)=FNmessage_lookup("ExptName")
+save_box_names$(2,0)=FNmessage_lookup("SrchName")
+save_box_names$(3,0)=FNmessage_lookup("SrchName")
+save_box_names$(0,1)=FNmessage_lookup("SelectName")
+save_box_names$(1,1)=FNmessage_lookup("SelectName")
+save_box_names$(2,1)=FNmessage_lookup("SelectName")
+save_box_names$(3,1)=FNmessage_lookup("SelectName")
 save_box_select%()=FALSE
 ENDPROC
 :
@@ -4211,11 +4211,11 @@ IF c%<(size%-1) THEN
   c%+=1
  ENDWHILE
  :
- IF path$<>"" THEN PROCwimperror_report(FNmessage_trans("PathBufFull"),2,%10,"") : c%=start%
+ IF path$<>"" THEN PROCwimperror_report(FNmessage_lookup("PathBufFull"),2,%10,"") : c%=start%
  :
  buffer%?c%=0
 ELSE
- PROCwimperror_report(FNmessage_trans("PathBufFull"),2,%10,"")
+ PROCwimperror_report(FNmessage_lookup("PathBufFull"),2,%10,"")
 ENDIF
 ENDPROC
 :
@@ -4306,7 +4306,7 @@ DEF PROCadd_search_to_history(list%,max_len%,info%,name$)
 :
 LOCAL block%,item%
 :
-IF name$="" THEN name$=FNmessage_trans("DeftHistName")
+IF name$="" THEN name$=FNmessage_lookup("DeftHistName")
 :
 IF max_len%>0 THEN
  block%=FNclaim_block(heap_handle%,9+LEN(name$))
@@ -4368,7 +4368,7 @@ LOCAL menu_buf%,type%,items%,name1%,name2%,length%,block%
 :
 menu_buf%=FNclaim_block(heap_handle%,28)
 :
-$menu_buf%=LEFT$(FNmessage_trans("HistoryMenu"),12)
+$menu_buf%=LEFT$(FNmessage_lookup("HistoryMenu"),12)
 menu_buf%!12=&00070207
 menu_buf%!16=16*LEN($menu_buf%) : REM Menu width
 menu_buf%!20=44
@@ -4495,7 +4495,7 @@ IF NOT sprites% THEN $spr_buf%=""
 :
 next%=0
 buffer%=name_buf%+13
-$name_buf%=FNmessage_trans("Untyped")
+$name_buf%=FNmessage_lookup("Untyped")
 $(name_buf%+9)="lxa" : REM Untyped under Select: will default to xxx on other systems.
 :
 REPEAT
@@ -4517,7 +4517,7 @@ IF alphabetic% THEN
  ENDIF
 ENDIF
 :
-$menu_buf%=LEFT$(FNmessage_trans("FileMenu"),12)
+$menu_buf%=LEFT$(FNmessage_lookup("FileMenu"),12)
 menu_buf%!12=&00070207
 menu_buf%!16=(LEN$(menu_buf%)+2)*16
 menu_buf%!20=44
@@ -4704,7 +4704,7 @@ REM ============================================================================
 :
 :
 :
-DEF FNmessage_trans(m$)
+DEF FNmessage_lookup(m$)
 LOCAL e$
 IF m$<>"" THEN SYS "MessageTrans_Lookup",message_block%,m$ TO ,,e$
 =e$
