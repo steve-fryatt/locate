@@ -10,6 +10,7 @@ LIBRARY "BASIC:WimpLib2"
 LIBRARY "BASIC:Config"
 LIBRARY "BASIC:Date"
 LIBRARY "BASIC:Icon"
+LIBRARY "BASIC:Menu"
 LIBRARY "BASIC:Resources"
 LIBRARY "BASIC:String"
 LIBRARY "BASIC:Template"
@@ -113,8 +114,8 @@ CASE b%!12 OF
  WHEN -2 : CASE b%!8 OF
    WHEN 64 : PROCstart_drag_box(b%!12,b%!16)
    WHEN 4  : PROCopen_search_window(!b%,b%!4,default_search_options%)
-   WHEN 2  : PROCset_menu_state(icon_bar_menu%,1,FALSE,search_history_list%!4=0)
-             PROCdisplay_bar_menu(icon_bar_menu%,4,2,!b%)
+   WHEN 2  : PROCmenu_set_state(icon_bar_menu%,1,FALSE,search_history_list%!4=0)
+             PROCmenu_create_iconbar(icon_bar_menu%, !b%)
    WHEN 1  : IF search_history_list%!4>0 THEN
               PROCopen_history_search(search_history_list%,0)
              ELSE
@@ -124,7 +125,7 @@ CASE b%!12 OF
  WHEN search_window%
   IF b%!8=2 THEN
    PROCinit_save_box_texts
-   PROCdisplay_menu(search_window_menu%,!b%,b%!4)
+   PROCmenu_create(search_window_menu%,!b%,b%!4)
   ELSE
    CASE b%!16 OF
     WHEN 0 : CASE b%!8 OF
@@ -151,21 +152,21 @@ CASE b%!12 OF
  WHEN search_panes%(0)
   IF b%!8=2 THEN
    PROCinit_save_box_texts
-   PROCdisplay_menu(search_window_menu%,!b%,b%!4)
+   PROCmenu_create(search_window_menu%,!b%,b%!4)
   ELSE
    CASE b%!16 OF
      WHEN 1 : PROCtick_menu_item(size_logic_menu%,search_size_logic%)
-              PROCdisplay_icon_menu(size_logic_menu%,search_panes%(0),1)
+              PROCmenu_create_popup(size_logic_menu%,search_panes%(0),1)
      WHEN 4 : PROCtick_menu_item(size_units_menu%,search_size_units1%)
-              PROCdisplay_icon_menu(size_units_menu%,search_panes%(0),4) : size_units_icon%=1
+              PROCmenu_create_popup(size_units_menu%,search_panes%(0),4) : size_units_icon%=1
      WHEN 8 : PROCtick_menu_item(size_units_menu%,search_size_units2%)
-              PROCdisplay_icon_menu(size_units_menu%,search_panes%(0),8) : size_units_icon%=2
+              PROCmenu_create_popup(size_units_menu%,search_panes%(0),8) : size_units_icon%=2
     ENDCASE
   ENDIF
  WHEN search_panes%(1)
   IF b%!8=2 THEN
    PROCinit_save_box_texts
-   PROCdisplay_menu(search_window_menu%,!b%,b%!4)
+   PROCmenu_create(search_window_menu%,!b%,b%!4)
   ELSE
    CASE b%!16 OF
      WHEN 0,1 : FOR loop%=2 TO 21
@@ -175,20 +176,20 @@ CASE b%!12 OF
                 IF b%!8=1 THEN PROCicon_set_selected(search_panes%(1),b%!16,TRUE)
                 PROCsearch_window_caret_clear
      WHEN 4 : PROCtick_menu_item(date_logic_menu%,search_date_logic%)
-              PROCdisplay_icon_menu(date_logic_menu%,search_panes%(1),4)
+              PROCmenu_create_popup(date_logic_menu%,search_panes%(1),4)
      WHEN 6,9 : PROCopen_time_window(b%!16-1,!b%,b%!4,FALSE)
      WHEN 12 : PROCtick_menu_item(age_logic_menu%,search_age_logic%)
-               PROCdisplay_icon_menu(age_logic_menu%,search_panes%(1),12)
+               PROCmenu_create_popup(age_logic_menu%,search_panes%(1),12)
      WHEN 15 : PROCtick_menu_item(age_units_menu%,search_age_units1%)
-               PROCdisplay_icon_menu(age_units_menu%,search_panes%(1),15) : age_units_icon%=1
+               PROCmenu_create_popup(age_units_menu%,search_panes%(1),15) : age_units_icon%=1
      WHEN 20 : PROCtick_menu_item(age_units_menu%,search_age_units2%)
-               PROCdisplay_icon_menu(age_units_menu%,search_panes%(1),20) : age_units_icon%=2
+               PROCmenu_create_popup(age_units_menu%,search_panes%(1),20) : age_units_icon%=2
     ENDCASE
   ENDIF
  WHEN search_panes%(2)
   IF b%!8=2 THEN
    PROCinit_save_box_texts
-   PROCdisplay_menu(search_window_menu%,!b%,b%!4)
+   PROCmenu_create(search_window_menu%,!b%,b%!4)
   ELSE
    CASE b%!16 OF
      WHEN 0 : FOR loop%=3 TO 6
@@ -196,15 +197,15 @@ CASE b%!12 OF
               NEXT loop%
               PROCsearch_window_caret_clear
      WHEN 4 : PROCtick_menu_item(type_logic_menu%,search_type_logic%)
-              PROCdisplay_icon_menu(type_logic_menu%,search_panes%(2),4)
+              PROCmenu_create_popup(type_logic_menu%,search_panes%(2),4)
      WHEN 6 : file_type_menu%=FNbuild_file_type_menu(b%!8=4)
-              PROCdisplay_icon_menu(file_type_menu%,search_panes%(2),6)
+              PROCmenu_create_popup(file_type_menu%,search_panes%(2),6)
     ENDCASE
   ENDIF
  WHEN search_panes%(3)
   IF b%!8=2 THEN
    PROCinit_save_box_texts
-   PROCdisplay_menu(search_window_menu%,!b%,b%!4)
+   PROCmenu_create(search_window_menu%,!b%,b%!4)
   ELSE
    CASE b%!16 OF
      WHEN 0,3,6,9,12 : PROCicon_set_shaded(search_panes%(3),b%!16+1,NOT FNicon_selected(search_panes%(3),b%!16))
@@ -215,11 +216,11 @@ CASE b%!12 OF
  WHEN search_panes%(4)
   IF b%!8=2 THEN
    PROCinit_save_box_texts
-   PROCdisplay_menu(search_window_menu%,!b%,b%!4)
+   PROCmenu_create(search_window_menu%,!b%,b%!4)
   ELSE
    CASE b%!16 OF
      WHEN 2 : PROCtick_menu_item(content_logic_menu%,search_content_logic%)
-              PROCdisplay_icon_menu(content_logic_menu%,search_panes%(4),2)
+              PROCmenu_create_popup(content_logic_menu%,search_panes%(4),2)
     ENDCASE
   ENDIF
  WHEN time_window% : CASE b%!16 OF
@@ -229,7 +230,7 @@ CASE b%!12 OF
     ENDCASE
    WHEN 1 : PROCset_time : IF b%!8=4 THEN PROCwindow_close(time_window%)
    WHEN 2 : PROCtick_menu_item(month_menu%,set_date_month%-1)
-            PROCdisplay_icon_menu(month_menu%,time_window%,2)
+            PROCmenu_create_popup(month_menu%,time_window%,2)
    WHEN 5,6 : PROCicon_bump_value(time_window%,4,(b%!16=6 AND b%!8=4) OR (b%!16=5 AND b%!8=1),1,days_in_month%(set_date_month%),0)
    WHEN 8,9 : PROCicon_bump_value(time_window%,7,(b%!16=9 AND b%!8=4) OR (b%!16=8 AND b%!8=1),0,9999,4)
    WHEN 15,16 : PROCicon_bump_value(time_window%,13,(b%!16=16 AND b%!8=4) OR (b%!16=15 AND b%!8=1),0,23,2)
@@ -252,7 +253,7 @@ CASE b%!12 OF
   ENDCASE
  WHEN save_window% : CASE b%!16 OF
    WHEN 0 : PROCsave_direct_to_disc(results_window_menu_ptr%)
-   WHEN 1 : PROCdisplay_menu(-1,0,0)
+   WHEN 1 : PROCmenu_create(-1,0,0)
    WHEN 3 : IF b%!8=64 THEN PROCstart_drag_box(b%!12,b%!16)
    WHEN 4 : PROCset_save_window_select
   ENDCASE
@@ -265,7 +266,7 @@ CASE b%!12 OF
    WHEN 3 : search_pause_abort%=TRUE
   ENDCASE
  WHEN info_window% : CASE b%!16 OF
-   WHEN 8 : PROCurl_launch(FNmessage_trans("SupportURL")) : PROCdisplay_menu(-1,0,0)
+   WHEN 8 : PROCurl_launch(FNmessage_trans("SupportURL")) : PROCmenu_create(-1,0,0)
   ENDCASE
  OTHERWISE : PROCresults_window_click
 ENDCASE
@@ -323,7 +324,7 @@ LOCAL re_open%,loop%
 SYS "Wimp_GetPointerInfo",,q%
 re_open%=(q%!8=1)
 :
-CASE menu_up% OF
+CASE FNmenu_current_handle OF
  WHEN icon_bar_menu% : CASE !b% OF
    WHEN 0 : OSCLI("%Filer_Run Locate:!Help")
    WHEN 1 : IF b%!4>-1 THEN PROCopen_history_search(search_history_list%,b%!4)
@@ -447,7 +448,7 @@ CASE menu_up% OF
   ENDIF
 ENDCASE
 :
-IF re_open% THEN PROCdisplay_menu(menu_up%,0,0) ELSE menu_up%=-1 : results_window_menu_ptr%=-1
+IF re_open% THEN PROCmenu_create(FNmenu_current_handle,0,0) ELSE PROCmenu_closed : results_window_menu_ptr%=-1
 ENDPROC
 :
 :
@@ -535,7 +536,7 @@ CASE b%!16 OF
                  IF results_select_by_menu% THEN PROCclear_selection(results_window_menu_ptr%)
                  results_window_menu_ptr%=-1
                ENDCASE
-               menu_up%=-1
+               PROCmenu_closed
  WHEN &400CF : PROCrescan_font_widths
  WHEN &4E383 : PROCurl_bounce(b%)
 ENDCASE
@@ -726,7 +727,7 @@ REM ============================================================================
 :
 DEF PROCsubmenu_warning
 :
-CASE menu_up% OF
+CASE FNmenu_current_handle OF
  WHEN results_window_menu% : CASE b%!32 OF
    WHEN 1 : PROCchange_search_window_contents(data_save_type%, b%!36)
             SYS "Wimp_CreateSubMenu",,b%!20,b%!24,b%!28
@@ -820,7 +821,6 @@ IF (cmos_28% AND %10)=0 THEN drag_a_sprite%=FALSE
 REM Set up the data area and the global variables.
 :
 quit%=FALSE
-menu_up%=0
 poll_mask%=&03CB1
 :
 REM The heap handling code, and the heap itself
@@ -935,6 +935,7 @@ $FNicon_indirection(info_window%,6)=FNmessage_trans("Version")
 :
 REM Load the menu definitions.
 :
+PROCmenu_initialise
 !b%=info_window%
 b%!4=1000 : REM A dummy value that will never be used.
 b%!8=save_window% : REM Save search (Search Window Menu)
@@ -942,7 +943,7 @@ b%!12=object_info_window%
 b%!16=save_window% : REM Save results
 b%!20=save_window% : REM Save pathnames
 b%!24=save_window% : REM Save search
-PROCload_menu_block(resource_path$+"Menus",b%)
+PROCmenu_load_templates(resource_path$+"Menus",b%)
 icon_bar_menu%=!b%
 search_window_menu%=b%!4
 results_window_menu%=b%!8
@@ -1170,7 +1171,7 @@ CASE b%!32 OF
    token$="HelpF1"
   ELSE
    SYS "Wimp_GetMenuState",1,q%,b%!32,b%!36
-   CASE menu_up% OF
+   CASE FNmenu_current_handle OF
     WHEN icon_bar_menu% : IF !q%>-1 THEN token$="MenuIB"+STR$(!q%)
      IF !q%=1 AND q%!4>-1 THEN token$="MenuHIS"
     WHEN search_window_menu% : IF !q%>-1 THEN token$="MenuSH"+STR$(!q%)
@@ -2121,9 +2122,9 @@ ELSE
  SYS "MessageTrans_Lookup",message_block%,"Found",FNicon_indirection(data_block%!32,0),255,STR$(data_block%!12-errors%),q%
  PROCicon_redraw(data_block%!32,0)
  searching_data_block%=0
- IF menu_up%=results_window_menu% THEN
+ IF FNmenu_current_handle=results_window_menu% THEN
   PROCset_results_menu_state(data_block%)
-  PROCdisplay_menu(results_window_menu%,0,0)
+  PROCmenu_create(results_window_menu%,0,0)
  ENDIF
 ENDIF
 :
@@ -2718,7 +2719,7 @@ PROCfree_block(heap_handle%,os_gbpb_block%)
 IF multitask% AND (NOT exit%) THEN
  errors%+=FNformat_results_window(data_block%)
  searching_data_block%=data_block%
- IF menu_up%=results_window_menu% AND results_window_menu_searching% THEN results_window_menu_ptr%=data_block%
+ IF FNmenu_current_handle=results_window_menu% AND results_window_menu_searching% THEN results_window_menu_ptr%=data_block%
  PROCpoll(poll_mask% AND (NOT 1),FALSE)
  IF searching_data_block%<>data_block% THEN exit%=TRUE : data_block%=0
  IF abort_search% THEN exit%=TRUE
@@ -3302,7 +3303,7 @@ IF data_block%<>-1 THEN
    results_window_menu_ptr%=data_block%
    results_window_menu_searching%=(data_block%=searching_data_block%)
    PROCset_results_menu_state(data_block%)
-   PROCdisplay_menu(results_window_menu%,!b%,b%!4)
+   PROCmenu_create(results_window_menu%,!b%,b%!4)
   WHEN 1,4
    :
    REM Double-click: clear the icon under the pointer, then do the necessary.
@@ -3336,21 +3337,21 @@ REM ----------------------------------------------------------------------------
 :
 DEF PROCset_results_menu_state(data%)
 :
-PROCset_menu_state(save_menu%,0,FALSE,data%!24=0)  : REM Save results
-PROCset_menu_state(save_menu%,1,FALSE,data%!24=0)  : REM Export names
-PROCset_menu_state(save_menu%,2,FALSE,data%!16=0)  : REM Save search
+PROCmenu_set_state(save_menu%,0,FALSE,data%!24=0)  : REM Save results
+PROCmenu_set_state(save_menu%,1,FALSE,data%!24=0)  : REM Export names
+PROCmenu_set_state(save_menu%,2,FALSE,data%!16=0)  : REM Save search
 :
-PROCset_menu_state(results_window_menu%,1,FALSE,data%!16=0 AND data%!24=0)                       : REM Search menu
-PROCset_menu_state(results_window_menu%,2,FALSE,data%!12=0 OR (data%!20=data%!48) OR data%!48=0) : REM Select all
-PROCset_menu_state(results_window_menu%,3,FALSE,data%!20=0)                                      : REM Clear selection
-PROCset_menu_state(results_window_menu%,4,FALSE,data%!20<>1)                                     : REM Object info
-PROCset_menu_state(results_window_menu%,5,FALSE,data%!20<>1)                                     : REM Open parent
-PROCset_menu_state(results_window_menu%,6,FALSE,data%!24=0 OR data%!48=0)                        : REM Copy names
-PROCset_menu_state(results_window_menu%,7,FALSE,data%!16=0 OR current_search_options%<>0)        : REM Modify search
-PROCset_menu_state(results_window_menu%,8,FALSE,searching_data_block%<>data%)                    : REM Stop search
+PROCmenu_set_state(results_window_menu%,1,FALSE,data%!16=0 AND data%!24=0)                       : REM Search menu
+PROCmenu_set_state(results_window_menu%,2,FALSE,data%!12=0 OR (data%!20=data%!48) OR data%!48=0) : REM Select all
+PROCmenu_set_state(results_window_menu%,3,FALSE,data%!20=0)                                      : REM Clear selection
+PROCmenu_set_state(results_window_menu%,4,FALSE,data%!20<>1)                                     : REM Object info
+PROCmenu_set_state(results_window_menu%,5,FALSE,data%!20<>1)                                     : REM Open parent
+PROCmenu_set_state(results_window_menu%,6,FALSE,data%!24=0 OR data%!48=0)                        : REM Copy names
+PROCmenu_set_state(results_window_menu%,7,FALSE,data%!16=0 OR current_search_options%<>0)        : REM Modify search
+PROCmenu_set_state(results_window_menu%,8,FALSE,searching_data_block%<>data%)                    : REM Stop search
 :
-PROCset_menu_state(display_menu%,0,(data%!36 AND 1)=0,FALSE)
-PROCset_menu_state(display_menu%,1,(data%!36 AND 1)=1,FALSE)
+PROCmenu_set_state(display_menu%,0,(data%!36 AND 1)=0,FALSE)
+PROCmenu_set_state(display_menu%,1,(data%!36 AND 1)=1,FALSE)
 PROCinit_save_box_texts
 ENDPROC
 :
@@ -3794,7 +3795,7 @@ IF save_data_block%<>0 THEN
  SYS "Wimp_SendMessage",18,b%,b%!4
 ENDIF
 :
-PROCdisplay_menu(-1,0,0)
+PROCmenu_create(-1,0,0)
 ENDPROC
 :
 :
@@ -3823,7 +3824,7 @@ IF bytes_sent%<b%!24 THEN
  IF save_data_block%<>global_clipboard% THEN PROCfree_block(heap_handle%,save_data_block%)
  save_data_block%=0
  :
- PROCdisplay_menu(-1,0,0)
+ PROCmenu_create(-1,0,0)
 ELSE
  :
  REM More to come
@@ -3854,7 +3855,7 @@ IF save_data_block%<>0 THEN
  save_data_block%=0
 ENDIF
 :
-PROCdisplay_menu(-1,0,0)
+PROCmenu_create(-1,0,0)
 PROCwimperror_report(FNmessage_trans("RAMXferFail"),2,%01,"")
 ENDPROC
 :
@@ -3883,7 +3884,7 @@ ENDCASE
 SYS "OS_File",10,FNicon_indirection(save_window%,2),save_block%!8,,save_block%+12,save_block%+!save_block%+12
 PROCfree_block(heap_handle%,save_block%)
 :
-PROCdisplay_menu(-1,0,0)
+PROCmenu_create(-1,0,0)
 ENDPROC
 :
 :
@@ -4410,7 +4411,7 @@ LOCAL item%
 :
 IF search_history_list%!4>0 THEN
  FOR item%=0 TO (search_history_list%!4)-1
-  PROCset_menu_state(menu%,item%,FALSE,current_search_options%<>0)
+  PROCmenu_set_state(menu%,item%,FALSE,current_search_options%<>0)
  NEXT item%
 ENDIF
 ENDPROC
@@ -4736,7 +4737,7 @@ LOCAL loop%
 :
 loop%=0
 REPEAT
- PROCset_menu_state(menu%,loop%,loop%=item%,FALSE)
+ PROCmenu_set_state(menu%,loop%,loop%=item%,FALSE)
  loop%+=1
 UNTIL (menu%!(28+24*(loop%-1)) AND &80)
 ENDPROC
