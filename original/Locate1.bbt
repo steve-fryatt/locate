@@ -466,29 +466,29 @@ CASE b%!16 OF
  WHEN &0     : quit%=TRUE
  WHEN &2     : CASE drag_window_handle% OF
                 WHEN search_window%,-2 : IF b%!36<>-1 THEN
-                                          PROCadd_path_to_search_list(search_window%,20,FNstring_read((b%+44),-1,TRUE)
+                                          PROCadd_path_to_search_list(search_window%,20,FNstring_read(b%+44),-1,TRUE)
                                          ENDIF
                 WHEN save_window%   : PROCsave_results_to_disc
                ENDCASE
  WHEN &3     : IF (b%!20=search_window% AND b%!24=20) OR (b%!20=choices_window% AND b%!24=6) THEN
-                PROCadd_path_to_search_list(b%!20,b%!24,FNstring_read((b%+44),b%!40,FALSE)
+                PROCadd_path_to_search_list(b%!20,b%!24,FNstring_read(b%+44),b%!40,FALSE)
                ENDIF
                IF b%!20=-2 THEN
                 IF b%!40=&1A1 THEN
-                 PROCload_data_file(FNstring_read((b%+44),TRUE)
+                 PROCload_data_file(FNstring_read(b%+44),TRUE)
                 ELSE
-                 PROCopen_dir_search_window(FNstring_read((b%+44),b%!40)
+                 PROCopen_dir_search_window(FNstring_read(b%+44),b%!40)
                 ENDIF
                ENDIF
- WHEN &5     : IF b%!40=&1A1 THEN PROCload_data_file(FNstring_read((b%+44),TRUE)
+ WHEN &5     : IF b%!40=&1A1 THEN PROCload_data_file(FNstring_read(b%+44),TRUE)
  WHEN &6     : IF drag_window_handle%=save_window% THEN PROCsave_results_in_ram
  WHEN &F     : IF global_clipboard%<>-1 AND b%!4<>task_handle% THEN
                 PROCfree_block(heap_handle%,global_clipboard%)
                 global_clipboard%=-1
                ENDIF
  WHEN &10    : IF global_clipboard%<>-1 THEN PROCsend_clipboard_data
- WHEN &403   : filer_action_directory$=FNstring_read((b%+20) : filer_action_status%=2
- WHEN &404   : selection_list$=FNstring_read((b%+20)
+ WHEN &403   : filer_action_directory$=FNstring_read(b%+20) : filer_action_status%=2
+ WHEN &404   : selection_list$=FNstring_read(b%+20)
                WHILE selection_list$<>""
                 space_index%=INSTR(selection_list$," ")
                 IF space_index%>0 THEN
@@ -506,7 +506,7 @@ CASE b%!16 OF
                 IF filer_action_status%=2 THEN
                  IF ?filer_action_path%=0 THEN $filer_action_path%=filer_action_directory$
                  filer_action_parent_handle%=b%!4
-                 filer_action_options%=FNset_default_search_options(filer_action_path%,FNstring_read((b%+28))
+                 filer_action_options%=FNset_default_search_options(filer_action_path%,FNstring_read(b%+28))
                  PROCfree_block(heap_handle%,filer_action_path%)
                  IF FNconfig_read_boolean("SearchWindAsPlugin") THEN
                   SYS "Wimp_GetPointerInfo",,q%
@@ -2617,8 +2617,8 @@ IF multitask% THEN
    SYS "Wimp_TextOp",1,icon_text%,0 TO text_width%
   ENDWHILE
  ELSE
-  IF LEN(FNstring_read((FNicon_indirection(data_block%!32,0)))*16>results_pane_width% THEN
-   text_width%=LEN(FNstring_read((FNicon_indirection(data_block%!32,0)))+3-results_pane_width%/16
+  IF LEN(FNstring_read(FNicon_indirection(data_block%!32,0)))*16>results_pane_width% THEN
+   text_width%=LEN(FNstring_read(FNicon_indirection(data_block%!32,0)))+3-results_pane_width%/16
    SYS "MessageTrans_Lookup",message_block%,"Searching",icon_text%,255,"..."+MID$(dir$,text_width%+2)
   ENDIF
  ENDIF
@@ -2632,17 +2632,17 @@ REPEAT
  IF (flags% AND 1) THEN
   IF throw_errors% THEN
    recover%=TRUE
-   ERROR !err%,FNstring_read((err%+4)
+   ERROR !err%,FNstring_read(err%+4)
   ELSE
    IF NOT multitask% THEN SYS "OS_Byte",229,1,0
-   PROCadd_results_entry(data_block%,data_ptr%,dir$+": '"+FNstring_read((err%+4)+"'","error",%011)
+   PROCadd_results_entry(data_block%,data_ptr%,dir$+": '"+FNstring_read(err%+4)+"'","error",%011)
    IF NOT multitask% THEN SYS "OS_Byte",229,0,0
    =errors%
   ENDIF
  ELSE
   file_ptr%=os_gbpb_block%
   WHILE (NOT exit%) AND read%>0
-   file_name$=FNstring_read((file_ptr%+20)
+   file_name$=FNstring_read(file_ptr%+20)
    :
    IF LEN(dir$)+LEN(file_name$)<254 THEN
     $(criteria%!588)=dir$+"."+file_name$+CHR$(0)
@@ -4125,7 +4125,7 @@ ox%=q%!4-q%!20
 oy%=q%!16-q%!24
 q%!4=icon%
 SYS "Wimp_GetIconState",,q%
-sprite$=FNstring_read((q%!28)
+sprite$=FNstring_read(q%!28)
 q%!4=5
 q%!8=ox%+q%!8
 q%!12=oy%+q%!12
@@ -4502,7 +4502,7 @@ REPEAT
  SYS "XOS_ReadVarVal","File$Type_*",buffer%,9,next%,0 TO ,,length%,next%
  IF length%<>0 THEN
   buffer%?length%=13
-  $(buffer%+9)=FNstring_read((next%+10)
+  $(buffer%+9)=FNstring_read(next%+10)
   buffer%+=13
  ENDIF
 UNTIL length%=0
@@ -5011,10 +5011,10 @@ REM If it's an error pointer, do something with the error.
 IF (return%<>0 AND return%<>1) THEN
  IF throw_errors% THEN
   recover%=TRUE
-  ERROR !return%, FNstring_read((return%+4)
+  ERROR !return%, FNstring_read(return%+4)
  ELSE
   IF NOT multitask% THEN SYS "OS_Byte",229,1,0
-  PROCadd_results_entry(data_block%,data_ptr%,dir$+": '"+FNstring_read((return%+4)+"'","error",%011)
+  PROCadd_results_entry(data_block%,data_ptr%,dir$+": '"+FNstring_read(return%+4)+"'","error",%011)
   IF NOT multitask% THEN SYS "OS_Byte",229,0,0
   =1 : REM Exit not equalling TRUE or FALSE, so that the caller can fall out.
  ENDIF
