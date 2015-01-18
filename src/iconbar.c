@@ -144,7 +144,7 @@ static void iconbar_click_handler(wimp_pointer *pointer)
 
 	switch (pointer->buttons) {
 	case wimp_CLICK_SELECT:
-		file_create_dialogue(pointer, NULL, NULL);
+		file_create_dialogue(pointer, NULL, hotlist_get_default_dialogue());
 		break;
 
 	case wimp_CLICK_ADJUST:

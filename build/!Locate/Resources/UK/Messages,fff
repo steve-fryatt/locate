@@ -1,4 +1,4 @@
-# Copyright 2001-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+# Copyright 2001-2015, Stephen Fryatt (info@stevefryatt.org.uk)
 #
 # This file is part of Locate:
 #
@@ -362,8 +362,9 @@ Help.ResultsMenu.09:\Sstop the current search, while keeping those results that 
 
 Help.HotlistMenu.00:\Rto make changes to the currently selected entries.
 Help.HotlistMenu.0000:\Rsave the settings of the currently selected hotlist entry into a separate file.
-Help.HotlistMenu.0001:\Srename the currently selected hotlist entry.
-Help.HotlistMenu.0002:\Sdelete the currently selected entries from the hotlist.
+Help.HotlistMenu.0001:\Stoggle whether the currently selected hotlist entry is the default search.
+Help.HotlistMenu.0002:\Srename the currently selected hotlist entry.
+Help.HotlistMenu.0003:\Sdelete the currently selected entries from the hotlist.
 Help.HotlistMenu.01:\Sselect all of the hotlist entries.
 Help.HotlistMenu.02:\Sclear the current selection.
 Help.HotlistMenu.03:\Rsave the hotlist out to disc in a separate file.

@@ -1,4 +1,4 @@
-/* Copyright 2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2013-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -102,8 +102,9 @@
 #define HOTLIST_MENU_SAVE_HOTLIST 3
 
 #define HOTLIST_MENU_ITEM_SAVE 0
-#define HOTLIST_MENU_ITEM_RENAME 1
-#define HOTLIST_MENU_ITEM_DELETE 2
+#define HOTLIST_MENU_ITEM_DEFAULT 1
+#define HOTLIST_MENU_ITEM_RENAME 2
+#define HOTLIST_MENU_ITEM_DELETE 3
 
 /* Hotlist Add Window */
 
@@ -117,6 +118,11 @@
 
 #define HOTLIST_ALLOCATION 10							/**< The number of hotlist entries to be allocated in one go.			*/
 
+/**
+ * An invalid or non-existant Hotlist entry.
+ */
+
+#define HOTLIST_NULL_ENTRY ((int) -1)
 
 /**
  * The structure to contain details of a hotlist entry.
@@ -125,7 +131,8 @@
 enum hotlist_block_flags {
 	HOTLIST_FLAG_NONE = 0,
 	HOTLIST_FLAG_SELECTABLE = 1,						/**< Indicates that the hotlist line can be selected.				*/
-	HOTLIST_FLAG_SELECTED = 2						/**< Indicates that the hotlist line is selected.				*/
+	HOTLIST_FLAG_SELECTED = 2,						/**< Indicates that the hotlist line is selected.				*/
+	HOTLIST_FLAG_DEFAULT = 4,						/**< Indicates that the hotlist line is the defult entry.			*/
 };
 
 struct hotlist_block {
@@ -206,6 +213,8 @@ static osbool	hotlist_load_choices(void);
 static osbool	hotlist_load_file(struct discfile_block *load);
 static osbool	hotlist_extend(int allocation);
 static void	hotlist_open_entry(int entry);
+static void	hotlist_set_default_dialogue(int entry);
+static int	hotlist_find_default_entry(void);
 
 
 /* Line position calculations.
@@ -260,6 +269,7 @@ void hotlist_initialise(osspriteop_area *sprites)
 	/* Initialise the hotlist window. */
 
 	hotlist_window_def = templates_load_window("Hotlist");
+	hotlist_window_def->sprite_area = sprites;
 	hotlist_window_def->extent.y1 = 0;
 	hotlist_window_def->extent.y0 = -((HOTLIST_MIN_LINES * HOTLIST_LINE_HEIGHT) + HOTLIST_TOOLBAR_HEIGHT);
 	hotlist_window_def->icon_count = 0;
@@ -371,6 +381,11 @@ static void hotlist_redraw_handler(wimp_draw *redraw)
 			icon[HOTLIST_ICON_FILE].extent.y1 = LINE_Y1(y);
 
 			icon[HOTLIST_ICON_FILE].data.indirected_text.text = hotlist[y].name;
+
+			if (hotlist[y].flags & HOTLIST_FLAG_DEFAULT)
+				icon[HOTLIST_ICON_FILE].data.indirected_text.validation = "Sdflthot";
+			else
+				icon[HOTLIST_ICON_FILE].data.indirected_text.validation = "Ssmall_1a1";
 
 			if (hotlist[y].flags & HOTLIST_FLAG_SELECTED)
 				icon[HOTLIST_ICON_FILE].flags |= wimp_ICON_SELECTED;
@@ -527,8 +542,12 @@ static void hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 	menus_shade_entry(hotlist_window_menu, HOTLIST_MENU_CLEAR_SELECTION, hotlist_selection_count == 0);
 
 	menus_shade_entry(hotlist_window_menu_item, HOTLIST_MENU_ITEM_SAVE, hotlist_selection_count != 1);
+	menus_shade_entry(hotlist_window_menu_item, HOTLIST_MENU_ITEM_DEFAULT, hotlist_selection_count != 1);
 	menus_shade_entry(hotlist_window_menu_item, HOTLIST_MENU_ITEM_RENAME, hotlist_selection_count != 1);
 	menus_shade_entry(hotlist_window_menu_item, HOTLIST_MENU_ITEM_DELETE, hotlist_selection_count == 0);
+
+	menus_tick_entry(hotlist_window_menu_item, HOTLIST_MENU_ITEM_DEFAULT,
+			(hotlist_selection_count == 1 && hotlist_selection_row == hotlist_find_default_entry()));
 }
 
 
@@ -573,7 +592,8 @@ static void hotlist_menu_warning(wimp_w w, wimp_menu *menu, wimp_message_menu_wa
 
 static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
-	wimp_pointer		pointer;
+	wimp_pointer	pointer;
+
 
 	if (menu != hotlist_window_menu)
 		return;
@@ -584,6 +604,13 @@ static void hotlist_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 	case HOTLIST_MENU_ITEM:
 		switch (selection->items[1]) {
 		case HOTLIST_MENU_ITEM_SAVE:
+			break;
+
+		case HOTLIST_MENU_ITEM_DEFAULT:
+			if (hotlist_selection_count != 1)
+				break;
+
+			hotlist_set_default_dialogue((hotlist_selection_row != hotlist_find_default_entry()) ? hotlist_selection_row : HOTLIST_NULL_ENTRY);
 			break;
 
 		case HOTLIST_MENU_ITEM_RENAME:
@@ -1867,5 +1894,71 @@ static void hotlist_open_entry(int entry)
 
 	if (xwimp_get_pointer_info(&pointer) == NULL)
 		file_create_dialogue(&pointer, NULL, hotlist[entry].dialogue);
+}
+
+
+/**
+ * Set or unset the default dialogue in the hotlist.
+ *
+ * \param entry			The hotlist entry to set to default (if not
+ *				within range, or -1, the current default
+ *				will be unset).
+ */
+
+static void hotlist_set_default_dialogue(int entry)
+{
+	int	i;
+
+
+	for (i = 0; i < hotlist_entries; i++) {
+		if (i == entry)
+			hotlist[i].flags |= HOTLIST_FLAG_DEFAULT;
+		else
+			hotlist[i].flags &= ~HOTLIST_FLAG_DEFAULT;
+	}
+
+	windows_redraw(hotlist_window);
+}
+
+
+/**
+ * Find the index of the (first) hotlist entry to have the default
+ * flag set.
+ *
+ * \return			The index of the first default entry, or
+ *				HOTLIST_NULL_ENTRY if none found.
+ */
+
+static int hotlist_find_default_entry(void)
+{
+	int	i, entry = HOTLIST_NULL_ENTRY;
+
+	for (i = 0; i < hotlist_entries; i++) {
+		if (hotlist[i].flags & HOTLIST_FLAG_DEFAULT) {
+			entry = i;
+			break;
+		}
+	}
+
+	return entry;
+}
+
+
+/**
+ * Return the handle of the dialogue to use for default search settings,
+ * or NULL if none has been set.
+ *
+ * \return			The handle of the default dialogue, or NULL.
+ */
+
+struct dialogue_block *hotlist_get_default_dialogue(void)
+{
+	int			entry;
+
+	entry = hotlist_find_default_entry();
+	if (entry == HOTLIST_NULL_ENTRY)
+		return NULL;
+
+	return hotlist[entry].dialogue;
 }
 

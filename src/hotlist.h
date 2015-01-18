@@ -1,4 +1,4 @@
-/* Copyright 2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2013-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -92,6 +92,16 @@ wimp_menu *hotlist_build_menu(void);
  */
 
 void hotlist_process_menu_selection(int selection);
+
+
+/**
+ * Return the handle of the dialogue to use for default search settings,
+ * or NULL if none has been set.
+ *
+ * \return			The handle of the default dialogue, or NULL.
+ */
+
+struct dialogue_block *hotlist_get_default_dialogue(void);
 
 #endif
 
