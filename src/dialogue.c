@@ -1872,9 +1872,9 @@ static osbool dialogue_keypress_handler(wimp_key *key)
 static void dialogue_move_caret_down(void)
 {
 	wimp_caret	caret;
-	os_error	*error;
 
-	error = xwimp_get_caret_position(&caret);
+	if (xwimp_get_caret_position(&caret) != NULL)
+		return;
 
 	if (caret.w == dialogue_window && (caret.i == DIALOGUE_ICON_SEARCH_PATH || caret.i == DIALOGUE_ICON_FILENAME)) {
 		if (caret.i != DIALOGUE_ICON_FILENAME && !icons_get_shaded(dialogue_window, DIALOGUE_ICON_FILENAME))
@@ -1926,9 +1926,9 @@ static void dialogue_move_caret_down(void)
 static void dialogue_move_caret_up(void)
 {
 	wimp_caret	caret;
-	os_error	*error;
 
-	error = xwimp_get_caret_position(&caret);
+	if (xwimp_get_caret_position(&caret) != NULL)
+		return;
 
 	if (caret.w == dialogue_window && caret.i == DIALOGUE_ICON_FILENAME) {
 		icons_put_caret_at_end(dialogue_window, DIALOGUE_ICON_SEARCH_PATH);
