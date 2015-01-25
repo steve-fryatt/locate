@@ -1,4 +1,4 @@
-/* Copyright 2012-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -1039,7 +1039,7 @@ static void results_close_handler(wimp_close *close)
 
 static void results_redraw_handler(wimp_draw *redraw)
 {
-	int			ox, oy, top, bottom, y, i;
+	int			oy, top, bottom, y, i;
 	osbool			more;
 	struct results_window	*handle;
 	struct fileicon_info	typeinfo;
@@ -1096,7 +1096,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 	more = wimp_redraw_window(redraw);
 
-	ox = redraw->box.x0 - redraw->xscroll;
+	// ox = redraw->box.x0 - redraw->xscroll;
 	oy = redraw->box.y1 - redraw->yscroll;
 
 	while (more) {
@@ -1640,14 +1640,12 @@ void results_add_contents(struct results_window *handle, unsigned key, unsigned 
 
 void results_accept_lines(struct results_window *handle)
 {
-	os_error		*error;
-
 	if (handle == NULL)
 		return;
 
 	results_update_extent(handle, handle->scroll_to_end);
 
-	error = xwimp_force_redraw(handle->window,
+	xwimp_force_redraw(handle->window,
 			0, LINE_Y0(handle->display_lines - 1),
 			handle->format_width, LINE_Y1(handle->redrawn_lines));
 
@@ -1965,7 +1963,7 @@ static unsigned results_calculate_window_click_row(struct results_window *handle
 
 static void results_drag_select(struct results_window *handle, unsigned row, wimp_pointer *pointer, wimp_window_state *state, osbool ctrl_pressed)
 {
-	int			x, y;
+	int			y;
 	os_box			extent;
 	struct fileicon_info	icon;
 	wimp_drag		drag;
@@ -1980,7 +1978,7 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 	if (file == NULL)
 		return;
 
-	x = pointer->pos.x - state->visible.x0 + state->xscroll;
+	// x = pointer->pos.x - state->visible.x0 + state->xscroll;
 	y = pointer->pos.y - state->visible.y1 + state->yscroll;
 
 	if ((row != RESULTS_ROW_NONE) && (row < handle->display_lines) && (pointer->buttons == wimp_DRAG_SELECT) &&
