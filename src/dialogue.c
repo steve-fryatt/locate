@@ -750,24 +750,35 @@ void dialogue_add_client(struct dialogue_block *dialogue, enum dialogue_client c
  *
  * \param *dialogue		The dialogue to be saved.
  * \param *out			The handle of the file to save to.
- * \param *name			A name for a hotlist entry, or NULL.
+ * \param *helper		A helper function to be called once the
+ *				options chunk is open, or NULL for none.
+ * \param *data			Data to be passed to the helper function,
+ *				or NULL for none.
  */
 
-void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *out, char *name)
+void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *out,
+		void (*helper)(struct discfile_block *out, enum dialogue_file_action action, void *data), void *data)
 {
 	if (dialogue == NULL || out == NULL)
 		return;
 
-	discfile_start_section(out, (name == NULL) ? DISCFILE_SECTION_DIALOGUE : DISCFILE_SECTION_HOTLIST, (name == NULL) ? FALSE : TRUE);
+	/* Open the file section, either directly or by asking the client's
+	 * helper to do it for us.
+	 */
+
+	if (helper != NULL)
+		helper(out, DIALOGUE_START_SECTION, data);
+	else
+		discfile_start_section(out, DISCFILE_SECTION_DIALOGUE, FALSE);
 
 	/* Write out the dialogue options. */
 
 	discfile_start_chunk(out, DISCFILE_CHUNK_OPTIONS);
 
-	/* Hotlist name, if required. */
+	/* Allow the client to insert data into the chunk if necessary. */
 
-	if (name != NULL)
-		discfile_write_option_string(out, "HNM", name);
+	if (helper != NULL)
+		helper(out, DIALOGUE_WRITE_DATA, data);
 
 	/* Pane setting */
 
@@ -853,12 +864,15 @@ void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *
  *
  * \param *file			The file to which the dialogue will belong.
  * \param *load			The handle of the file to load from.
- * \param *name			A buffer to take a hotlist name, or NULL.
- * \param length		The length of the hotlist buffer, or 0.
+ * \param *helper		A helper function to be called once the
+ *				options chunk is open, or NULL for none.
+ * \param *data			Data to be passed to the helper function,
+ *				or NULL for none.
  * \return			The handle of the new dialogue, or NULL.
  */
 
-struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfile_block *load, char *name, size_t length)
+struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfile_block *load,
+		osbool (*helper)(struct discfile_block *out, enum dialogue_file_action action, void *data), void *data)
 {
 	struct dialogue_block	*dialogue;
 
@@ -866,7 +880,7 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 		return NULL;
 
 	if (discfile_read_format(load) != DISCFILE_LOCATE2) {
-		if (name != NULL)
+		if (helper != NULL || data != NULL)
 			return NULL;
 
 		return dialogue_load_legacy_file(file, load);
@@ -876,20 +890,30 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 	if (dialogue == NULL)
 		return NULL;
 
-	if (!discfile_open_section(load, (name == NULL) ? DISCFILE_SECTION_DIALOGUE : DISCFILE_SECTION_HOTLIST) ||
-			!discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
-		dialogue_destroy(dialogue, DIALOGUE_CLIENT_ALL);
-		return NULL;
+	/* Open the file section, either directly or by asking the client's
+	 * helper to do it for us.
+	 */
+
+	if (helper != NULL) {
+		if (!helper(load, DIALOGUE_OPEN_SECTION, data)) {
+			dialogue_destroy(dialogue, DIALOGUE_CLIENT_ALL);
+			return NULL;
+		}
+	} else {
+		if (!discfile_open_section(load, DISCFILE_SECTION_DIALOGUE) || !discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS)) {
+			dialogue_destroy(dialogue, DIALOGUE_CLIENT_ALL);
+			return NULL;
+		}
 	}
+
+	/* Allow the client to extract data from the chunk if necessary. */
+
+	if (helper != NULL)
+		helper(load, DIALOGUE_READ_DATA, data);
 
 	/* Read in the dialogue options. */
 
 	discfile_read_option_unsigned(load, "PAN", &dialogue->pane);
-
-	/* The hotlist name, if applicable. */
-
-	if (name != NULL)
-		discfile_read_option_string(load, "HNM", name, length);
 
 	/* The Search Path. */
 
@@ -2587,7 +2611,7 @@ static osbool dialogue_save_settings(char *filename, osbool selection, void *dat
 
 	hourglass_on();
 
-	dialogue_save_file(dialogue, out, NULL);
+	dialogue_save_file(dialogue, out, NULL, NULL);
 
 	hourglass_off();
 

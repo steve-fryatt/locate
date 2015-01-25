@@ -49,6 +49,18 @@ enum dialogue_client {
 };
 
 /**
+ * Actions which can be requested from a dialogue load or save helper
+ * function.
+ */
+
+enum dialogue_file_action {
+	DIALOGUE_START_SECTION,							/**< Start a new section for writing and leave it open.		*/
+	DIALOGUE_WRITE_DATA,							/**< Write any required data to the open section.		*/
+	DIALOGUE_OPEN_SECTION,							/**< Open a new section for reading, and leave it open.		*/
+	DIALOGUE_READ_DATA							/**< Read any required data from the open section.		*/
+};
+
+/**
  * Initialise the Dialogue module.
  */
 
@@ -96,10 +108,14 @@ void dialogue_add_client(struct dialogue_block *dialogue, enum dialogue_client c
  *
  * \param *dialogue		The dialogue to be saved.
  * \param *out			The handle of the file to save to.
- * \param *name			A name for a hotlist entry, or NULL.
+ * \param *helper		A helper function to be called once the
+ *				options chunk is open, or NULL for none.
+ * \param *data			Data to be passed to the helper function,
+ *				or NULL for none.
  */
 
-void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *out, char *name);
+void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *out,
+		void (*helper)(struct discfile_block *out, enum dialogue_file_action action, void *data), void *data);
 
 
 /**
@@ -108,12 +124,15 @@ void dialogue_save_file(struct dialogue_block *dialogue, struct discfile_block *
  *
  * \param *file			The file to which the dialogue will belong.
  * \param *load			The handle of the file to load from.
- * \param *name			A buffer to take a hotlist name, or NULL.
- * \param length		The length of the hotlist buffer, or 0.
+ * \param *helper		A helper function to be called once the
+ *				options chunk is open, or NULL for none.
+ * \param *data			Data to be passed to the helper function,
+ *				or NULL for none.
  * \return			The handle of the new dialogue, or NULL.
  */
 
-struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfile_block *load, char *name, size_t length);
+struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfile_block *load,
+		osbool (*helper)(struct discfile_block *out, enum dialogue_file_action action, void *data), void *data);
 
 
 /**

@@ -129,10 +129,10 @@
  */
 
 enum hotlist_block_flags {
-	HOTLIST_FLAG_NONE = 0,
-	HOTLIST_FLAG_SELECTABLE = 1,						/**< Indicates that the hotlist line can be selected.				*/
-	HOTLIST_FLAG_SELECTED = 2,						/**< Indicates that the hotlist line is selected.				*/
-	HOTLIST_FLAG_DEFAULT = 4,						/**< Indicates that the hotlist line is the defult entry.			*/
+	HOTLIST_FLAG_NONE = 0x00,
+	HOTLIST_FLAG_SELECTABLE = 0x01,						/**< Indicates that the hotlist line can be selected.				*/
+	HOTLIST_FLAG_SELECTED = 0x02,						/**< Indicates that the hotlist line is selected.				*/
+	HOTLIST_FLAG_DEFAULT = 0x04						/**< Indicates that the hotlist line is the defult entry.			*/
 };
 
 struct hotlist_block {
@@ -201,7 +201,7 @@ static osbool	hotlist_add_keypress_handler(wimp_key *key);
 static void	hotlist_set_add_window(int entry);
 static void	hotlist_redraw_add_window(void);
 static osbool	hotlist_read_add_window(void);
-static osbool	hotlist_add_new_entry(char *name, struct dialogue_block *dialogue);
+static osbool	hotlist_add_new_entry(char *name, enum hotlist_block_flags flags, struct dialogue_block *dialogue);
 static void	hotlist_delete_entry(int entry);
 static int	hotlist_move_entry(int entry, int insert_before);
 static osbool	hotlist_save_hotlist(char *filename, osbool selection, void *data);
@@ -209,8 +209,10 @@ static osbool	hotlist_saveas_save_search(char *filename, osbool selection, void 
 static osbool	hotlist_save_search(char *filename, void *data);
 static osbool	hotlist_save_choices(void);
 static osbool	hotlist_save_file(char *filename, osbool selection);
+static void	hotlist_save_file_callback(struct discfile_block *out, enum dialogue_file_action action, void *data);
 static osbool	hotlist_load_choices(void);
 static osbool	hotlist_load_file(struct discfile_block *load);
+static osbool	hotlist_load_file_callback(struct discfile_block *load, enum dialogue_file_action action, void *data);
 static osbool	hotlist_extend(int allocation);
 static void	hotlist_open_entry(int entry);
 static void	hotlist_set_default_dialogue(int entry);
@@ -1187,7 +1189,7 @@ static osbool hotlist_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, ch
 
 	hotlist_load_file(load);
 
-	dialogue = dialogue_load_file(NULL, load, NULL, 0);
+	dialogue = dialogue_load_file(NULL, load, NULL, NULL);
 
 	hourglass_off();
 
@@ -1202,7 +1204,7 @@ static osbool hotlist_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, ch
 
 	dialogue_add_client(dialogue, DIALOGUE_CLIENT_HOTLIST);
 
-	if (!hotlist_add_new_entry(string_find_leafname(filename), dialogue))
+	if (!hotlist_add_new_entry(string_find_leafname(filename), HOTLIST_FLAG_NONE, dialogue))
 		dialogue_destroy(dialogue, DIALOGUE_CLIENT_HOTLIST);
 
 	return TRUE;
@@ -1434,7 +1436,7 @@ static osbool hotlist_read_add_window(void)
 
 		return TRUE;
 	} else if (hotlist_add_dialogue_handle != NULL && hotlist_add_entry == -1) {
-		return hotlist_add_new_entry(new_name, hotlist_add_dialogue_handle);
+		return hotlist_add_new_entry(new_name, HOTLIST_FLAG_NONE, hotlist_add_dialogue_handle);
 	}
 
 	return FALSE;
@@ -1445,11 +1447,12 @@ static osbool hotlist_read_add_window(void)
  * Add a new entry to the hotlist.
  *
  * \param *name			The name to give the entry.
+ * \param flags			Any flags to set for the entry.
  * \param *dialogue		The dialogue data to associate with the entry.
  * \return			TRUE if successful; FALSE if errors occurred.
  */
 
-static osbool hotlist_add_new_entry(char *name, struct dialogue_block *dialogue)
+static osbool hotlist_add_new_entry(char *name, enum hotlist_block_flags flags, struct dialogue_block *dialogue)
 {
 	wimp_window_state	window;
 
@@ -1463,7 +1466,7 @@ static osbool hotlist_add_new_entry(char *name, struct dialogue_block *dialogue)
 
 	strncpy(hotlist[hotlist_entries].name, name, HOTLIST_NAME_LENGTH);
 	hotlist[hotlist_entries].dialogue = dialogue;
-	hotlist[hotlist_entries].flags = HOTLIST_FLAG_SELECTABLE;
+	hotlist[hotlist_entries].flags = flags | HOTLIST_FLAG_SELECTABLE;
 
 	window.w = hotlist_window;
 	if (xwimp_get_window_state(&window) == NULL) {
@@ -1620,7 +1623,7 @@ static osbool hotlist_save_search(char *filename, void *data)
 
 	hourglass_on();
 
-	dialogue_save_file(data, out, NULL);
+	dialogue_save_file(data, out, NULL, NULL);
 
 	hourglass_off();
 
@@ -1640,7 +1643,7 @@ static osbool hotlist_save_search(char *filename, void *data)
 
 static osbool hotlist_save_choices(void)
 {
-	char				filename[1024];
+	char	filename[1024];
 
 	config_find_save_file(filename, 1024, "Hotlist");
 
@@ -1674,7 +1677,7 @@ static osbool hotlist_save_file(char *filename, osbool selection)
 
 	for (entry = 0; entry < hotlist_entries; entry++)
 		if (!selection || (hotlist[entry].flags & HOTLIST_FLAG_SELECTED))
-			dialogue_save_file(hotlist[entry].dialogue, out, hotlist[entry].name);
+			dialogue_save_file(hotlist[entry].dialogue, out, hotlist_save_file_callback, &(hotlist[entry]));
 
 	hourglass_off();
 
@@ -1683,6 +1686,39 @@ static osbool hotlist_save_file(char *filename, osbool selection)
 	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
 
 	return TRUE;
+}
+
+
+/**
+ * Helper callback for hotlist saving, passed to dialogue_save_file() to
+ * provide the hotlist-specific bits of the options chunk.
+ *
+ * \param *out			The handle of the discfile being written to.
+ * \param action		The action being requested.
+ * \param *data			Pointer to the data from hotlist_save_file(),
+ *				which is a pointer to a struct hotlist_block.
+ */
+
+static void hotlist_save_file_callback(struct discfile_block *out, enum dialogue_file_action action, void *data)
+{
+	struct hotlist_block	*hotlist = data;
+
+	if (out == NULL || data == NULL)
+		return;
+
+	switch (action) {
+	case DIALOGUE_START_SECTION:
+		discfile_start_section(out, DISCFILE_SECTION_HOTLIST, TRUE);
+		break;
+
+	case DIALOGUE_WRITE_DATA:
+		discfile_write_option_string(out, "HNM", hotlist->name);
+		discfile_write_option_unsigned(out, "HFG", (unsigned) (hotlist->flags & HOTLIST_FLAG_DEFAULT));
+		break;
+
+	default:
+		break;
+	}
 }
 
 
@@ -1728,25 +1764,69 @@ static osbool hotlist_load_choices(void)
 static osbool hotlist_load_file(struct discfile_block *load)
 {
 	struct dialogue_block	*dialogue;
-	char			name[HOTLIST_NAME_LENGTH];
+	struct hotlist_block	hotlist_data;
 
 
 	if (load == NULL)
 		return FALSE;
 
 	do {
-		dialogue = dialogue_load_file(NULL, load, name, HOTLIST_NAME_LENGTH);
+		*hotlist_data.name = '\0';
+		hotlist_data.flags = HOTLIST_FLAG_NONE;
+
+		dialogue = dialogue_load_file(NULL, load, hotlist_load_file_callback, &hotlist_data);
 
 		if (dialogue == NULL)
 			continue;
 
 		dialogue_add_client(dialogue, DIALOGUE_CLIENT_HOTLIST);
 
-		if (!hotlist_add_new_entry(name, dialogue))
+		if (!hotlist_add_new_entry(hotlist_data.name, hotlist_data.flags, dialogue))
 			dialogue_destroy(dialogue, DIALOGUE_CLIENT_HOTLIST);
 	} while (dialogue != NULL);
 
 	return TRUE;
+}
+
+
+/**
+ * Helper callback for hotlist loading, passed to dialogue_load_file() to
+ * read the hotlist-specific bits of the options chunk.
+ *
+ * \param *load			The handle of the discfile being read from.
+ * \param action		The action being requested.
+ * \param *data			Pointer to the data from hotlist_save_file(),
+ *				which is a pointer to a struct hotlist_block.
+ * \return			TRUE if successful; FALSE on error.
+ */
+
+static osbool hotlist_load_file_callback(struct discfile_block *load, enum dialogue_file_action action, void *data)
+{
+	struct hotlist_block	*hotlist = data;
+	osbool			result = TRUE;
+
+
+	if (load == NULL || data == NULL)
+		return FALSE;
+
+	debug_printf("Calling load helper: %u", action);
+
+	switch (action) {
+	case DIALOGUE_OPEN_SECTION:
+		result = discfile_open_section(load, DISCFILE_SECTION_HOTLIST) && discfile_open_chunk(load, DISCFILE_CHUNK_OPTIONS);
+		break;
+
+	case DIALOGUE_READ_DATA:
+		discfile_read_option_string(load, "HNM", hotlist->name, HOTLIST_NAME_LENGTH);
+		if (!discfile_read_option_unsigned(load, "HFG", (unsigned *) &(hotlist->flags)))
+			hotlist->flags = HOTLIST_FLAG_NONE;
+		break;
+
+	default:
+		break;
+	}
+
+	return result;
 }
 
 
