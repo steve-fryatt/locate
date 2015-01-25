@@ -1,4 +1,4 @@
-/* Copyright 2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2013-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -153,8 +153,6 @@ static osbool plugin_message_filer_action(wimp_message *message)
 
 static osbool plugin_message_filer_selection_dir(wimp_message *message)
 {
-	os_error			*error;
-
 	filer_full_message_selection_dir	*selection_dir = (filer_full_message_selection_dir *) message;
 	//help_full_message_reply		help_reply;
 	
@@ -175,8 +173,6 @@ static osbool plugin_message_filer_selection_dir(wimp_message *message)
 
 static osbool plugin_message_filer_add_selection(wimp_message *message)
 {
-	os_error			*error;
-
 	filer_full_message_add_selection	*add_selection = (filer_full_message_add_selection *) message;
 	//help_full_message_reply		help_reply;
 	
