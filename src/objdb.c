@@ -455,7 +455,7 @@ osbool objdb_get_name(struct objdb_block *handle, unsigned key, char *buffer, si
 
 size_t objdb_get_name_length(struct objdb_block *handle, unsigned key)
 {
-	unsigned	index, i, length;
+	unsigned	index, length;
 	char		*base;
 
 	if (handle == NULL)
@@ -464,7 +464,6 @@ size_t objdb_get_name_length(struct objdb_block *handle, unsigned key)
 	if (key == OBJDB_NULL_KEY)
 		return handle->longest_path * sizeof(char);
 
-	i = 0;
 	length = 0;
 
 	base = textdump_get_base(handle->text);
