@@ -156,6 +156,7 @@ static wimp_menu		*hotlist_menu = NULL;				/**< The hotlist menu handle.							*
 static wimp_window		*hotlist_window_def = NULL;			/**< The definition of the hotlist window.					*/
 static wimp_w			hotlist_window = NULL;				/**< The hotlist window handle.							*/
 static wimp_w			hotlist_window_pane = NULL;			/**< The hotlist window toolbar pane handle.					*/
+static int			hotlist_window_width = 0;			/**< The X extent of the hotlist window.					*/
 static int			hotlist_selection_count = 0;			/**< The number of items selected in the hotlist window.			*/
 static int			hotlist_selection_row = -1;			/**< The selected row, if there is only one.					*/
 static osbool			hotlist_selection_from_menu = FALSE;		/**< TRUE if the hotlist selection came via the menu opening; else FALSE.	*/
@@ -279,6 +280,7 @@ void hotlist_initialise(osspriteop_area *sprites)
 	ihelp_add_window(hotlist_window, "Hotlist", NULL);
 	event_add_window_redraw_event(hotlist_window, hotlist_redraw_handler);
 	event_add_window_mouse_event(hotlist_window, hotlist_click_handler);
+	hotlist_window_width = hotlist_window_def->extent.x1 - hotlist_window_def->extent.x0;
 
 	event_add_window_menu(hotlist_window, hotlist_window_menu);
 	event_add_window_menu_prepare(hotlist_window, hotlist_menu_prepare);
@@ -353,7 +355,7 @@ void hotlist_open(wimp_pointer *pointer)
 
 static void hotlist_redraw_handler(wimp_draw *redraw)
 {
-	int			ox, oy, top, bottom, y;
+	int			oy, top, bottom, y;
 	osbool			more;
 	wimp_icon		*icon;
 
@@ -364,11 +366,12 @@ static void hotlist_redraw_handler(wimp_draw *redraw)
 
 	more = wimp_redraw_window(redraw);
 
-	ox = redraw->box.x0 - redraw->xscroll;
+	// ox = redraw->box.x0 - redraw->xscroll;
 	oy = redraw->box.y1 - redraw->yscroll;
 
 	while (more) {
-		icon[HOTLIST_ICON_FILE].extent.x1 = 1000 - HOTLIST_WINDOW_MARGIN; // \TODO -- 1000 ought to be window width.
+		icon[HOTLIST_ICON_FILE].extent.x0 = HOTLIST_WINDOW_MARGIN;
+		icon[HOTLIST_ICON_FILE].extent.x1 = hotlist_window_width - HOTLIST_WINDOW_MARGIN;
 
 		top = (oy - redraw->clip.y1 - HOTLIST_TOOLBAR_HEIGHT) / HOTLIST_LINE_HEIGHT;
 		if (top < 0)
