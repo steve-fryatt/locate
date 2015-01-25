@@ -711,7 +711,7 @@ static void hotlist_update_extent(void)
 
 static void hotlist_drag_select(unsigned row, wimp_pointer *pointer, wimp_window_state *state, osbool ctrl_pressed)
 {
-	int			x, y;
+	int			y;
 	os_box			extent;
 	wimp_drag		drag;
 	wimp_auto_scroll_info	scroll;
@@ -720,7 +720,7 @@ static void hotlist_drag_select(unsigned row, wimp_pointer *pointer, wimp_window
 	if (pointer == NULL || state == NULL)
 		return;
 
-	x = pointer->pos.x - state->visible.x0 + state->xscroll;
+	// x = pointer->pos.x - state->visible.x0 + state->xscroll;
 	y = pointer->pos.y - state->visible.y1 + state->yscroll;
 
 	if ((row != -1) && (row < hotlist_entries) && (pointer->buttons == wimp_DRAG_SELECT) &&
