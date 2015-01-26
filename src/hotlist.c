@@ -503,6 +503,11 @@ static void hotlist_toolbar_click_handler(wimp_pointer *pointer)
 			hotlist_rename_entry(hotlist_selection_row);
 		break;
 
+	case HOTLIST_TOOLBAR_ICON_DELETE:
+		if (pointer->buttons == wimp_CLICK_SELECT && hotlist_selection_count >= 1)
+			hotlist_delete_selection();
+		break;
+
 	case HOTLIST_TOOLBAR_ICON_DEFAULT:
 		if (pointer->buttons == wimp_CLICK_SELECT && hotlist_selection_count == 1)
 			hotlist_set_default_dialogue((hotlist_selection_row != hotlist_find_default_entry()) ? hotlist_selection_row : HOTLIST_NULL_ENTRY);
