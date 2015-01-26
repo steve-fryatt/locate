@@ -503,9 +503,9 @@ static void hotlist_toolbar_click_handler(wimp_pointer *pointer)
 			hotlist_rename_entry(hotlist_selection_row);
 		break;
 
-	case HOTLIST_TOOLBAR_ICON_DELETE:
-		if (pointer->buttons == wimp_CLICK_SELECT && hotlist_selection_count >= 1)
-			hotlist_delete_selection();
+	case HOTLIST_TOOLBAR_ICON_DEFAULT:
+		if (pointer->buttons == wimp_CLICK_SELECT && hotlist_selection_count == 1)
+			hotlist_set_default_dialogue((hotlist_selection_row != hotlist_find_default_entry()) ? hotlist_selection_row : HOTLIST_NULL_ENTRY);
 		break;
 	}
 }
@@ -1135,6 +1135,10 @@ static void hotlist_update_toolbar(void)
 	icons_set_shaded(hotlist_window_pane, HOTLIST_TOOLBAR_ICON_RENAME, hotlist_selection_count != 1);
 	icons_set_shaded(hotlist_window_pane, HOTLIST_TOOLBAR_ICON_DELETE, hotlist_selection_count == 0);
 	icons_set_shaded(hotlist_window_pane, HOTLIST_TOOLBAR_ICON_RUN, hotlist_selection_count != 1);
+	icons_set_shaded(hotlist_window_pane, HOTLIST_TOOLBAR_ICON_DEFAULT, hotlist_selection_count != 1);
+	
+	icons_set_selected(hotlist_window_pane, HOTLIST_TOOLBAR_ICON_DEFAULT,
+			(hotlist_selection_count == 1 && hotlist_selection_row == hotlist_find_default_entry()));
 }
 
 
@@ -2002,6 +2006,7 @@ static void hotlist_set_default_dialogue(int entry)
 	}
 
 	windows_redraw(hotlist_window);
+	hotlist_update_toolbar();
 }
 
 
