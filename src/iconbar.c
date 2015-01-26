@@ -277,7 +277,7 @@ static osbool iconbar_icon_drop_handler(wimp_message *message)
 	if (datasave->file_type <= 0xfff)
 		string_find_pathname(path);
 
-	file_create_dialogue(&pointer, path, NULL);
+	file_create_dialogue(&pointer, path, hotlist_get_default_dialogue());
 
 	return TRUE;
 }

@@ -553,8 +553,11 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
 	osbool			mem_ok = TRUE;
 	int			i;
 
-	if (path == NULL)
+	if (path == NULL && template == NULL)
 		path = config_str_read("SearchPath");
+
+	if (path == NULL && template == NULL)
+		return NULL;
 
 	/* Count the number of filetypes that are in the block, then
 	 * allocate all of the memory that we require.
@@ -578,7 +581,7 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
 		new->type_types = NULL;
 		new->contents_text = NULL;
 
-		if (flex_alloc((flex_ptr) &(new->path), strlen((template != NULL) ? template->path : path) + 1) == 0)
+		if (flex_alloc((flex_ptr) &(new->path), strlen((path == NULL) ? template->path : path) + 1) == 0)
 			mem_ok = FALSE;
 
 		if (flex_alloc((flex_ptr) &(new->filename), strlen((template != NULL) ? template->filename : "") + 1) == 0)
@@ -603,7 +606,7 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
 
 	new->pane = (template != NULL) ? template->pane : DIALOGUE_PANE_SIZE;
 
-	strcpy(new->path, (template != NULL) ? template->path : path);
+	strcpy(new->path, (path == NULL) ? template->path : path);
 
 	/* Filename Details */
 
