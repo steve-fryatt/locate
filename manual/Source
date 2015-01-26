@@ -796,6 +796,13 @@ First Stable Release of Locate&nbsp;2.
 <li>Complete re-implementation in C.
 </list>
 
+<subhead title="Test Build">
+
+Alpha release for evaluation and comment.
+
+<list>
+<li>&lsquo;Default&rsquo; hotlist items added, to allow a standard search to be customised.
+</list>
 
 </chapter>
 
