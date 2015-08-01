@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -223,11 +223,12 @@ void saveas_prepare_dialogue(struct saveas_block *handle)
 	old_handle = event_get_window_user_data(handle->window);
 	if (old_handle != NULL) {
 		if (old_handle->window == saveas_window) {
-			icons_copy_text(old_handle->window, SAVEAS_ICON_FILENAME, old_handle->full_filename);
+			icons_copy_text(old_handle->window, SAVEAS_ICON_FILENAME, old_handle->full_filename, SAVEAS_MAX_FILENAME);
 			old_handle->selected = FALSE;
 		} else {
 			old_handle->selected = icons_get_selected(old_handle->window, SAVEAS_ICON_SELECTION);
-			icons_copy_text(old_handle->window, SAVEAS_ICON_FILENAME, (old_handle->selected) ? old_handle->selection_filename : old_handle->full_filename);
+			icons_copy_text(old_handle->window, SAVEAS_ICON_FILENAME,
+					(old_handle->selected) ? old_handle->selection_filename : old_handle->full_filename, SAVEAS_MAX_FILENAME);
 		}
 	}
 
@@ -296,7 +297,7 @@ static void saveas_click_handler(wimp_pointer *pointer)
 
 	case SAVEAS_ICON_SELECTION:
 		handle->selected = icons_get_selected(handle->window, SAVEAS_ICON_SELECTION);
-		icons_copy_text(handle->window, SAVEAS_ICON_FILENAME, (handle->selected) ? handle->full_filename : handle->selection_filename);
+		icons_copy_text(handle->window, SAVEAS_ICON_FILENAME, (handle->selected) ? handle->full_filename : handle->selection_filename, SAVEAS_MAX_FILENAME);
 		icons_strncpy(handle->window, SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
 		wimp_set_icon_state(handle->window, SAVEAS_ICON_FILENAME, 0, 0);
 		icons_replace_caret_in_window(handle->window);
@@ -353,11 +354,11 @@ static void saveas_drag_end_handler(wimp_pointer *pointer, void *data)
 		return;
 
 	if (handle->window == saveas_window) {
-		icons_copy_text(handle->window, SAVEAS_ICON_FILENAME, handle->full_filename);
+		icons_copy_text(handle->window, SAVEAS_ICON_FILENAME, handle->full_filename, SAVEAS_MAX_FILENAME);
 		handle->selected = FALSE;
 	} else {
 		handle->selected = icons_get_selected(handle->window, SAVEAS_ICON_SELECTION);
-		icons_copy_text(handle->window, SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
+		icons_copy_text(handle->window, SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename, SAVEAS_MAX_FILENAME);
 	}
 
 
@@ -404,11 +405,11 @@ static void saveas_immediate_save(struct saveas_block *handle)
 		return;
 
 	if (handle->window == saveas_window) {
-		icons_copy_text(handle->window, SAVEAS_ICON_FILENAME, handle->full_filename);
+		icons_copy_text(handle->window, SAVEAS_ICON_FILENAME, handle->full_filename, SAVEAS_MAX_FILENAME);
 		handle->selected = FALSE;
 	} else {
 		handle->selected = icons_get_selected(handle->window, SAVEAS_ICON_SELECTION);
-		icons_copy_text(handle->window, SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename);
+		icons_copy_text(handle->window, SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename, SAVEAS_MAX_FILENAME);
 	}
 
 	filename = (handle->selected) ? handle->selection_filename : handle->full_filename;
