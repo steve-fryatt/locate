@@ -802,6 +802,7 @@ Alpha release for evaluation and comment.
 
 <list>
 <li>&lsquo;Default&rsquo; hotlist items added, to allow a standard search to be customised.
+<li>Implement FilerAction Plugin code for use on RISC&nbsp;OS Select.
 </list>
 
 </chapter>
