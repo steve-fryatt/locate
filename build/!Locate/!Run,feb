@@ -47,6 +47,6 @@ RMEnsure WindowManager 3.98 Error Locate requires the Nested Window Manager.
 RMEnsure SharedCLibrary 5.17 RMLoad System:Modules.CLib
 RMEnsure SharedCLibrary 5.34 Error Locate requires version 5.34 or later of the Shared C Library.
 
-WimpSlot -min 300k -max 300k
+WimpSlot -min 512k -max 512k
 
 Run Locate:!RunImage %*0
