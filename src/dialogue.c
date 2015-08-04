@@ -541,17 +541,21 @@ void dialogue_initialise(void)
  *
  * \param *file			The file to which the dialogue belongs, or NULL
  *				for none.
+ * \param *filename		The filename to use, or NULL for the default.
  * \param *path			The search path to use, or NULL for default.
  * \param *template		A dialogue to copy the settings from, or NULL for
  *				default values.
  * \return			Pointer to the new block, or NULL on failure.
  */
 
-struct dialogue_block *dialogue_create(struct file_block *file, char *path, struct dialogue_block *template)
+struct dialogue_block *dialogue_create(struct file_block *file, char *filename, char *path, struct dialogue_block *template)
 {
 	struct dialogue_block	*new;
 	osbool			mem_ok = TRUE;
 	int			i;
+
+	if (filename == NULL && template == NULL)
+		filename = "";
 
 	if (path == NULL && template == NULL)
 		path = config_str_read("SearchPath");
@@ -584,7 +588,7 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
 		if (flex_alloc((flex_ptr) &(new->path), strlen((path == NULL) ? template->path : path) + 1) == 0)
 			mem_ok = FALSE;
 
-		if (flex_alloc((flex_ptr) &(new->filename), strlen((template != NULL) ? template->filename : "") + 1) == 0)
+		if (flex_alloc((flex_ptr) &(new->filename), strlen((template != NULL) ? template->filename : filename) + 1) == 0)
 			mem_ok = FALSE;
 
 		if (flex_alloc((flex_ptr) &(new->type_types), i * sizeof(unsigned)) == 0)
@@ -611,7 +615,7 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *path, stru
 	/* Filename Details */
 
 	new->name_mode = (template != NULL) ? template->name_mode : DIALOGUE_NAME_EQUAL_TO;
-	strcpy(new->filename, (template != NULL) ? template->filename : "");
+	strcpy(new->filename, (filename == NULL) ? template->filename : filename);
 	new->ignore_case = (template != NULL) ? template->ignore_case : TRUE;
 
 	/* Size Details */
@@ -889,7 +893,7 @@ struct dialogue_block *dialogue_load_file(struct file_block *file, struct discfi
 		return dialogue_load_legacy_file(file, load);
 	}
 
-	dialogue = dialogue_create(file, NULL, NULL);
+	dialogue = dialogue_create(file, NULL, NULL, NULL);
 	if (dialogue == NULL)
 		return NULL;
 
@@ -1015,7 +1019,7 @@ static struct dialogue_block *dialogue_load_legacy_file(struct file_block *file,
 	if (discfile_read_format(load) != DISCFILE_LOCATE0 && discfile_read_format(load) != DISCFILE_LOCATE1)
 		return NULL;
 
-	dialogue = dialogue_create(file, NULL, NULL);
+	dialogue = dialogue_create(file, NULL, NULL, NULL);
 	if (dialogue == NULL)
 		return NULL;
 
@@ -2600,7 +2604,7 @@ static osbool dialogue_save_settings(char *filename, osbool selection, void *dat
 	if (filename == NULL || !dialogue_window_is_open())
 		return FALSE;
 
-	dialogue = dialogue_create(NULL, NULL, NULL);
+	dialogue = dialogue_create(NULL, NULL, NULL, NULL);
 	if (dialogue == NULL)
 		return FALSE;
 
@@ -2639,7 +2643,7 @@ static void dialogue_add_to_hotlist(void)
 	if (!dialogue_window_is_open())
 		return;
 
-	dialogue = dialogue_create(NULL, NULL, NULL);
+	dialogue = dialogue_create(NULL, NULL, NULL, NULL);
 	if (dialogue == NULL)
 		return;
 

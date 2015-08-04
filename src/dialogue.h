@@ -72,13 +72,14 @@ void dialogue_initialise(void);
  *
  * \param *file			The file to which the dialogue belongs, or NULL
  *				for none.
+ * \param *filename		The filename to use, or NULL for the default.
  * \param *path			The search path to use, or NULL for default.
  * \param *template		A dialogue to copy the settings from, or NULL for
  *				default values.
  * \return			Pointer to the new block, or NULL on failure.
  */
 
-struct dialogue_block *dialogue_create(struct file_block *file, char *path, struct dialogue_block *template);
+struct dialogue_block *dialogue_create(struct file_block *file, char *filename, char *path, struct dialogue_block *template);
 
 
 /**

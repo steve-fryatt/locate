@@ -153,7 +153,7 @@ static osbool plugin_message_filer_action(wimp_message *message)
 
 		if (plugin_buffer != NULL) {
 			wimp_get_pointer_info(&pointer);
-			file_create_dialogue(&pointer, plugin_buffer, NULL);
+			file_create_dialogue(&pointer, filer_action->data.find_leaf, plugin_buffer, NULL);
 		}
 
 		plugin_release_buffer();

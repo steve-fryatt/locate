@@ -978,7 +978,7 @@ static void results_menu_selection(wimp_w w, wimp_menu *menu, wimp_selection *se
 		break;
 
 	case RESULTS_MENU_MODIFY_SEARCH:
-		file_create_dialogue(&pointer, NULL, file_get_dialogue(handle->file));
+		file_create_dialogue(&pointer, NULL, NULL, file_get_dialogue(handle->file));
 		break;
 
 	case RESULTS_MENU_ADD_TO_HOTLIST:

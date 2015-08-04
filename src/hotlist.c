@@ -1986,7 +1986,7 @@ static void hotlist_open_entry(int entry)
 		return;
 
 	if (xwimp_get_pointer_info(&pointer) == NULL)
-		file_create_dialogue(&pointer, NULL, hotlist[entry].dialogue);
+		file_create_dialogue(&pointer, NULL, NULL, hotlist[entry].dialogue);
 }
 
 

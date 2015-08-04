@@ -144,11 +144,11 @@ static void iconbar_click_handler(wimp_pointer *pointer)
 
 	switch (pointer->buttons) {
 	case wimp_CLICK_SELECT:
-		file_create_dialogue(pointer, NULL, hotlist_get_default_dialogue());
+		file_create_dialogue(pointer, NULL, NULL, hotlist_get_default_dialogue());
 		break;
 
 	case wimp_CLICK_ADJUST:
-		file_create_dialogue(pointer, NULL, iconbar_last_search_dialogue);
+		file_create_dialogue(pointer, NULL, NULL, iconbar_last_search_dialogue);
 		break;
 	}
 }
@@ -277,7 +277,7 @@ static osbool iconbar_icon_drop_handler(wimp_message *message)
 	if (datasave->file_type <= 0xfff)
 		string_find_pathname(path);
 
-	file_create_dialogue(&pointer, path, hotlist_get_default_dialogue());
+	file_create_dialogue(&pointer, NULL, path, hotlist_get_default_dialogue());
 
 	return TRUE;
 }

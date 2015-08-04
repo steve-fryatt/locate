@@ -145,7 +145,7 @@ void file_create_dialogue_at(char *coords)
 	pointer.pos.x = atoi(x);
 	pointer.pos.y = atoi(y);
 
-	file_create_dialogue(&pointer, NULL, NULL);
+	file_create_dialogue(&pointer, NULL, NULL, NULL);
 }
 
 
@@ -153,11 +153,12 @@ void file_create_dialogue_at(char *coords)
  * Create a new file block by opening a search window.
  *
  * \param *pointer		The pointer position to open the dialogue at.
+ * \param *filename		A filename to use, or NULL for the default.
  * \param *path			A path to use, or NULL for the default.
  * \param *template		A template to use, or NULL for the default.
  */
 
-void file_create_dialogue(wimp_pointer *pointer, char *path, struct dialogue_block *template)
+void file_create_dialogue(wimp_pointer *pointer, char *filename, char *path, struct dialogue_block *template)
 {
 	struct file_block *new;
 
@@ -165,7 +166,7 @@ void file_create_dialogue(wimp_pointer *pointer, char *path, struct dialogue_blo
 	if (new == NULL)
 		return;
 
-	new->dialogue = dialogue_create(new, path, template);
+	new->dialogue = dialogue_create(new, filename, path, template);
 	if (new->dialogue == NULL) {
 		file_destroy(new);
 		return;
@@ -275,7 +276,7 @@ void file_create_from_saved(char *filename)
 		wimp_get_pointer_info(&pointer);
 
 		if (new->dialogue == NULL) {
-			new->dialogue = dialogue_create(new, NULL, NULL);
+			new->dialogue = dialogue_create(new, NULL, NULL, NULL);
 
 			if (new->dialogue != NULL)
 				dialogue_add_client(new->dialogue, DIALOGUE_CLIENT_FILE);
