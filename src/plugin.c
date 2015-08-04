@@ -152,8 +152,12 @@ static osbool plugin_message_filer_action(wimp_message *message)
 		wimp_send_message(wimp_USER_MESSAGE, (wimp_message *) &close_down, message->sender);
 
 		if (plugin_buffer != NULL) {
-			wimp_get_pointer_info(&pointer);
-			file_create_dialogue(&pointer, filer_action->data.find_leaf, plugin_buffer, NULL);
+			if (config_opt_read("SearchWindAsPlugin")) {
+				wimp_get_pointer_info(&pointer);
+				file_create_dialogue(&pointer, filer_action->data.find_leaf, plugin_buffer, NULL);
+			} else {
+				file_create_immediate_search(filer_action->data.find_leaf, plugin_buffer, NULL);
+			}
 		}
 
 		plugin_release_buffer();

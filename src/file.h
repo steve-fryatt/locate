@@ -68,6 +68,16 @@ void file_create_dialogue(wimp_pointer *pointer, char *filename, char *path, str
 
 
 /**
+ * Create a new file block by starting an immediate search.
+ *
+ * \param *filename		A filename to use, or NULL for the default.
+ * \param *path			A path to use, or NULL for the default.
+ * \param *template		A template to use, or NULL for the default.
+ */
+
+void file_create_immediate_search(char *filename, char *path, struct dialogue_block *template);
+
+/**
  * Create a new search and results window for the file.
  *
  * \param *file			The file to create the objects for.

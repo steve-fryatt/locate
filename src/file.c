@@ -60,6 +60,7 @@
 #include "file.h"
 
 #include "dialogue.h"
+#include "iconbar.h"
 #include "ihelp.h"
 #include "objdb.h"
 #include "results.h"
@@ -175,6 +176,43 @@ void file_create_dialogue(wimp_pointer *pointer, char *filename, char *path, str
 	dialogue_add_client(new->dialogue, DIALOGUE_CLIENT_FILE);
 
 	dialogue_open_window(new->dialogue, pointer);
+}
+
+
+/**
+ * Create a new file block by starting an immediate search.
+ *
+ * \param *filename		A filename to use, or NULL for the default.
+ * \param *path			A path to use, or NULL for the default.
+ * \param *template		A template to use, or NULL for the default.
+ */
+
+void file_create_immediate_search(char *filename, char *path, struct dialogue_block *template)
+{
+	struct file_block	*file;
+	struct search_block	*search;
+
+	file = file_create();
+	if (file == NULL)
+		return;
+
+	file->dialogue = dialogue_create(file, filename, path, template);
+	if (file->dialogue == NULL) {
+		file_destroy(file);
+		return;
+	}
+
+	dialogue_add_client(file->dialogue, DIALOGUE_CLIENT_FILE);
+
+	search = file_create_search(file, path);
+	if (search == NULL) {
+		file_destroy(file);
+		return;
+	}
+
+	search_set_filename(search, filename, TRUE, FALSE);
+	iconbar_set_last_search_dialogue(file->dialogue);
+	search_start(search);
 }
 
 
