@@ -142,11 +142,11 @@ void results_set_title(struct results_window *handle, char *title);
  *
  * \param *handle		The handle of the results window to update.
  * \param *message		The error message text.
- * \param *path			The path of the folder where the error occurred,
- *				or NULL if not applicable.
+ * \param *key			The database key of the folder or file where the
+ *				error orrcured, or OBJDB_NULL_KEY.
  */
 
-void results_add_error(struct results_window *handle, char *message, char *path);
+void results_add_error(struct results_window *handle, char *message, unsigned key);
 
 
 /**

@@ -161,7 +161,8 @@ enum results_line_type {
 	RESULTS_LINE_TEXT = 1,							/**< A line containing unspecific text.					*/
 	RESULTS_LINE_FILENAME = 2,						/**< A line containing a filename.					*/
 	RESULTS_LINE_FILEINFO = 3,						/**< A line containing file information.				*/
-	RESULTS_LINE_CONTENTS = 4						/**< A line containing a file contents match.				*/
+	RESULTS_LINE_CONTENTS = 4,						/**< A line containing a file contents match.				*/
+	RESULTS_LINE_ERROR_FILENAME = 5						/**< A line containing an error's location filename.			*/
 };
 
 enum results_line_flags {
@@ -1524,19 +1525,21 @@ static void results_add_raw(struct results_window *handle, enum results_line_typ
  *
  * \param *handle		The handle of the results window to update.
  * \param *message		The error message text.
- * \param *path			The path of the folder where the error occurred,
- *				or NULL if not applicable.
+ * \param *key			The database key of the folder or file where the
+ *				error orrcured, or OBJDB_NULL_KEY.
  */
 
-void results_add_error(struct results_window *handle, char *message, char *path)
+void results_add_error(struct results_window *handle, char *message, unsigned key)
 {
-	unsigned		line, offt, length;
+	unsigned		info, file, offt, length;
 
 	if (handle == NULL)
 		return;
 
-	line = results_add_line(handle, TRUE);
-	if (line == RESULTS_NULL)
+	/* Add the message line */
+
+	info = results_add_line(handle, TRUE);
+	if (info == RESULTS_NULL)
 		return;
 
 	offt = textdump_store(handle->text, message);
@@ -1544,14 +1547,27 @@ void results_add_error(struct results_window *handle, char *message, char *path)
 	if (offt == TEXTDUMP_NULL)
 		return;
 
-	handle->redraw[line].type = RESULTS_LINE_TEXT;
-	handle->redraw[line].text = offt;
-	handle->redraw[line].sprite = FILEICON_ERROR;
-	handle->redraw[line].colour = wimp_COLOUR_RED;
+	handle->redraw[info].type = RESULTS_LINE_TEXT;
+	handle->redraw[info].text = offt;
+	handle->redraw[info].sprite = FILEICON_ERROR;
+	handle->redraw[info].colour = wimp_COLOUR_RED;
 
 	length = strlen(message) + 1;
 	if (length > handle->longest_line)
 		handle->longest_line = length;
+
+	/* Add the file location line */
+
+	if (key == OBJDB_NULL_KEY)
+		return;
+
+	file = results_add_line(handle, TRUE);
+	if (file == RESULTS_NULL)
+		return;
+
+	handle->redraw[file].type = RESULTS_LINE_FILENAME;
+	handle->redraw[file].file = key;
+	handle->redraw[file].colour = wimp_COLOUR_RED;
 }
 
 

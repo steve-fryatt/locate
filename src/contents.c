@@ -272,7 +272,7 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 
 	error = xosfile_read_no_path(handle->filename, NULL, NULL, NULL, &handle->file_extent, NULL);
 	if (error != NULL) {
-		results_add_error(handle->results, error->errmess, handle->filename);
+		results_add_error(handle->results, error->errmess, handle->key);
 		handle->file_extent = 0;
 		return FALSE;
 	}
@@ -463,7 +463,7 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 
 	error = xosfind_openinw(osfind_NO_PATH | osfind_ERROR_IF_DIR, handle->filename, NULL, &file);
 	if (error != NULL || file == 0) {
-		results_add_error(handle->results, (error != NULL) ? error->errmess : "Failed to open file", handle->filename);
+		results_add_error(handle->results, (error != NULL) ? error->errmess : "Failed to open file", handle->key);
 		return FALSE;
 	}
 
@@ -471,17 +471,17 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 
 	error = xosargs_read_extw(file, &extent);
 	if (error != NULL) {
-		results_add_error(handle->results, error->errmess, handle->filename);
+		results_add_error(handle->results, error->errmess, handle->key);
 		return FALSE;
 	}
 
 	/* If the file extent isn't the same as it was at the start, get out. */
 
 	if (extent != handle->file_extent) {
-		results_add_error(handle->results, "File changed!", handle->filename);
+		results_add_error(handle->results, "File changed!", handle->key);
 		error = xosfind_close(file);
 		if (error != NULL)
-			results_add_error(handle->results, error->errmess, handle->filename);
+			results_add_error(handle->results, error->errmess, handle->key);
 		return FALSE;
 	}
 
@@ -500,7 +500,7 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 
 	error = xosgbpb_read_atw(file, (byte *) handle->file, bytes, ptr, &unread);
 	if (error != NULL || unread != 0) {
-		results_add_error(handle->results, (error != NULL) ? error->errmess : "Error reading from file", handle->filename);
+		results_add_error(handle->results, (error != NULL) ? error->errmess : "Error reading from file", handle->key);
 		return FALSE;
 	} else {
 		handle->file_offset = ptr;
@@ -508,7 +508,7 @@ static osbool contents_load_file_chunk(struct contents_block *handle, int positi
 
 	error = xosfind_close(file);
 	if (error != NULL) {
-		results_add_error(handle->results, error->errmess, handle->filename);
+		results_add_error(handle->results, error->errmess, handle->key);
 		return FALSE;
 	}
 

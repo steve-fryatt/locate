@@ -790,7 +790,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 			if (error != NULL) {
 				search->error_count++;
-				results_add_error(search->results, error->errmess, filename);
+				results_add_error(search->results, error->errmess, search->stack[stack].parent);
 
 				stack = search_drop_stack(search);
 
