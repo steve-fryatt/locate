@@ -1,4 +1,4 @@
-/* Copyright 2012-2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -1012,16 +1012,17 @@ char *discfile_legacy_read_string(struct discfile_block *handle, char *text, siz
 	bits		psr = 0;
 	os_error	*error;
 
+	if (text == NULL)
+		return NULL;
+
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			(handle->format != DISCFILE_LOCATE0 && handle->format != DISCFILE_LOCATE1) ||
 			handle->section == 0) {
 		if (handle != NULL)
 			discfile_set_error(handle, "FileError");
+		text[0] = '\0';
 		return text;
 	}
-
-	if (text == NULL)
-		return NULL;
 
 	/* Get the curent file position. */
 
@@ -1858,11 +1859,13 @@ char *discfile_read_string(struct discfile_block *handle, char *text, size_t siz
 	if (handle == NULL || handle->handle == 0 || handle->mode != DISCFILE_READ ||
 			handle->format != DISCFILE_LOCATE2 ||
 			handle->section == 0 || handle->chunk == 0 || text == NULL) {
-		if (handle != NULL) {
-			if (text != NULL)
-				text[0] = '\0';
+
+		if (text != NULL)
+			text[0] = '\0';
+
+		if (handle != NULL)
 			discfile_set_error(handle, "FileError");
-		}
+
 		return text;
 	}
 
