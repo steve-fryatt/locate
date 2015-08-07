@@ -122,7 +122,9 @@ osbool file_dialogue_save(struct file_block *block, char *filename);
 
 
 /**
- * Destroy a file, freeing its data and closing any windows.
+ * Destroy a file, freeing its data and closing any windows. If this is
+ * the last file and QuitOnPluginExit is configured, the exit sequence will
+ * be triggered at the end of the destruction.
  *
  * \param *block		The handle of the file to destroy.
  */
@@ -132,6 +134,8 @@ void file_destroy(struct file_block *block);
 
 /**
  * Destroy all of the open file blocks, freeing data in the process.
+ * If this is called in a plugin instance with QuitOnPluginExit
+ * configured, it will trigger an application exit.
  */
 
 void file_destroy_all(void);

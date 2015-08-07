@@ -1,4 +1,4 @@
-/* Copyright 2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2013-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -30,7 +30,7 @@
 #ifndef LOCATE_PLUGIN
 #define LOCATE_PLUGIN
 
-
+osbool plugin_filer_action_launched;
 
 /**
  * Initialise the plugin support

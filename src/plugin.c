@@ -67,6 +67,8 @@ enum plugin_state {
 /* Global Variables.
  */
 
+osbool				plugin_filer_action_launched = FALSE;		/**< TRUE if we have been launched by Filer Action.			*/
+
 static enum plugin_state	plugin_current_state = PLUGIN_STATE_IDLE;	/**< The current state of the state machine.				*/
 
 static char			*plugin_buffer = NULL;				/**< A buffer to hold the assembled search paths.			*/
@@ -107,7 +109,7 @@ void plugin_filer_launched(void)
 		return;
 
 	plugin_current_state = PLUGIN_STATE_WAITING;
-	
+	plugin_filer_action_launched = TRUE;
 }
 
 

@@ -62,7 +62,9 @@
 #include "dialogue.h"
 #include "iconbar.h"
 #include "ihelp.h"
+#include "main.h"
 #include "objdb.h"
+#include "plugin.h"
 #include "results.h"
 #include "search.h"
 #include "templates.h"
@@ -394,7 +396,9 @@ osbool file_dialogue_save(struct file_block *block, char *filename)
 
 
 /**
- * Destroy a file, freeing its data and closing any windows.
+ * Destroy a file, freeing its data and closing any windows. If this is
+ * the last file and QuitOnPluginExit is configured, the exit sequence will
+ * be triggered at the end of the destruction.
  *
  * \param *block		The handle of the file to destroy.
  */
@@ -436,11 +440,20 @@ void file_destroy(struct file_block *block)
 	/* Free the block. */
 
 	heap_free(block);
+
+	/* If the application has launched as a FilerAction plugin, and we're configured
+	 * to quit after completion, set a quit if this was the last file.
+	 */
+
+	if (file_files == NULL && plugin_filer_action_launched && config_opt_read("QuitAsPlugin"))
+		main_quit_flag = TRUE;
 }
 
 
 /**
  * Destroy all of the open file blocks, freeing data in the process.
+ * If this is called in a plugin instance with QuitOnPluginExit
+ * configured, it will trigger an application exit.
  */
 
 void file_destroy_all(void)

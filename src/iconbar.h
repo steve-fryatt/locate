@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -38,6 +38,13 @@
  */
 
 void iconbar_initialise(void);
+
+
+/**
+ * Create the iconbar icon.
+ */
+
+void iconbar_create_icon(void);
 
 
 /**

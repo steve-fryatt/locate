@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -91,6 +91,7 @@
 
 static void	main_poll_loop(void);
 static void	main_initialise(void);
+static void	main_post_initialise(void);
 static void	main_parse_command_line(int argc, char *argv[]);
 static osbool	main_message_quit(wimp_message *message);
 
@@ -113,6 +114,8 @@ int main(int argc, char *argv[])
 	main_initialise();
 
 	main_parse_command_line(argc, argv);
+
+	main_post_initialise();
 
 	main_poll_loop();
 
@@ -179,10 +182,6 @@ static void main_initialise(void)
 	static char			task_name[255];
 	char				resources[255], res_temp[255];
 	osspriteop_area			*sprites;
-	wimp_error_box_selection	selection;
-	wimp_pointer			pointer;
-
-	wimp_version_no		wimp_version;
 
 
 	hourglass_on();
@@ -202,7 +201,7 @@ static void main_initialise(void)
 	/* Initialise with the Wimp. */
 
 	msgs_lookup("TaskName", task_name, sizeof (task_name));
-	main_task_handle = wimp_initialise(wimp_VERSION_RO3, task_name, NULL, &wimp_version);
+	main_task_handle = wimp_initialise(wimp_VERSION_RO3, task_name, NULL, NULL);
 
 	event_add_message_handler(message_QUIT, EVENT_MESSAGE_INCOMING, main_message_quit);
 
@@ -263,6 +262,26 @@ static void main_initialise(void)
 	templates_close();
 
 	hourglass_off();
+}
+
+
+/**
+ * Perform any remaining initialisation after we've read the command
+ * line and processed the passed parameters.  None of this initialisation
+ * is to be varried out if we're operating as an iconbar icon-less
+ * FilerAction plugin.
+ */
+
+static void main_post_initialise(void)
+{
+	wimp_error_box_selection	selection;
+	wimp_pointer			pointer;
+
+
+	if (plugin_filer_action_launched && config_opt_read("QuitAsPlugin"))
+		return;
+
+	iconbar_create_icon();
 
 	if (config_opt_read("ValidatePaths") && !search_validate_paths(config_str_read("SearchPath"), FALSE)) {
 		selection = error_msgs_report_question("BadLoadPaths", "BadLoadPathsB");

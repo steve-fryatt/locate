@@ -99,7 +99,6 @@ static struct dialogue_block	*iconbar_last_search_dialogue = NULL;		/**< The han
 void iconbar_initialise(void)
 {
 	char*			date = BUILD_DATE;
-	wimp_icon_create	icon_bar;
 
 	iconbar_menu = templates_get_menu(TEMPLATES_MENU_ICONBAR);
 
@@ -110,6 +109,16 @@ void iconbar_initialise(void)
 			BUILD_VERSION, date, NULL, NULL);
 	icons_printf(iconbar_info_window, ICON_PROGINFO_AUTHOR, "\xa9 Stephen Fryatt, 2001-%s", date + 7);
 	event_add_window_icon_click(iconbar_info_window, ICON_PROGINFO_WEBSITE, iconbar_proginfo_web_click);
+}
+
+
+/**
+ * Create the iconbar icon.
+ */
+
+void iconbar_create_icon(void)
+{
+	wimp_icon_create	icon_bar;
 
 	icon_bar.w = wimp_ICON_BAR_RIGHT;
 	icon_bar.icon.extent.x0 = 0;
