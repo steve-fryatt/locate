@@ -786,7 +786,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 			/* Handle any errors thrown by the OS_GBPB call by dropping back out of
 			 * the current directory. Because we're adding an error with a database
-			 * key, it's important that we don't continue out of the current loop and
+			 * key, it's important that we now continue out of the current loop and
 			 * don't call objdb_delete_last_key() in the usual way -- otherwise, the
 			 * key that's linked to the error will probably get removed from the
 			 * object database.
