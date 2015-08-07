@@ -801,9 +801,9 @@ First Stable Release of Locate&nbsp;2.
 Alpha release for evaluation and comment.
 
 <list>
-<li>&lsquo;Default&rsquo; hotlist items added, to allow a standard search to be customised (Ticket #475).
-<li>Implement FilerAction Plugin code for use on RISC&nbsp;OS Select (Ticket #557).
-<li>Fix ZeroPain errors when parsing search dialogue box (Ticket #561).
+<li>&lsquo;Default&rsquo; hotlist items added, to allow a standard search to be customised (Ticket&nbsp;#475).
+<li>Implement FilerAction Plugin code for use on RISC&nbsp;OS Select (Ticket&nbsp;#557).
+<li>Fix ZeroPain errors when parsing search dialogue box (Ticket&nbsp;#561).
 </list>
 
 </chapter>
