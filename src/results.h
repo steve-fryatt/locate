@@ -142,7 +142,7 @@ void results_set_title(struct results_window *handle, char *title);
  *
  * \param *handle		The handle of the results window to update.
  * \param *message		The error message text.
- * \param *key			The database key of the folder or file where the
+ * \param key			The database key of the folder or file where the
  *				error orrcured, or OBJDB_NULL_KEY.
  */
 

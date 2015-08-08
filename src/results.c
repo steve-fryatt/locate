@@ -291,6 +291,7 @@ static void	results_menu_close(wimp_w w, wimp_menu *menu);
 static void	results_redraw_handler(wimp_draw *redraw);
 static void	results_open_handler(wimp_open *open);
 static void	results_close_handler(wimp_close *close);
+static void	results_add_error_file(struct results_window *handle, unsigned key, unsigned parent);
 static osbool	results_reformat_line(struct results_window *handle, unsigned line, char *truncate, size_t truncate_len);
 static void	results_set_display_mode(struct results_window *handle, osbool full_info);
 static void	results_update_extent(struct results_window *handle, osbool to_end);
@@ -602,7 +603,8 @@ osbool results_save_file(struct results_window *handle, struct discfile_block *o
 
 	discfile_start_chunk(out, DISCFILE_CHUNK_RESULTS);
 	for (i = 0; i < handle->redraw_lines; i++) {
-		if (handle->redraw[i].type != RESULTS_LINE_TEXT && handle->redraw[i].type != RESULTS_LINE_FILENAME)
+		if (handle->redraw[i].type != RESULTS_LINE_TEXT && handle->redraw[i].type != RESULTS_LINE_FILENAME &&
+				handle->redraw[i].type != RESULTS_LINE_ERROR_FILENAME)
 			continue;
 
 		block.type = handle->redraw[i].type;
@@ -617,6 +619,7 @@ osbool results_save_file(struct results_window *handle, struct discfile_block *o
 			break;
 
 		case RESULTS_LINE_FILENAME:
+		case RESULTS_LINE_ERROR_FILENAME:
 			block.data = handle->redraw[i].file;
 			block.sprite = handle->redraw[i].sprite;
 			break;
@@ -730,6 +733,9 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 			case RESULTS_LINE_FILENAME:
 				results_add_file(new, data.data);
 				file_count++;
+				break;
+			case RESULTS_LINE_ERROR_FILENAME:
+				results_add_error_file(new, data.data, data.parent);
 				break;
 			case RESULTS_LINE_TEXT:
 				results_add_raw(new, RESULTS_LINE_TEXT, data.data, data.colour, data.sprite);
@@ -1120,6 +1126,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 
 			switch (handle->redraw[i].type) {
 			case RESULTS_LINE_FILENAME:
+			case RESULTS_LINE_ERROR_FILENAME:
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
@@ -1137,7 +1144,8 @@ static void results_redraw_handler(wimp_draw *redraw)
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 				}
 
-				if (object.status == OBJDB_STATUS_UNCHANGED || object.status == OBJDB_STATUS_CHANGED)
+				if ((object.status == OBJDB_STATUS_UNCHANGED || object.status == OBJDB_STATUS_CHANGED) &&
+						handle->redraw[i].type != RESULTS_LINE_ERROR_FILENAME)
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_SHADED;
 				else
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_SHADED;
@@ -1525,13 +1533,13 @@ static void results_add_raw(struct results_window *handle, enum results_line_typ
  *
  * \param *handle		The handle of the results window to update.
  * \param *message		The error message text.
- * \param *key			The database key of the folder or file where the
+ * \param key			The database key of the folder or file where the
  *				error orrcured, or OBJDB_NULL_KEY.
  */
 
 void results_add_error(struct results_window *handle, char *message, unsigned key)
 {
-	unsigned		info, file, offt, length;
+	unsigned	info, offt, length;
 
 	if (handle == NULL)
 		return;
@@ -1556,17 +1564,38 @@ void results_add_error(struct results_window *handle, char *message, unsigned ke
 	if (length > handle->longest_line)
 		handle->longest_line = length;
 
-	/* Add the file location line */
+	results_add_error_file(handle, key, info);
+}
 
-	if (key == OBJDB_NULL_KEY)
+
+/**
+ * Add the filename part of an error message to the results window.
+ *
+ * \param *handle		The handle of the results window to update.
+ * \param key			The database key of the folder or file where the
+ *				error orrcured, or OBJDB_NULL_KEY.
+ * \param parent		The parent error line in the window.
+ */
+
+static void results_add_error_file(struct results_window *handle, unsigned key, unsigned parent)
+{
+	unsigned	file;
+
+	if (handle == NULL)
 		return;
 
-	file = results_add_line(handle, TRUE);
+	/* Add the file location line */
+
+	if (key == OBJDB_NULL_KEY || parent == RESULTS_NULL)
+		return;
+
+	file = results_add_line(handle, handle->full_info);
 	if (file == RESULTS_NULL)
 		return;
 
-	handle->redraw[file].type = RESULTS_LINE_FILENAME;
+	handle->redraw[file].type = RESULTS_LINE_ERROR_FILENAME;
 	handle->redraw[file].file = key;
+	handle->redraw[file].parent = parent;
 	handle->redraw[file].colour = wimp_COLOUR_RED;
 }
 
@@ -1701,6 +1730,7 @@ static osbool results_reformat_line(struct results_window *handle, unsigned line
 
 	switch (handle->redraw[line].type) {
 	case RESULTS_LINE_FILENAME:
+	case RESULTS_LINE_ERROR_FILENAME:
 		objdb_get_name(handle->objects, handle->redraw[line].file, truncate + 3, truncate_len - 3);
 
 		if (handle->redraw[line].content_width == 0)
@@ -1799,6 +1829,7 @@ static void results_set_display_mode(struct results_window *handle, osbool full_
 
 		case RESULTS_LINE_FILEINFO:
 		case RESULTS_LINE_CONTENTS:
+		case RESULTS_LINE_ERROR_FILENAME:
 			if (full_info)
 				handle->redraw[handle->display_lines++].index = line;
 			break;
