@@ -804,7 +804,7 @@ Alpha release for evaluation and comment.
 <li>&lsquo;Default&rsquo; hotlist items added, to allow a standard search to be customised (Ticket&nbsp;#475).
 <li>Implement FilerAction Plugin code for use on RISC&nbsp;OS Select (Ticket&nbsp;#557).
 <li>Fix ZeroPain errors when parsing search dialogue box (Ticket&nbsp;#561).
-<li>Display filenames for error locations (ticket&nbsp;#557).
+<li>Display filenames for error locations (Ticket&nbsp;#557).
 </list>
 
 </chapter>
