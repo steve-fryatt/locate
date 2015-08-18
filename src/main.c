@@ -56,7 +56,6 @@
 #include "sflib/windows.h"
 #include "sflib/icons.h"
 #include "sflib/menus.h"
-#include "sflib/transfer.h"
 #include "sflib/url.h"
 #include "sflib/msgs.h"
 #include "sflib/debug.h"
