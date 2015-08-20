@@ -245,7 +245,7 @@ static void main_initialise(void)
 	/* Initialise the individual modules. */
 
 	ihelp_initialise();
-	dataxfer_initialise();
+	dataxfer_initialise(main_task_handle, NULL);
 	saveas_initialise();
 	clipboard_initialise();
 	choices_initialise();
