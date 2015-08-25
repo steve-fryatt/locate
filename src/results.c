@@ -887,9 +887,9 @@ static void results_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_PATH_ONLY, !handle->full_info);
 	menus_tick_entry(results_window_menu_display, RESULTS_MENU_DISPLAY_FULL_INFO, handle->full_info);
 
-	saveas_initialise_dialogue(results_save_results, "FileName", NULL, TRUE, FALSE, handle);
-	saveas_initialise_dialogue(results_save_paths, "ExptName", "SelectName", handle->selection_count > 0, handle->selection_count > 0, handle);
-	saveas_initialise_dialogue(results_save_options, "SrchName", NULL, FALSE, FALSE, handle);
+	saveas_initialise_dialogue(results_save_results, NULL, "FileName", NULL, TRUE, FALSE, handle);
+	saveas_initialise_dialogue(results_save_paths, NULL, "ExptName", "SelectName", handle->selection_count > 0, handle->selection_count > 0, handle);
+	saveas_initialise_dialogue(results_save_options, NULL, "SrchName", NULL, FALSE, FALSE, handle);
 }
 
 

@@ -476,11 +476,11 @@ static void hotlist_toolbar_click_handler(wimp_pointer *pointer)
 	switch(pointer->i) {
 	case HOTLIST_TOOLBAR_ICON_SAVE:
 		if (pointer->buttons == wimp_CLICK_SELECT) {
-			saveas_initialise_dialogue(hotlist_saveas_hotlist, "HotlistName", "SelectName", hotlist_selection_count > 0, hotlist_selection_count > 0, NULL);
+			saveas_initialise_dialogue(hotlist_saveas_hotlist, NULL, "HotlistName", "SelectName", hotlist_selection_count > 0, hotlist_selection_count > 0, NULL);
 			saveas_prepare_dialogue(hotlist_saveas_hotlist);
 			saveas_open_dialogue(hotlist_saveas_hotlist, pointer);
 		} else if (pointer->buttons == wimp_CLICK_ADJUST && hotlist_selection_count == 1) {
-			saveas_initialise_dialogue(hotlist_saveas_search, "SrchName", "SelectName", FALSE, FALSE, NULL);
+			saveas_initialise_dialogue(hotlist_saveas_search, NULL, "SrchName", "SelectName", FALSE, FALSE, NULL);
 			saveas_prepare_dialogue(hotlist_saveas_search);
 			saveas_open_dialogue(hotlist_saveas_search, pointer);
 		}
@@ -545,8 +545,8 @@ static void hotlist_menu_prepare(wimp_w w, wimp_menu *menu, wimp_pointer *pointe
 			hotlist_selection_from_menu = FALSE;
 		}
 
-		saveas_initialise_dialogue(hotlist_saveas_search, "SrchName", "SelectName", FALSE, FALSE, NULL);
-		saveas_initialise_dialogue(hotlist_saveas_hotlist, "HotlistName", "SelectName", hotlist_selection_count > 0, hotlist_selection_count > 0, NULL);
+		saveas_initialise_dialogue(hotlist_saveas_search, NULL, "SrchName", "SelectName", FALSE, FALSE, NULL);
+		saveas_initialise_dialogue(hotlist_saveas_hotlist, NULL, "HotlistName", "SelectName", hotlist_selection_count > 0, hotlist_selection_count > 0, NULL);
 	}
 
 	menus_shade_entry(hotlist_window_menu, HOTLIST_MENU_ITEM, hotlist_selection_count == 0);

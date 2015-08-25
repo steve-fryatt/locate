@@ -2027,7 +2027,7 @@ static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointe
 		return;
 
 	if (menu == dialogue_menu) {
-		saveas_initialise_dialogue(dialogue_save_search, "SrchName", NULL, FALSE, FALSE, NULL);
+		saveas_initialise_dialogue(dialogue_save_search, NULL, "SrchName", NULL, FALSE, FALSE, NULL);
 		return;
 	}
 

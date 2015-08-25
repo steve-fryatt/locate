@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -65,6 +65,7 @@ struct saveas_block *saveas_create_dialogue(osbool selection, char *sprite, osbo
  * dialogue from a toolbar.
  *
  * \param *handle		The handle of the save dialogue to be initialised.
+ * \param *filename		Pointer to a filename to use for the full save; else NULL.
  * \param *fullname		Pointer to the filename token for a full save.
  * \param *selectname		Pointer to the filename token for a selection save.
  * \param selection		TRUE if the Selection option is enabled; else FALSE.
@@ -72,7 +73,7 @@ struct saveas_block *saveas_create_dialogue(osbool selection, char *sprite, osbo
  * \param *data			Data to pass to any save callbacks, or NULL.
  */
 
-void saveas_initialise_dialogue(struct saveas_block *handle, char *fullname, char *selectname, osbool selection, osbool selected, void *data);
+void saveas_initialise_dialogue(struct saveas_block *handle, char*filename, char *fullname, char *selectname, osbool selection, osbool selected, void *data);
 
 
 /**

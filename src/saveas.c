@@ -173,6 +173,7 @@ struct saveas_block *saveas_create_dialogue(osbool selection, char *sprite, osbo
  * dialogue from a toolbar.
  *
  * \param *handle		The handle of the save dialogue to be initialised.
+ * \param *filename		Pointer to a filename to use for the full save; else NULL.
  * \param *fullname		Pointer to the filename token for a full save.
  * \param *selectname		Pointer to the filename token for a selection save.
  * \param selection		TRUE if the Selection option is enabled; else FALSE.
@@ -180,15 +181,19 @@ struct saveas_block *saveas_create_dialogue(osbool selection, char *sprite, osbo
  * \param *data			Data to pass to any save callbacks, or NULL.
  */
 
-void saveas_initialise_dialogue(struct saveas_block *handle, char *fullname, char *selectname, osbool selection, osbool selected, void *data)
+void saveas_initialise_dialogue(struct saveas_block *handle, char *filename, char *fullname, char *selectname, osbool selection, osbool selected, void *data)
 {
 	if (handle == NULL)
 		return;
 
-	if (fullname != NULL)
+	if (filename != NULL && *filename != '\0') {
+		strncpy(handle->full_filename, filename, SAVEAS_MAX_FILENAME);
+		handle->full_filename[SAVEAS_MAX_FILENAME - 1] = '\0';
+	} else if (fullname != NULL) {
 		msgs_lookup(fullname, handle->full_filename, SAVEAS_MAX_FILENAME);
-	else
+	} else {
 		handle->full_filename[0] = '\0';
+	}
 
 	if (selectname != NULL)
 		msgs_lookup(selectname, handle->selection_filename, SAVEAS_MAX_FILENAME);
@@ -347,7 +352,8 @@ static osbool saveas_keypress_handler(wimp_key *key)
 
 static void saveas_drag_end_handler(wimp_pointer *pointer, void *data)
 {
-	struct saveas_block		*handle = data;
+	struct saveas_block	*handle = data;
+	char			*leafname;
 
 	if (handle == NULL)
 		return;
@@ -360,8 +366,9 @@ static void saveas_drag_end_handler(wimp_pointer *pointer, void *data)
 		icons_copy_text(handle->window, SAVEAS_ICON_FILENAME, (handle->selected) ? handle->selection_filename : handle->full_filename, SAVEAS_MAX_FILENAME);
 	}
 
+	leafname = string_find_leafname((handle->selected) ? handle->selection_filename : handle->full_filename);
 
-	dataxfer_start_save(pointer, (handle->selected) ? handle->selection_filename : handle->full_filename, 0, 0xffffffffu, 0, saveas_save_handler, handle);
+	dataxfer_start_save(pointer, leafname, 0, 0xffffffffu, 0, saveas_save_handler, handle);
 }
 
 
