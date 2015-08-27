@@ -1,4 +1,4 @@
-# Copyright 2012, Stephen Fryatt (info@stevefryatt.org.uk)
+# Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
 #
 # This file is part of Locate:
 #
@@ -134,10 +134,10 @@ FINDSPRSSRC := FindSprs.bbt
 STARTLOCATESRC := StartLocate.bbt
 PKGCTRL := Control
 
-OBJS := choices.o clipboard.o contents.o dataxfer.o datetime.o dialogue.o	\
-	discfile.o file.o fileicon.o flexutils.o hotlist.o iconbar.o ihelp.o	\
-	main.o objdb.o plugin.o results.o saveas.o search.o settime.o		\
-	templates.o textdump.o typemenu.o
+OBJS := choices.o clipboard.o contents.o datetime.o dialogue.o discfile.o	\
+	file.o fileicon.o flexutils.o hotlist.o iconbar.o ihelp.o main.o	\
+	objdb.o plugin.o results.o saveas.o search.o settime.o templates.o	\
+	textdump.o typemenu.o
 
 
 # Build everything, but don't package it for release.

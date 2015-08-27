@@ -51,6 +51,7 @@
 /* SF-Lib header files. */
 
 #include "sflib/config.h"
+#include "sflib/dataxfer.h"
 #include "sflib/resources.h"
 #include "sflib/heap.h"
 #include "sflib/windows.h"
@@ -71,7 +72,6 @@
 
 #include "choices.h"
 #include "clipboard.h"
-#include "dataxfer.h"
 #include "dialogue.h"
 #include "file.h"
 #include "fileicon.h"

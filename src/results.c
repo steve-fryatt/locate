@@ -50,6 +50,7 @@
 /* SF-Lib Header files. */
 
 #include "sflib/config.h"
+#include "sflib/dataxfer.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
@@ -65,7 +66,6 @@
 #include "results.h"
 
 #include "clipboard.h"
-#include "dataxfer.h"
 #include "datetime.h"
 #include "dialogue.h"
 #include "discfile.h"

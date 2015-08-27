@@ -44,6 +44,7 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/dataxfer.h"
 #include "sflib/icons.h"
 #include "sflib/string.h"
 #include "sflib/windows.h"
@@ -59,7 +60,6 @@
 
 #include "saveas.h"
 
-#include "dataxfer.h"
 #include "ihelp.h"
 #include "main.h"
 #include "templates.h"
