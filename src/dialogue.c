@@ -61,6 +61,7 @@
 #include "sflib/msgs.h"
 #include "sflib/windows.h"
 #include "sflib/debug.h"
+#include "sflib/saveas.h"
 #include "sflib/string.h"
 #include "sflib/templates.h"
 
@@ -73,7 +74,6 @@
 #include "flexutils.h"
 #include "hotlist.h"
 #include "iconbar.h"
-#include "saveas.h"
 #include "search.h"
 #include "settime.h"
 #include "typemenu.h"

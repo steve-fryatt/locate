@@ -51,6 +51,7 @@
 
 #include "sflib/config.h"
 #include "sflib/dataxfer.h"
+#include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
@@ -58,10 +59,10 @@
 #include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
-#include "sflib/windows.h"
-#include "sflib/debug.h"
+#include "sflib/saveas.h"
 #include "sflib/string.h"
 #include "sflib/templates.h"
+#include "sflib/windows.h"
 
 /* Application header files. */
 
@@ -75,7 +76,6 @@
 #include "fileicon.h"
 #include "hotlist.h"
 #include "objdb.h"
-#include "saveas.h"
 #include "textdump.h"
 
 

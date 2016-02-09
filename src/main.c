@@ -62,6 +62,7 @@
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/resources.h"
+#include "sflib/saveas.h"
 #include "sflib/string.h"
 #include "sflib/templates.h"
 #include "sflib/url.h"
@@ -81,7 +82,6 @@
 #include "objdb.h"
 #include "plugin.h"
 #include "results.h"
-#include "saveas.h"
 #include "search.h"
 #include "settime.h"
 
@@ -245,7 +245,7 @@ static void main_initialise(void)
 
 	ihelp_initialise();
 	dataxfer_initialise(main_task_handle, NULL);
-	saveas_initialise();
+	saveas_initialise("SaveAs", "SaveAsSel");
 	clipboard_initialise();
 	choices_initialise();
 	fileicon_initialise();

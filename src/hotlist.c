@@ -54,6 +54,7 @@
 #include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
+#include "sflib/saveas.h"
 #include "sflib/string.h"
 #include "sflib/templates.h"
 #include "sflib/windows.h"
@@ -67,7 +68,6 @@
 #include "discfile.h"
 #include "file.h"
 //#include "main.h"
-#include "saveas.h"
 
 
 /* Hotlist Window */
