@@ -1,4 +1,4 @@
-/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -45,10 +45,12 @@
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/string.h"
 #include "sflib/url.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -60,9 +62,7 @@
 #include "discfile.h"
 #include "file.h"
 #include "hotlist.h"
-#include "ihelp.h"
 #include "main.h"
-#include "templates.h"
 
 
 /* Iconbar menu */
@@ -100,7 +100,8 @@ void iconbar_initialise(void)
 {
 	char*			date = BUILD_DATE;
 
-	iconbar_menu = templates_get_menu(TEMPLATES_MENU_ICONBAR);
+	iconbar_menu = templates_get_menu("IconBarMenu");
+	ihelp_add_menu(iconbar_menu, "IconBarMenu");
 
 	iconbar_info_window = templates_create_window("ProgInfo");
 	templates_link_menu_dialogue("ProgInfo", iconbar_info_window);
@@ -136,7 +137,8 @@ void iconbar_create_icon(void)
 
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, iconbar_icon_drop_handler);
 
-	dataxfer_set_load_target(DISCFILE_LOCATE_FILETYPE, wimp_ICON_BAR, -1, iconbar_load_locate_file, NULL);
+	dataxfer_set_drop_target(dataxfer_TYPE_LOCATE, wimp_ICON_BAR, -1, iconbar_load_locate_file, NULL);
+	dataxfer_set_load_type(dataxfer_TYPE_LOCATE, iconbar_load_locate_file, NULL);
 }
 
 
@@ -270,7 +272,7 @@ static osbool iconbar_icon_drop_handler(wimp_message *message)
 	 * via the dataxfer module.
 	 */
 
-	if (datasave == NULL || datasave->w != wimp_ICON_BAR || datasave->file_type == DISCFILE_LOCATE_FILETYPE)
+	if (datasave == NULL || datasave->w != wimp_ICON_BAR || datasave->file_type == dataxfer_TYPE_LOCATE)
 		return FALSE;
 
 	/* It's our iconbar icon, so start by finding the pointer and then copy
@@ -305,7 +307,7 @@ static osbool iconbar_icon_drop_handler(wimp_message *message)
 
 static osbool iconbar_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data)
 {
-	if (filetype != DISCFILE_LOCATE_FILETYPE)
+	if (filetype != dataxfer_TYPE_LOCATE)
 		return FALSE;
 
 	file_create_from_saved(filename);

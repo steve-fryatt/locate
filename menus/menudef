@@ -1,4 +1,4 @@
-/* Copyright 2001-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2001-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -25,7 +25,7 @@
  * Iconbar Menu
  */
 
-menu(icon_bar_menu, "Locate") {
+menu(IconBarMenu, "Locate") {
 	item("Info") {
 		d_box(ProgInfo);
 	}
@@ -49,7 +49,7 @@ menu(icon_bar_menu, "Locate") {
  * Search Window Menu
  */
 
-menu(search_window_menu, "Locate") {
+menu(SearchWindowMenu, "Locate") {
 	item("Save search") {
 		d_box(save_as) {
 			warning;
@@ -63,9 +63,9 @@ menu(search_window_menu, "Locate") {
  * Results Window Menu
  */
 
-menu(results_window_menu, "Locate") {
+menu(ResultsWindowMenu, "Locate") {
 	item("Display") {
-		submenu(display_menu);
+		submenu(ResultsDisplayMenu);
 	}
 	item("Save") {
 		submenu(save_menu) {
@@ -89,7 +89,7 @@ menu(results_window_menu, "Locate") {
 	item("Stop search");
 }
 
-menu(display_menu, "Display") {
+menu(ResultsDisplayMenu, "Display") {
 	item("Path only");
 	item("Full info");
 }
@@ -118,9 +118,9 @@ menu(save_menu, "Save") {
  * Hotlist Window Menu
  */
 
-menu(hotlist_window_menu, "Hotlist") {
+menu(HotlistWindowMenu, "Hotlist") {
 	item("Entry") {
-		submenu(entry_menu);
+		submenu(HotlistItemMenu);
 	}
 	item("Select all");
 	item("Clear selection");
@@ -131,7 +131,7 @@ menu(hotlist_window_menu, "Hotlist") {
 	}
 }
 
-menu(entry_menu, "Entry") {
+menu(HotlistItemMenu, "Entry") {
 	item("Save search") {
 		d_box(save_as) {
 			warning;
@@ -146,7 +146,7 @@ menu(entry_menu, "Entry") {
  * Search Dialogue PopUp Menus.
  */
 
-menu(name_logic, "Name") {
+menu(NameLogicMenu, "Name") {
 	item("Is not important");
 	item("Is equal to");
 	item("Is not equal to");
@@ -156,7 +156,7 @@ menu(name_logic, "Name") {
 */
 }
 
-menu(size_logic, "Size") {
+menu(SizeLogicMenu, "Size") {
 	item("Not important");
 	item("Equal to");
 	item("Not equal to");
@@ -166,13 +166,13 @@ menu(size_logic, "Size") {
 	item("Not between");
 }
 
-menu(size_unit, "Size") {
+menu(SizeUnitMenu, "Size") {
 	item("Bytes");
 	item("Kb");
 	item("Mb");
 }
 
-menu(date_logic, "Date") {
+menu(DateLogicMenu, "Date") {
 	item("At any time");
 	item("At");
 	item("At any time but");
@@ -182,7 +182,7 @@ menu(date_logic, "Date") {
 	item("Not between");
 }
 
-menu (age_logic, "Age") {
+menu(AgeLogicMenu, "Age") {
 	item("Any age");
 	item("Exactly");
 	item("Any age but");
@@ -192,7 +192,7 @@ menu (age_logic, "Age") {
 	item("Not between");
 }
 
-menu (age_unit, "Age") {
+menu(AgeUnitMenu, "Age") {
 	item("Minutes");
 	item("Hours");
 	item("Days");
@@ -201,13 +201,13 @@ menu (age_unit, "Age") {
 	item("Years");
 }
 
-menu (type_logic, "Type") {
+menu (TypeLogicMenu, "Type") {
 	item("Of any type");
 	item("Of type");
 	item("Not of type");
 }
 
-menu (content_logic, "Content") {
+menu (ContentLogicMenu, "Content") {
 	item("Are not important");
 	item("Include");
 	item("Do not include");
@@ -218,7 +218,7 @@ menu (content_logic, "Content") {
  * Date Selector PopUp Menus
  */
 
-menu (months, "Month") {
+menu (MonthMenu, "Month") {
 	item("January");
 	item("February");
 	item("March");

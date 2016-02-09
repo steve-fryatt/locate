@@ -1,4 +1,4 @@
-# Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+# Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
 #
 # This file is part of Locate:
 #
@@ -85,7 +85,7 @@ PKGZIPFLAGS := -x "*/.svn/*" -r -, -9
 SRCZIPFLAGS := -x "*/.svn/*" -r -y -9
 BUZIPFLAGS := -x "*/.svn/*" -r -y -9
 BINDHELPFLAGS := -f -r -v
-MENUGENFLAGS := -d
+MENUGENFLAGS := -d -m
 TOKENIZEFLAGS := -warn p
 
 
@@ -135,9 +135,8 @@ STARTLOCATESRC := StartLocate.bbt
 PKGCTRL := Control
 
 OBJS := choices.o clipboard.o contents.o datetime.o dialogue.o discfile.o	\
-	file.o fileicon.o flexutils.o hotlist.o iconbar.o ihelp.o main.o	\
-	objdb.o plugin.o results.o saveas.o search.o settime.o templates.o	\
-	textdump.o typemenu.o
+	file.o fileicon.o flexutils.o hotlist.o iconbar.o main.o objdb.o	\
+	plugin.o results.o saveas.o search.o settime.o textdump.o typemenu.o
 
 
 # Build everything, but don't package it for release.

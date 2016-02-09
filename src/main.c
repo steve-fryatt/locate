@@ -1,4 +1,4 @@
-/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -50,21 +50,22 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/colpick.h"
 #include "sflib/config.h"
 #include "sflib/dataxfer.h"
-#include "sflib/resources.h"
-#include "sflib/heap.h"
-#include "sflib/windows.h"
-#include "sflib/icons.h"
-#include "sflib/menus.h"
-#include "sflib/url.h"
-#include "sflib/msgs.h"
 #include "sflib/debug.h"
-#include "sflib/config.h"
 #include "sflib/errors.h"
-#include "sflib/string.h"
-#include "sflib/colpick.h"
 #include "sflib/event.h"
+#include "sflib/heap.h"
+#include "sflib/icons.h"
+#include "sflib/ihelp.h"
+#include "sflib/menus.h"
+#include "sflib/msgs.h"
+#include "sflib/resources.h"
+#include "sflib/string.h"
+#include "sflib/templates.h"
+#include "sflib/url.h"
+#include "sflib/windows.h"
 
 /* Application header files */
 
@@ -77,14 +78,12 @@
 #include "fileicon.h"
 #include "hotlist.h"
 #include "iconbar.h"
-#include "ihelp.h"
 #include "objdb.h"
 #include "plugin.h"
 #include "results.h"
 #include "saveas.h"
 #include "search.h"
 #include "settime.h"
-#include "templates.h"
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 

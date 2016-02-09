@@ -1,4 +1,4 @@
-/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -44,25 +44,25 @@
 
 /* SF-Lib header files. */
 
+#include "sflib/config.h"
 #include "sflib/dataxfer.h"
-#include "sflib/icons.h"
-#include "sflib/string.h"
-#include "sflib/windows.h"
 #include "sflib/debug.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/general.h"
-#include "sflib/msgs.h"
+#include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
-#include "sflib/config.h"
+#include "sflib/msgs.h"
+#include "sflib/string.h"
+#include "sflib/templates.h"
+#include "sflib/windows.h"
 
 /* Application header files */
 
 #include "saveas.h"
 
-#include "ihelp.h"
 #include "main.h"
-#include "templates.h"
 
 
 #define SAVEAS_ICON_SAVE 0

@@ -1,4 +1,4 @@
-/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -47,13 +47,16 @@
 /* SF-Lib Header files. */
 
 #include "sflib/config.h"
+#include "sflib/dataxfer.h"
 #include "sflib/errors.h"
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/windows.h"
 #include "sflib/debug.h"
 #include "sflib/string.h"
+#include "sflib/templates.h"
 
 /* Application header files. */
 
@@ -61,13 +64,11 @@
 
 #include "dialogue.h"
 #include "iconbar.h"
-#include "ihelp.h"
 #include "main.h"
 #include "objdb.h"
 #include "plugin.h"
 #include "results.h"
 #include "search.h"
-#include "templates.h"
 
 
 /* Results window icons. */
@@ -358,7 +359,7 @@ osbool file_full_save(struct file_block *block, char *filename)
 
 	discfile_close(out);
 
-	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
+	osfile_set_type(filename, dataxfer_TYPE_LOCATE);
 
 	return TRUE;
 }
@@ -389,7 +390,7 @@ osbool file_dialogue_save(struct file_block *block, char *filename)
 
 	discfile_close(out);
 
-	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
+	osfile_set_type(filename, dataxfer_TYPE_LOCATE);
 
 	return TRUE;
 }

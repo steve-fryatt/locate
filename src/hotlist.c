@@ -1,4 +1,4 @@
-/* Copyright 2013-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2013-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -51,10 +51,11 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/string.h"
-//#include "sflib/url.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
 
 /* Application header files */
@@ -65,10 +66,8 @@
 #include "dialogue.h"
 #include "discfile.h"
 #include "file.h"
-#include "ihelp.h"
 //#include "main.h"
 #include "saveas.h"
-#include "templates.h"
 
 
 /* Hotlist Window */
@@ -257,8 +256,9 @@ void hotlist_initialise(osspriteop_area *sprites)
 	//char*			date = BUILD_DATE;
 	//wimp_icon_create	icon_bar;
 
-	hotlist_window_menu = templates_get_menu(TEMPLATES_MENU_HOTLIST);
-	hotlist_window_menu_item = templates_get_menu(TEMPLATES_MENU_HOTLIST_ITEM);
+	hotlist_window_menu = templates_get_menu("HotlistWindowMenu");
+	ihelp_add_menu(hotlist_window_menu, "HotlistMenu");
+	hotlist_window_menu_item = templates_get_menu("HotlistItemMenu");
 
 	hotlist_saveas_search = saveas_create_dialogue(FALSE, "file_1a1", hotlist_saveas_save_search);
 	hotlist_saveas_hotlist = saveas_create_dialogue(TRUE, "file_1a1", hotlist_save_hotlist);
@@ -289,7 +289,7 @@ void hotlist_initialise(osspriteop_area *sprites)
 	event_add_window_menu_selection(hotlist_window, hotlist_menu_selection);
 	event_add_window_menu_close(hotlist_window, hotlist_menu_close);
 
-	dataxfer_set_load_target(DISCFILE_LOCATE_FILETYPE, hotlist_window, -1, hotlist_load_locate_file, NULL);
+	dataxfer_set_drop_target(dataxfer_TYPE_LOCATE, hotlist_window, -1, hotlist_load_locate_file, NULL);
 
 	/* Initialise the hotlist pane window. */
 
@@ -306,7 +306,7 @@ void hotlist_initialise(osspriteop_area *sprites)
 	event_add_window_menu_selection(hotlist_window_pane, hotlist_menu_selection);
 	event_add_window_menu_close(hotlist_window_pane, hotlist_menu_close);
 
-	dataxfer_set_load_target(DISCFILE_LOCATE_FILETYPE, hotlist_window_pane, -1, hotlist_load_locate_file, NULL);
+	dataxfer_set_drop_target(dataxfer_TYPE_LOCATE, hotlist_window_pane, -1, hotlist_load_locate_file, NULL);
 
 	/* Initialise the add/edit window. */
 
@@ -853,7 +853,7 @@ static void hotlist_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 
 			*from = '\0';
 
-			dataxfer_start_save(pointer, leafname, 0, DISCFILE_LOCATE_FILETYPE, 0, hotlist_save_search, hotlist[row].dialogue);
+			dataxfer_start_save(pointer, leafname, 0, dataxfer_TYPE_LOCATE, 0, hotlist_save_search, hotlist[row].dialogue);
 		}
 	}
 }
@@ -1191,7 +1191,7 @@ static osbool hotlist_load_locate_file(wimp_w w, wimp_i i, unsigned filetype, ch
 	struct dialogue_block	*dialogue;
 	struct discfile_block	*load;
 
-	if (filetype != DISCFILE_LOCATE_FILETYPE)
+	if (filetype != dataxfer_TYPE_LOCATE)
 		return FALSE;
 
 	load = discfile_open_read(filename);
@@ -1642,7 +1642,7 @@ static osbool hotlist_save_search(char *filename, void *data)
 
 	discfile_close(out);
 
-	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
+	osfile_set_type(filename, dataxfer_TYPE_LOCATE);
 
 	return TRUE;
 }
@@ -1696,7 +1696,7 @@ static osbool hotlist_save_file(char *filename, osbool selection)
 
 	discfile_close(out);
 
-	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
+	osfile_set_type(filename, dataxfer_TYPE_LOCATE);
 
 	return TRUE;
 }

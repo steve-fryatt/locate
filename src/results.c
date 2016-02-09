@@ -1,4 +1,4 @@
-/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -55,11 +55,13 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/menus.h"
 #include "sflib/msgs.h"
 #include "sflib/windows.h"
 #include "sflib/debug.h"
 #include "sflib/string.h"
+#include "sflib/templates.h"
 
 /* Application header files. */
 
@@ -72,10 +74,8 @@
 #include "file.h"
 #include "fileicon.h"
 #include "hotlist.h"
-#include "ihelp.h"
 #include "objdb.h"
 #include "saveas.h"
-#include "templates.h"
 #include "textdump.h"
 
 
@@ -356,8 +356,9 @@ static void	results_clipboard_release(void *data);
 
 void results_initialise(osspriteop_area *sprites)
 {
-	results_window_menu = templates_get_menu(TEMPLATES_MENU_RESULTS);
-	results_window_menu_display = templates_get_menu(TEMPLATES_MENU_RESULTS_DISPLAY);
+	results_window_menu = templates_get_menu("ResultsWindowMenu");
+	ihelp_add_menu(results_window_menu, "ResultsMenu");
+	results_window_menu_display = templates_get_menu("ResultsDisplayMenu");
 
 	results_window_def = templates_load_window("Results");
 	results_window_def->icon_count = 0;

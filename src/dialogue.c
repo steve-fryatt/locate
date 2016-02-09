@@ -1,4 +1,4 @@
-/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -57,10 +57,12 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/msgs.h"
 #include "sflib/windows.h"
 #include "sflib/debug.h"
 #include "sflib/string.h"
+#include "sflib/templates.h"
 
 /* Application header files. */
 
@@ -71,11 +73,9 @@
 #include "flexutils.h"
 #include "hotlist.h"
 #include "iconbar.h"
-#include "ihelp.h"
 #include "saveas.h"
 #include "search.h"
 #include "settime.h"
-#include "templates.h"
 #include "typemenu.h"
 
 
@@ -410,15 +410,24 @@ void dialogue_initialise(void)
 
 	/* Initialise the menus used in the window. */
 
-	dialogue_menu = templates_get_menu(TEMPLATES_MENU_SEARCH);
-	dialogue_name_mode_menu = templates_get_menu(TEMPLATES_MENU_NAME_MODE);
-	dialogue_size_mode_menu = templates_get_menu(TEMPLATES_MENU_SIZE_MODE);
-	dialogue_size_unit_menu = templates_get_menu(TEMPLATES_MENU_SIZE_UNIT);
-	dialogue_date_mode_menu = templates_get_menu(TEMPLATES_MENU_DATE_MODE);
-	dialogue_age_mode_menu = templates_get_menu(TEMPLATES_MENU_AGE_MODE);
-	dialogue_age_unit_menu = templates_get_menu(TEMPLATES_MENU_AGE_UNIT);
-	dialogue_type_mode_menu = templates_get_menu(TEMPLATES_MENU_TYPE_MODE);
-	dialogue_contents_mode_menu = templates_get_menu(TEMPLATES_MENU_CONTENTS_MODE);
+	dialogue_menu = templates_get_menu("SearchWindowMenu");
+	ihelp_add_menu(dialogue_menu, "SearchMenu");
+	dialogue_name_mode_menu = templates_get_menu("NameLogicMenu");
+	ihelp_add_menu(dialogue_name_mode_menu, "NameModeMenu");
+	dialogue_size_mode_menu = templates_get_menu("SizeLogicMenu");
+	ihelp_add_menu(dialogue_size_mode_menu, "SizeModeMenu");
+	dialogue_size_unit_menu = templates_get_menu("SizeUnitMenu");
+	ihelp_add_menu(dialogue_size_unit_menu, "SizeUnitMenu");
+	dialogue_date_mode_menu = templates_get_menu("DateLogicMenu");
+	ihelp_add_menu(dialogue_date_mode_menu, "DateModeMenu");
+	dialogue_age_mode_menu = templates_get_menu("AgeLogicMenu");
+	ihelp_add_menu(dialogue_age_mode_menu, "AgeModeMenu");
+	dialogue_age_unit_menu = templates_get_menu("AgeUnitMenu");
+	ihelp_add_menu(dialogue_age_unit_menu, "AgeUnitMenu");
+	dialogue_type_mode_menu = templates_get_menu("TypeLogicMenu");
+	ihelp_add_menu(dialogue_type_mode_menu, "TypeModeMenu");
+	dialogue_contents_mode_menu = templates_get_menu("ContentLogicMenu");
+	ihelp_add_menu(dialogue_contents_mode_menu, "ContentModeMenu");
 
 	dialogue_save_search = saveas_create_dialogue(FALSE, "file_1a1", dialogue_save_settings);
 
@@ -2034,8 +2043,7 @@ static void dialogue_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointe
 	if (pointer->w == dialogue_panes[DIALOGUE_PANE_TYPE] && pointer->i == DIALOGUE_TYPE_ICON_TYPE_MENU) {
 		dialogue_type_list_menu = typemenu_build();
 		event_set_menu_block(dialogue_type_list_menu);
-		templates_set_menu(TEMPLATES_MENU_TYPES, dialogue_type_list_menu);
-		templates_set_menu_token("FileTypeMenu");
+		ihelp_add_menu(dialogue_type_list_menu, "FileTypeMenu");
 		return;
 	}
 }
@@ -2121,9 +2129,7 @@ static void dialogue_menu_selection_handler(wimp_w window, wimp_menu *menu, wimp
 
 static void dialogue_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
-//	fontlist_destroy();
-//	report_format_font_menu = NULL;
-//	report_format_font_icon = -1;
+	ihelp_remove_menu(dialogue_type_list_menu);
 }
 
 
@@ -2626,7 +2632,7 @@ static osbool dialogue_save_settings(char *filename, osbool selection, void *dat
 
 	dialogue_destroy(dialogue, DIALOGUE_CLIENT_ALL);
 
-	osfile_set_type(filename, DISCFILE_LOCATE_FILETYPE);
+	osfile_set_type(filename, dataxfer_TYPE_LOCATE);
 
 	return TRUE;
 }

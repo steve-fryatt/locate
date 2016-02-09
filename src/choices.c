@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -48,17 +48,17 @@
 #include "sflib/event.h"
 #include "sflib/heap.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
 #include "sflib/windows.h"
 #include "sflib/debug.h"
 #include "sflib/string.h"
+#include "sflib/templates.h"
 
 /* Application header files. */
 
 #include "choices.h"
 
-#include "ihelp.h"
 #include "search.h"
-#include "templates.h"
 
 
 /* Choices window icons. */

@@ -34,8 +34,6 @@
 
 #include "flex.h"
 
-#define DISCFILE_LOCATE_FILETYPE (0x1a1)
-
 /**
  * The known file formats.
  */

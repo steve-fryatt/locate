@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -35,6 +35,8 @@
 
 #include "sflib/event.h"
 #include "sflib/icons.h"
+#include "sflib/ihelp.h"
+#include "sflib/templates.h"
 #include "sflib/windows.h"
 
 /* OSLib Header files. */
@@ -48,8 +50,6 @@
 #include "settime.h"
 
 #include "datetime.h"
-#include "ihelp.h"
-#include "templates.h"
 
 /* Icon Handles. */
 
@@ -97,7 +97,8 @@ static osbool	settime_keypress_handler(wimp_key *key);
 
 void settime_initialise(void)
 {
-	settime_month_menu = templates_get_menu(TEMPLATES_MENU_MONTH);
+	settime_month_menu = templates_get_menu("MonthMenu");
+	ihelp_add_menu(settime_month_menu, "MonthMenu");
 
 	settime_window = templates_create_window("SetTime");
 	ihelp_add_window(settime_window, "SetTime", NULL);
