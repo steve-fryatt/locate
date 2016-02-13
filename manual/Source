@@ -41,7 +41,7 @@ If you have any comments about Locate, or would like to report any bugs that you
 Updates to Locate and more programs for RISC OS computers can be found on my website at <http://www.stevefryatt.org.uk/software/=>#url>.
 
 #Align Centre
-© Stephen Fryatt, 2001-2015 (<steve@stevefryatt.org.uk=>#url mailto:steve@stevefryatt.org.uk>)
+© Stephen Fryatt, 2001-2016 (<steve@stevefryatt.org.uk=>#url mailto:steve@stevefryatt.org.uk>)
 Filetype Menu code based on a concept by Harriet Bazley
 
 A plain text version of this manual is available <here=>*Filer_Run <Locate$HelpText\>>.
@@ -55,7 +55,7 @@ A plain text version of this manual is available <here=>*Filer_Run <Locate$HelpT
 =============================================================================
 Locate - Flexible file search for RISC OS                        Version $$version$$
 
-(C) Stephen Fryatt, 2001-2015                  $$date$$
+(C) Stephen Fryatt, 2001-2016                  $$date$$
 =============================================================================
 </literal>
 
@@ -89,7 +89,7 @@ Locate - Flexible file search for RISC OS                        Version $$versi
 
 <img src="images/locate.gif" alt="" width=34 height=34 class="list-image">
 
-<p><b>Flexible file search for RISC&nbsp;OS</b> &ndash; &copy; Stephen Fryatt, 2001-2015<br>
+<p><b>Flexible file search for RISC&nbsp;OS</b> &ndash; &copy; Stephen Fryatt, 2001-2016<br>
 Version $$version$$ ($$date$$)</p>
 
 </literal>
