@@ -289,7 +289,7 @@ void hotlist_initialise(osspriteop_area *sprites)
 	event_add_window_menu_selection(hotlist_window, hotlist_menu_selection);
 	event_add_window_menu_close(hotlist_window, hotlist_menu_close);
 
-	dataxfer_set_drop_target(dataxfer_TYPE_LOCATE, hotlist_window, -1, hotlist_load_locate_file, NULL);
+	dataxfer_set_drop_target(dataxfer_TYPE_LOCATE, hotlist_window, -1, NULL, hotlist_load_locate_file, NULL);
 
 	/* Initialise the hotlist pane window. */
 
@@ -306,7 +306,7 @@ void hotlist_initialise(osspriteop_area *sprites)
 	event_add_window_menu_selection(hotlist_window_pane, hotlist_menu_selection);
 	event_add_window_menu_close(hotlist_window_pane, hotlist_menu_close);
 
-	dataxfer_set_drop_target(dataxfer_TYPE_LOCATE, hotlist_window_pane, -1, hotlist_load_locate_file, NULL);
+	dataxfer_set_drop_target(dataxfer_TYPE_LOCATE, hotlist_window_pane, -1, NULL, hotlist_load_locate_file, NULL);
 
 	/* Initialise the add/edit window. */
 

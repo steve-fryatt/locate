@@ -137,7 +137,7 @@ void iconbar_create_icon(void)
 
 	event_add_message_handler(message_DATA_LOAD, EVENT_MESSAGE_INCOMING, iconbar_icon_drop_handler);
 
-	dataxfer_set_drop_target(dataxfer_TYPE_LOCATE, wimp_ICON_BAR, -1, iconbar_load_locate_file, NULL);
+	dataxfer_set_drop_target(dataxfer_TYPE_LOCATE, wimp_ICON_BAR, -1, NULL, iconbar_load_locate_file, NULL);
 	dataxfer_set_load_type(dataxfer_TYPE_LOCATE, iconbar_load_locate_file, NULL);
 }
 
