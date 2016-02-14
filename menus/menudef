@@ -51,7 +51,7 @@ menu(IconBarMenu, "Locate") {
 
 menu(SearchWindowMenu, "Locate") {
 	item("Save search") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
@@ -96,18 +96,18 @@ menu(ResultsDisplayMenu, "Display") {
 
 menu(save_menu, "Save") {
 	item("Results") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
 	item("Path names") {
-		d_box(save_as_sel) {
+		d_box(SaveAsSel) {
 			warning;
 		}
 		dotted;
 	}
 	item("Search options") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
@@ -125,7 +125,7 @@ menu(HotlistWindowMenu, "Hotlist") {
 	item("Select all");
 	item("Clear selection");
 	item("Save hotlist") {
-		d_box(save_as_sel) {
+		d_box(SaveAsSel) {
 			warning;
 		}
 	}
@@ -133,7 +133,7 @@ menu(HotlistWindowMenu, "Hotlist") {
 
 menu(HotlistItemMenu, "Entry") {
 	item("Save search") {
-		d_box(save_as) {
+		d_box(SaveAs) {
 			warning;
 		}
 	}
