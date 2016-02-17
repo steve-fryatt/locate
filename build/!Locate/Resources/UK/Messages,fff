@@ -92,7 +92,7 @@ Found:%0 object(s) found%1
 Errors:; %0 error(s) occurred
 
 BadRdrwHndl:The data for the window redraw can not be found.
-BadSave:To save, drag the icon to a directory viewer.
+DragSave:To save, drag the icon to a directory viewer.
 RAMXferFail:The file was not received correctly by the other application.
 XferFail:Transfer failed: receiver died.
 NoLoadNow:Searching is in progress: load file once completed.
