@@ -796,9 +796,7 @@ First Stable Release of Locate&nbsp;2.
 <li>Complete re-implementation in C.
 </list>
 
-<subhead title="Test Build">
-
-Alpha release for evaluation and comment.
+<subhead title="2.10 (26 February 2016)">
 
 <list>
 <li>&lsquo;Default&rsquo; hotlist items added, to allow a standard search to be customised (ticket&nbsp;#475).
@@ -825,7 +823,6 @@ This version of <cite>Locate</cite> is still not finished and several intended f
 <li>Allow Regular Expressions to be used in file contents search.
 <li>Allow searches of search results.
 <li>Add stop/modify search buttons to the status bar (or toolbar).
-<li>Make <window>search window</window> opening configurable, so that any pane can be opened by default.
 </list>
 
 </chapter>
