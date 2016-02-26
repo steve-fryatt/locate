@@ -798,6 +798,8 @@ First Stable Release of Locate&nbsp;2.
 
 <subhead title="2.10 (26 February 2016)">
 
+Second stable release.
+
 <list>
 <li>&lsquo;Default&rsquo; hotlist items added, to allow a standard search to be customised (ticket&nbsp;#475).
 <li>Implement FilerAction Plugin code for use on RISC&nbsp;OS Select (ticket&nbsp;#557).
