@@ -1,4 +1,4 @@
-/* Copyright 2013-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2013-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -135,7 +135,9 @@ static osbool plugin_message_filer_action(wimp_message *message)
 		
 	switch (plugin_current_state) {
 	case PLUGIN_STATE_IDLE:
+#ifdef DEBUG
 		debug_printf("Message Exchange Started");
+#endif
 		
 		message->your_ref = message->my_ref;
 		error = xwimp_send_message(wimp_USER_MESSAGE, message, message->sender);
@@ -145,7 +147,9 @@ static osbool plugin_message_filer_action(wimp_message *message)
 		break;
 		
 	case PLUGIN_STATE_RECEIVED_FILES:
+#ifdef DEBUG
 		debug_printf("Message Exchange completed.");
+#endif
 		plugin_current_state = PLUGIN_STATE_IDLE;
 		
 		close_down.size = 20;
@@ -166,7 +170,9 @@ static osbool plugin_message_filer_action(wimp_message *message)
 		break;
 	
 	default:
+#ifdef DEBUG
 		debug_printf("Unexpected Message_FilerAction");
+#endif
 		plugin_current_state = PLUGIN_STATE_IDLE;
 		plugin_release_buffer();
 		break;
@@ -187,7 +193,9 @@ static osbool plugin_message_filer_selection_dir(wimp_message *message)
 {
 	filer_full_message_selection_dir	*selection_dir = (filer_full_message_selection_dir *) message;
 
+#ifdef DEBUG
 	debug_printf("Received Message_FilerSelectionDir: '%s'", selection_dir->dir_name);
+#endif
 
 	plugin_current_state = PLUGIN_STATE_RECEIVED_DIRECTORY;
 
@@ -214,7 +222,9 @@ static osbool plugin_message_filer_add_selection(wimp_message *message)
 
 	filer_full_message_add_selection	*add_selection = (filer_full_message_add_selection *) message;
 
+#ifdef DEBUG
 	debug_printf("Received Message_FilerAddSelection: '%s'", add_selection->leaf_list);
+#endif
 
 	plugin_current_state = PLUGIN_STATE_RECEIVED_FILES;
 

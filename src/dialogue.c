@@ -393,7 +393,9 @@ static int	dialogue_scale_size(unsigned base, enum dialogue_size_unit unit, osbo
 static void	dialogue_scale_age(os_date_and_time date, unsigned base, enum dialogue_age_unit unit, int round);
 static osbool	dialogue_save_settings(char *filename, osbool selection, void *data);
 static void	dialogue_add_to_hotlist(void);
+#ifdef DEBUG
 static void	dialogue_dump_settings(struct dialogue_block *dialogue);
+#endif
 
 
 /**
@@ -721,14 +723,18 @@ void dialogue_destroy(struct dialogue_block *dialogue, enum dialogue_client clie
 	 * data.
 	 */
 
+#ifdef DEBUG
 	debug_printf("Dialogue 0x%x in use by 0x%x; deletion requested by 0x%x", dialogue, dialogue->clients, client);
+#endif
 
 	dialogue->clients &= ~client;
 
 	if (dialogue->clients != DIALOGUE_CLIENT_NONE)
 		return;
 
+#ifdef DEBUG
 	debug_printf("Deleting dialogue!");
+#endif
 
 	/* Free the memory used and exit. */
 
@@ -2276,7 +2282,9 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 
 	/* Dump the settings to Reporter for debugging. */
 
+#ifdef DEBUG
 	dialogue_dump_settings(dialogue);
+#endif
 
 	/* Calculate the required fixed buffer size and allocate the buffer. */
 
@@ -2667,6 +2675,7 @@ static void dialogue_add_to_hotlist(void)
  * \param *dialogue		The dialogue data block to dump the settings from.
  */
 
+#ifdef DEBUG
 static void dialogue_dump_settings(struct dialogue_block *dialogue)
 {
 	char			line[DIALOGUE_MAX_FILE_LINE];
@@ -2756,5 +2765,6 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 	debug_printf("Suppress Errors: %s", config_return_opt_string(dialogue->suppress_errors));
 	debug_printf("Display Full Info: %s", config_return_opt_string(dialogue->full_info));
 }
+#endif
 
 

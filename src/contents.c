@@ -1,4 +1,4 @@
-/* Copyright 2013, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2013-2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * Wildcard search based on code by Alessandro Cantatore:
  * http://xoomer.virgilio.it/acantato/dev/wildcard/wildmatch.html
@@ -133,7 +133,9 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 	if (new == NULL)
 		return NULL;
 
+#ifdef DEBUG
 	debug_printf("Created new content search: 0x%x", new);
+#endif
 
 	new->objects = objects;
 	new->results = results;
@@ -168,7 +170,9 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 		if (new->any_case)
 			string_toupper(new->text);
 
+#ifdef DEBUG
 		debug_printf("String to match: '%s', inverted=%d", new->text, new->invert);
+#endif
 	} else {
 		mem_ok = FALSE;
 	}
@@ -212,7 +216,9 @@ void contents_destroy(struct contents_block *handle)
 	if (handle == NULL)
 		return;
 
+#ifdef DEBUG
 	debug_printf("Destroyed content search: 0x%x", handle);
+#endif
 
 	if (handle->filename != NULL)
 		flex_free((flex_ptr) &(handle->filename));
@@ -254,7 +260,9 @@ osbool contents_add_file(struct contents_block *handle, unsigned key)
 	handle->pointer = 0;
 	handle->matched = FALSE;
 
+#ifdef DEBUG
 	debug_printf("Processing object content: key = %d", key);
+#endif
 
 	/* Find the filename of the file to be searched. */
 
@@ -303,7 +311,9 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 	if (handle == NULL)
 		return TRUE;
 
-	//debug_printf("Starting contents search loop %d at time %u", handle->pointer, os_read_monotonic_time());
+#ifdef DEBUG
+	debug_printf("Starting contents search loop %d at time %u", handle->pointer, os_read_monotonic_time());
+#endif
 
 	while (!handle->error && (!handle->invert || !handle->matched) && (handle->pointer < handle->file_extent) &&
 			(os_read_monotonic_time() < end_time)) {
@@ -312,7 +322,9 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 		end = -1;
 
 		if (byte == *(handle->text) && contents_test_wildcard(handle, handle->pointer, &end)) {
+#ifdef DEBUG
 			debug_printf("Match at offset %d", handle->pointer);
+#endif
 
 			if (!handle->invert) {
 				if (!handle->matched)
@@ -335,7 +347,9 @@ osbool contents_poll(struct contents_block *handle, os_t end_time, osbool *match
 		handle->pointer++;
 	}
 
-	//debug_printf("Finishing contents search loop at time %u", os_read_monotonic_time());
+#ifdef DEBUG
+	debug_printf("Finishing contents search loop at time %u", os_read_monotonic_time());
+#endif
 
 	if (handle->error || (handle->matched && handle->invert) || handle->pointer >= handle->file_extent) {
 		if (handle->invert && !handle->matched && !handle->error)
@@ -371,14 +385,18 @@ static osbool contents_test_wildcard(struct contents_block *handle, int pointer,
 	 *     does move the flex heap, then this will break messily!
 	 */
 
-	//debug_printf("Entering wildcard routine");
+#ifdef DEBUG
+	debug_printf("Entering wildcard routine");
+#endif
 
 	if (end != NULL)
 		*end = 0;
 
 loopStart:
 	for (i = 0; pattern[i] != '\0' && (pointer + i) < handle->file_extent; i++) {
-		//debug_printf("Loop i=%d, for pattern %c", i, pattern[i]);
+#ifdef DEBUG
+		debug_printf("Loop i=%d, for pattern %c", i, pattern[i]);
+#endif
 
 		switch (pattern[i]) {
 		case '?':
@@ -397,7 +415,9 @@ loopStart:
 			if (!*pattern) {
 				if (end != NULL)
 					*end = pointer + i - 1;
-				//debug_printf("Returning TRUE");
+#ifdef DEBUG
+				debug_printf("Returning TRUE");
+#endif
 				return TRUE;
 			}
 
@@ -405,7 +425,9 @@ loopStart:
 			break;
 
 		default:
-			//debug_printf("Testing char=%c against pattern=%c", contents_get_byte(handle, pointer + i, TRUE), pattern[i]);
+#ifdef DEBUG
+			debug_printf("Testing char=%c against pattern=%c", contents_get_byte(handle, pointer + i, TRUE), pattern[i]);
+#endif
 			if (contents_get_byte(handle, pointer + i, TRUE) != pattern[i])
 				goto starCheck;
 
@@ -419,7 +441,9 @@ loopStart:
 	while (pattern[i] == '*')
 		++i;
 
-	//debug_printf("Returning %s", (!pattern[i]) ? "TRUE" : "FALSE");
+#ifdef DEBUG
+	debug_printf("Returning %s", (!pattern[i]) ? "TRUE" : "FALSE");
+#endif
 
 	return (!pattern[i]);
 
@@ -427,7 +451,9 @@ starCheck:
 	if (!star) {
 		if (end != NULL)
 			*end = pointer + i - 1;
-		//debug_printf("Returning FALSE");
+#ifdef DEBUG
+		debug_printf("Returning FALSE");
+#endif
 		return FALSE;
 	}
 

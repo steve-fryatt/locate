@@ -1660,7 +1660,9 @@ static osbool hotlist_save_choices(void)
 
 	config_find_save_file(filename, 1024, "Hotlist");
 
+#ifdef DEBUG
 	debug_printf("Saving hotlist to '%s'", filename);
+#endif
 
 	return hotlist_save_file(filename, FALSE);
 }
@@ -1822,7 +1824,9 @@ static osbool hotlist_load_file_callback(struct discfile_block *load, enum dialo
 	if (load == NULL || data == NULL)
 		return FALSE;
 
+#ifdef DEBUG
 	debug_printf("Calling load helper: %u", action);
+#endif
 
 	switch (action) {
 	case DIALOGUE_OPEN_SECTION:
@@ -1937,7 +1941,9 @@ void hotlist_process_menu_selection(int selection)
 	if (selection < 0 || selection >= hotlist_entries)
 		return;
 
+#ifdef DEBUG
 	debug_printf("Selected hotlist menu item %d", selection);
+#endif
 
 	if (hotlist[selection].dialogue != NULL)
 		hotlist_open_entry(selection);
