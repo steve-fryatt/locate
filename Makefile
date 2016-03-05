@@ -154,7 +154,7 @@ application: $(OUTDIR)/$(APP)/$(RUNIMAGE) $(OUTDIR)/$(APP)/$(UKRES)/$(MENUS) $(O
 
 OBJS := $(addprefix $(OBJDIR)/, $(OBJS))
 
-$(OUTDIR)/$(APP)/$(RUNIMAGE): $(OBJS) $(OBJDIR)
+$(OUTDIR)/$(APP)/$(RUNIMAGE): $(OBJS)
 	$(CC) $(CCFLAGS) $(LINKS) -o $(OUTDIR)/$(APP)/$(RUNIMAGE) $(OBJS)
 
 # Create a folder to hold the object files.
@@ -166,7 +166,7 @@ $(OBJDIR):
 
 -include $(OBJS:.o=.d)
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.c
+$(OBJDIR)/%.o: $(SRCDIR)/%.c $(OBJDIR)
 	$(CC) -c $(CCFLAGS) $(INCLUDES) $< -o $@
 	@$(CC) -MM $(CCFLAGS) $(INCLUDES) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d).tmp
