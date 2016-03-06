@@ -807,6 +807,14 @@ Second stable release.
 <li>Display filenames for error locations (ticket&nbsp;#557).
 </list>
 
+<subhead title="2.11 (6 March 2016)">
+
+Update to second stable release.
+
+<list>
+<li>Stop stray debug output from being sent to Reporter (tickets&nbsp;#580 &amp; #586).
+</list>
+
 </chapter>
 
 
@@ -834,7 +842,6 @@ This version of <cite>Locate</cite> is still not finished and several intended f
 
 
 <literal mode="Text">
-
 
 Updates and Contacting Me
 -------------------------
