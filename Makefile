@@ -38,6 +38,8 @@ STARTLOCATE := StartLocate,ffb
 BASDIR := bas
 EXTRASRC := $(BASDIR)
 
+# We need to set OUTDIR here so that EXTRAPREREQ can be set before including the master file.
+
 OUTDIR := build
 EXTRAPREREQ := $(OUTDIR)/$(APP)/$(FINDSPRS) $(OUTDIR)/$(ADDITIONS)/$(STARTLOCATE)
 
@@ -50,13 +52,19 @@ OBJS := choices.o clipboard.o contents.o datetime.o dialogue.o discfile.o	\
 
 include $(SFTOOLS_MAKE)/CApp
 
+# Make FindSprs
+
 $(OUTDIR)/$(APP)/$(FINDSPRS): $(BASDIR)/$(FINDSPRSSRC)
 	@$(ECHO) "$(COLOUR_ACTION)*        TOKENIZING: $(OUTDIR)/$(APP)/$(FINDSPRS)$(COLOUR_END)"
 	@$(TOKENIZE) $(TOKENIZEFLAGS) $(BASDIR)/$(FINDSPRSSRC) -out $(OUTDIR)/$(APP)/$(FINDSPRS)
 
+# Make StartLocate
+
 $(OUTDIR)/$(ADDITIONS)/$(STARTLOCATE): $(BASDIR)/$(STARTLOCATESRC)
 	@$(ECHO) "$(COLOUR_ACTION)*        TOKENIZING: $(OUTDIR)/$(ADDITIONS)/$(STARTLOCATE)$(COLOUR_END)"
 	@$(TOKENIZE) $(TOKENIZEFLAGS) $(BASDIR)/$(STARTLOCATESRC) -out $(OUTDIR)/$(ADDITIONS)/$(STARTLOCATE)
+
+# Clean FindSprs and StartLocate
 
 clean::
 	$(RM) $(OUTDIR)/$(APP)/$(FINDSPRS)
