@@ -76,6 +76,10 @@
 #define CHOICE_ICON_AUTOSCROLL 15
 #define CHOICE_ICON_VALIDATE_PATHS 16
 
+/* Maximum file & pathname length. */
+
+#define CHOICES_MAXIMUM_PATH_LENGTH 256
+
 
 /* Global variables */
 
@@ -303,7 +307,7 @@ static osbool handle_choices_icon_drop(wimp_message *message)
 {
 	wimp_full_message_data_xfer	*datasave = (wimp_full_message_data_xfer *) message;
 
-	char				*insert, *end, path[256], *p;
+	char				*insert, *end, path[CHOICES_MAXIMUM_PATH_LENGTH], *p;
 
 	/* If it isn't our window, don't claim the message as someone else
 	 * might want it.
@@ -321,9 +325,10 @@ static osbool handle_choices_icon_drop(wimp_message *message)
 
 	/* It's our window and the correct icon, so start by copying the filename. */
 
-	strcpy(path, datasave->file_name);
+	strncpy(path, datasave->file_name, CHOICES_MAXIMUM_PATH_LENGTH);
+	path[CHOICES_MAXIMUM_PATH_LENGTH - 1] = '\0';
 
-	/* If it's a folder, take just the pathname. */
+	/* If it's a file, take just the pathname for the parent folder. */
 
 	if (datasave->file_type <= 0xfff)
 		string_find_pathname(path);
