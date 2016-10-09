@@ -61,6 +61,7 @@
 
 #include "contents.h"
 #include "flexutils.h"
+#include "ignore.h"
 #include "objdb.h"
 #include "results.h"
 
@@ -116,6 +117,8 @@ struct search_block {
 	unsigned		error_count;					/**< The number of errors encountered during the search.		*/
 
 	/* Search Parameters */
+
+	struct ignore_block	ignore_list;					/**< Handle of the Ignore List, or NULL if there isn't a list defined.	*/
 
 	osbool			include_files;					/**< TRUE to include files in the results; FALSE to exclude.		*/
 	osbool			include_directories;				/**< TRUE to include directories in the results; FALSE to exclude.	*/
@@ -262,6 +265,8 @@ struct search_block *search_create(struct file_block *file, struct objdb_block *
 
 	/* The Search criteria. */
 
+	new->ignore_list = NULL;
+
 	new->include_imagefs = FALSE;
 	new->store_all = FALSE;
 
@@ -341,6 +346,11 @@ void search_destroy(struct search_block *search)
 
 	if (search->filename != NULL)
 		flex_free((flex_ptr) &(search->filename));
+
+	/* Remove the ignore list if present. */
+
+	if (search->ignore_list != NULL)
+		ignore_destroy(ignore_list);
 
 	/* Remove the contents search if present. */
 
@@ -761,6 +771,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	stack = search->stack_level - 1;
 
 	while (stack != SEARCH_NULL && (os_read_monotonic_time() < end_time)) {
+		/* **** Bracket here to skip search if directory is on ignore??? **** */
+		
 		if (search->stack[stack].contents_active == FALSE) {
 			/* If there are no outstanding entries in the current buffer, call
 			 * OS_GBPB 10 to get another set of file details.
@@ -849,9 +861,13 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				else
 					search->stack[stack].filetype = (file_data->load_addr & osfile_FILE_TYPE) >> osfile_FILE_TYPE_SHIFT;
 
-				/* Test the object that we have found, starting by making sure that the object type is one that we want. */
+				/* Test the object that we have found, starting by making sure that it's not included in the ignore list. */
 
-				if (((((search->stack[stack].filetype >= 0x000 && search->stack[stack].filetype <= 0xfff) ||
+				if (((search->ignore_list == NULL) || (ignore_match_object(search->ignore_list, file_data->name))) &&
+
+						/* Is the object type one that we want? */
+
+						((((search->stack[stack].filetype >= 0x000 && search->stack[stack].filetype <= 0xfff) ||
 						(search->stack[stack].filetype == osfile_TYPE_UNTYPED)) && search->include_files) ||
 						((search->stack[stack].filetype == osfile_TYPE_DIR) && search->include_directories) ||
 						((search->stack[stack].filetype == osfile_TYPE_APPLICATION) && search->include_applications)) &&
@@ -944,6 +960,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				}
 			}
 		}
+
+		/***** Bracket down to here??? *****/
 
 		/* If that was all the files in the current folder, return to the
 		 * parent.

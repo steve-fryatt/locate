@@ -47,8 +47,8 @@ FINDSPRSSRC := FindSprs.bbt
 STARTLOCATESRC := StartLocate.bbt
 
 OBJS := choices.o clipboard.o contents.o datetime.o dialogue.o discfile.o	\
-	file.o fileicon.o flexutils.o hotlist.o iconbar.o main.o objdb.o	\
-	plugin.o results.o search.o settime.o textdump.o typemenu.o
+	file.o fileicon.o flexutils.o hotlist.o iconbar.o ignore.o main.o	\
+	objdb.o	plugin.o results.o search.o settime.o textdump.o typemenu.o
 
 include $(SFTOOLS_MAKE)/CApp
 
