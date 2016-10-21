@@ -59,6 +59,7 @@ DeftHistName:<untitled search>
 # Messages & Errors
 
 NoSprites:The application sprites file could not be opened.
+BadTemplate:Failed to load template.
 NoMemFileBlock:There was not enough free memory available to create the file descriptor block.
 NoMemSearchCreate:There was not enough free memory available to create the search.
 NoMemResultsCreate:There was not enough free memory available to create the results window.
