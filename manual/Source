@@ -136,6 +136,8 @@ Unless it explicitly stated otherwise, references in this manual to &ldquo;Locat
 
 <cite>Locate</cite> requires RISC&nbsp;OS&nbsp;4 or later; it might work with earlier versions, but requires the Nested Wimp and its use is unsupported.  It can be run off a hard disc or floppy disc.
 
+It is 26/32-bit neutral, and should therefore run on all hardware systems as long as the 32-bit Shared C Library is installed. If required, this can be found in the System Resources on RISC&nbsp;OS Open Ltd&rsquo;s website at <link ref="https://www.riscosopen.org/content/downloads/common">https://www.riscosopen.org/content/downloads/common</link>.
+
 To install <cite>Locate</cite> on a hard disc, copy the <file>!Locate</file> application to a suitable directory. If you have installed <cite>Locate</cite> using a package management system, then please refer to the instructions which came with that.
 
 Under RISC&nbsp;OS <cite>Select</cite>, <cite>Locate</cite> will act as a <cite>Filer</cite> plugin for Find by default.  See the <link ref="Plugin">Filer Action Plugin</link> section for details of how to disable this feature.
