@@ -1,4 +1,4 @@
-/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -285,7 +285,7 @@ static void main_post_initialise(void)
 
 	if (config_opt_read("ValidatePaths") && !search_validate_paths(config_str_read("SearchPath"), FALSE)) {
 		selection = error_msgs_report_question("BadLoadPaths", "BadLoadPathsB");
-		if (selection == 1) {
+		if (selection == 3) {
 			wimp_get_pointer_info(&pointer);
 			choices_open_window(&pointer);
 		}

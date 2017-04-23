@@ -1,4 +1,4 @@
-/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -185,7 +185,7 @@ static osbool choices_read_window(void)
 	if (!search_validate_paths(icons_get_indirected_text_addr(choices_window, CHOICE_ICON_SEARCH_PATH), FALSE)) {
 		selection = error_msgs_report_question("BadConfigPaths", "BadConfigPathsB");
 
-		if (selection == 1)
+		if (selection == 3)
 			return FALSE;
 	}
 
