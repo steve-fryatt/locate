@@ -817,6 +817,15 @@ Update to second stable release.
 <li>Stop stray debug output from being sent to Reporter (tickets&nbsp;#580 &amp; #586).
 </list>
 
+
+<subhead title="Test Build">
+
+Alpha release for feedback and comment.
+
+<list>
+<li>Remove all unbounded string operations from source code.
+</list>
+
 </chapter>
 
 
