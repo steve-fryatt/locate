@@ -1,8 +1,5 @@
 /* Copyright 2016, Stephen Fryatt (info@stevefryatt.org.uk)
  *
- * Wildcard search based on code by Alessandro Cantatore:
- * http://xoomer.virgilio.it/acantato/dev/wildcard/wildmatch.html
- *
  * This file is part of Locate:
  *
  *   http://www.stevefryatt.org.uk/software/
@@ -44,6 +41,10 @@
  */
 
 
+struct ignore_block {
+	int dummy;
+};
+
 void ignore_destroy(struct ignore_block *handle)
 {
 	if (handle == NULL)
@@ -61,3 +62,4 @@ osbool ignore_search_content(struct ignore_block *handle, char *name)
 {
 	return TRUE;
 }
+

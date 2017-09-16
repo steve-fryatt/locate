@@ -118,7 +118,7 @@ struct search_block {
 
 	/* Search Parameters */
 
-	struct ignore_block	ignore_list;					/**< Handle of the Ignore List, or NULL if there isn't a list defined.	*/
+	struct ignore_block	*ignore_list;					/**< Handle of the Ignore List, or NULL if there isn't a list defined.	*/
 
 	osbool			include_files;					/**< TRUE to include files in the results; FALSE to exclude.		*/
 	osbool			include_directories;				/**< TRUE to include directories in the results; FALSE to exclude.	*/
@@ -350,7 +350,7 @@ void search_destroy(struct search_block *search)
 	/* Remove the ignore list if present. */
 
 	if (search->ignore_list != NULL)
-		ignore_destroy(ignore_list);
+		ignore_destroy(search->ignore_list);
 
 	/* Remove the contents search if present. */
 
