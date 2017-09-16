@@ -325,8 +325,7 @@ static osbool handle_choices_icon_drop(wimp_message *message)
 
 	/* It's our window and the correct icon, so start by copying the filename. */
 
-	strncpy(path, datasave->file_name, CHOICES_MAXIMUM_PATH_LENGTH);
-	path[CHOICES_MAXIMUM_PATH_LENGTH - 1] = '\0';
+	string_copy(path, datasave->file_name, CHOICES_MAXIMUM_PATH_LENGTH);
 
 	/* If it's a file, take just the pathname for the parent folder. */
 

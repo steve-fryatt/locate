@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -57,6 +57,35 @@
 
 #include "textdump.h"
 
+/**
+ * The number of filetypes.
+ */
+
+#define FILEICON_MAX_TYPES 4096
+
+/**
+ * The maximum length of a special fileicon name.
+ */
+
+#define FILEICON_MAX_NAME_LENGTH 20
+
+/**
+ * The length of buffer required to store a sprite name.
+ */
+
+#define FILEICON_SPRITE_NAME_LENGTH 13
+
+/**
+ * The length of buffer required to store a filetype name.
+ */
+
+#define FILEICON_TYPE_NAME_LENGTH 20
+
+/**
+ * The length of buffer required to store a filetype variable name.
+ */
+
+#define FILEICON_TYPE_VARIABLE_LENGTH 20
 
 enum fileicon_status {
 	FILEICON_UNCHECKED = 0,							/**< The filetype's sprite hasn't been checked.				*/
@@ -76,7 +105,7 @@ struct fileicon_icon {
 
 static struct textdump_block		*fileicon_text;				/**< The text dump for filetype names and icons.			*/
 
-static struct fileicon_icon		fileicon_types[4096];			/**< Array of details for the 4096 filetype icons.			*/
+static struct fileicon_icon		fileicon_types[FILEICON_MAX_TYPES];	/**< Array of details for the 4096 filetype icons.			*/
 static struct fileicon_icon		fileicon_specials[FILEICON_MAX_ICONS];	/**< Array of details for the special icons.				*/
 
 static unsigned				fileicon_large_fixed_allocation;	/**< Text dump offset of a fixed allocation for large sprite names.	*/
@@ -93,7 +122,7 @@ static void	fileicon_find_sprites(struct fileicon_icon *icon, char *small, char 
 void fileicon_initialise(void)
 {
 	int	i;
-	char	name[20];
+	char	name[FILEICON_MAX_NAME_LENGTH];
 
 	fileicon_text = textdump_create(0, 0, '\0');
 
@@ -102,7 +131,7 @@ void fileicon_initialise(void)
 
 	/* Initialise the icon data. */
 
-	for (i = 0; i < 4096; i++) {
+	for (i = 0; i < FILEICON_MAX_TYPES; i++) {
 		fileicon_types[i].status = FILEICON_UNCHECKED;
 		fileicon_types[i].name = TEXTDUMP_NULL;
 		fileicon_types[i].large = TEXTDUMP_NULL;
@@ -116,11 +145,11 @@ void fileicon_initialise(void)
 		fileicon_specials[i].small = TEXTDUMP_NULL;
 	}
 
-	fileicon_specials[FILEICON_UNKNOWN].name = textdump_store(fileicon_text, msgs_lookup("Unknown", name, sizeof(name)));
-	fileicon_specials[FILEICON_DIRECTORY].name = textdump_store(fileicon_text, msgs_lookup("Dir", name, sizeof(name)));
-	fileicon_specials[FILEICON_APPLICATION].name = textdump_store(fileicon_text, msgs_lookup("App", name, sizeof(name)));
-	fileicon_specials[FILEICON_UNTYPED].name = textdump_store(fileicon_text, msgs_lookup("File", name, sizeof(name)));
-	fileicon_specials[FILEICON_INCOMPLETE].name = textdump_store(fileicon_text, msgs_lookup("Unf", name, sizeof(name)));
+	fileicon_specials[FILEICON_UNKNOWN].name = textdump_store(fileicon_text, msgs_lookup("Unknown", name, FILEICON_MAX_NAME_LENGTH));
+	fileicon_specials[FILEICON_DIRECTORY].name = textdump_store(fileicon_text, msgs_lookup("Dir", name, FILEICON_MAX_NAME_LENGTH));
+	fileicon_specials[FILEICON_APPLICATION].name = textdump_store(fileicon_text, msgs_lookup("App", name, FILEICON_MAX_NAME_LENGTH));
+	fileicon_specials[FILEICON_UNTYPED].name = textdump_store(fileicon_text, msgs_lookup("File", name, FILEICON_MAX_NAME_LENGTH));
+	fileicon_specials[FILEICON_INCOMPLETE].name = textdump_store(fileicon_text, msgs_lookup("Unf", name, FILEICON_MAX_NAME_LENGTH));
 
 	fileicon_find_sprites(fileicon_specials + FILEICON_UNKNOWN, "small_xxx", "file_xxx", TRUE);
 	fileicon_find_sprites(fileicon_specials + FILEICON_DIRECTORY, "small_dir", "directory", TRUE);
@@ -133,7 +162,7 @@ void fileicon_initialise(void)
 	 */
 
 	fileicon_specials[FILEICON_ERROR].status = FILEICON_SMALL;
-	fileicon_specials[FILEICON_ERROR].name = textdump_store(fileicon_text, msgs_lookup("Err", name, sizeof(name)));
+	fileicon_specials[FILEICON_ERROR].name = textdump_store(fileicon_text, msgs_lookup("Err", name, FILEICON_MAX_NAME_LENGTH));
 	fileicon_specials[FILEICON_ERROR].large = TEXTDUMP_NULL;
 	fileicon_specials[FILEICON_ERROR].small = textdump_store(fileicon_text, "error");
 
@@ -146,7 +175,9 @@ void fileicon_initialise(void)
 	fileicon_specials[FILEICON_CUSTOM_APPLICATION].large = TEXTDUMP_NULL;
 	fileicon_specials[FILEICON_CUSTOM_APPLICATION].small = TEXTDUMP_NULL;
 
-	/* Create two 12 character blocks to hold custom sprite names. */
+	/* Create two 12 character blocks to hold custom sprite names.
+	 * The length of these MUST be at least FILEICON_SPRITE_NAME_LENGTH.
+	 */
 
 	fileicon_large_fixed_allocation = textdump_store(fileicon_text, "123456789012");
 	fileicon_small_fixed_allocation = textdump_store(fileicon_text, "123456789012");
@@ -189,7 +220,7 @@ char *fileicon_get_base(void)
 
 osbool fileicon_get_object_icon(osgbpb_info *file, struct fileicon_info *info)
 {
-	char	smallname[13], largename[13];
+	char	smallname[FILEICON_SPRITE_NAME_LENGTH], largename[FILEICON_SPRITE_NAME_LENGTH];
 
 	if (file == NULL || info == NULL)
 		return FALSE;
@@ -197,12 +228,10 @@ osbool fileicon_get_object_icon(osgbpb_info *file, struct fileicon_info *info)
 	/* Deal with special cases first. */
 
 	if (file->obj_type == fileswitch_IS_DIR && file->name[0] == '!') {
-		snprintf(largename, 12, "%s", file->name);
-		largename[12] = '\0';
+		string_printf(largename, FILEICON_SPRITE_NAME_LENGTH, "%s", file->name);
 		string_tolower(largename);
 
-		snprintf(smallname, 12, "sm%s", file->name);
-		smallname[12] = '\0';
+		string_printf(smallname, FILEICON_SPRITE_NAME_LENGTH, "sm%s", file->name);
 		string_tolower(smallname);
 
 		fileicon_specials[FILEICON_CUSTOM_APPLICATION].status = FILEICON_UNCHECKED;
@@ -243,7 +272,8 @@ osbool fileicon_get_object_icon(osgbpb_info *file, struct fileicon_info *info)
 
 osbool fileicon_get_type_icon(unsigned type, struct fileicon_info *info)
 {
-	char		smallname[20], largename[20], typename[20], typevar[20], buffer[20];
+	char		smallname[FILEICON_SPRITE_NAME_LENGTH], largename[FILEICON_SPRITE_NAME_LENGTH],
+			typename[FILEICON_TYPE_NAME_LENGTH], typevar[FILEICON_TYPE_VARIABLE_LENGTH], buffer[FILEICON_TYPE_NAME_LENGTH];
 	int		length;
 
 	if (info == NULL)
@@ -252,12 +282,12 @@ osbool fileicon_get_type_icon(unsigned type, struct fileicon_info *info)
 	/* Process the filetype name. */
 
 	if (fileicon_types[type].name == TEXTDUMP_NULL) {
-		snprintf(typevar, sizeof(typevar), "File$Type_%03X", type);
-		if (xos_read_var_val(typevar, buffer, sizeof(buffer), 0, os_VARTYPE_STRING, &length, NULL, NULL) == NULL) {
-			buffer[(length < sizeof(buffer)) ? length : (sizeof(buffer) - 1)] = '\0';
-			snprintf(typename, sizeof(typename), "%s", buffer);
+		string_printf(typevar, FILEICON_TYPE_VARIABLE_LENGTH, "File$Type_%03X", type);
+		if (xos_read_var_val(typevar, buffer, FILEICON_TYPE_NAME_LENGTH, 0, os_VARTYPE_STRING, &length, NULL, NULL) == NULL) {
+			buffer[(length < FILEICON_TYPE_NAME_LENGTH) ? length : (FILEICON_TYPE_NAME_LENGTH - 1)] = '\0';
+			string_printf(typename, FILEICON_TYPE_NAME_LENGTH, "%s", buffer);
 		} else {
-			snprintf(typename, sizeof(typename), "&%03x", type);
+			string_printf(typename, FILEICON_TYPE_NAME_LENGTH, "&%03x", type);
 		}
 
 		fileicon_types[type].name = textdump_store(fileicon_text, typename);
@@ -281,8 +311,8 @@ osbool fileicon_get_type_icon(unsigned type, struct fileicon_info *info)
 		return fileicon_get_special_icon(FILEICON_UNKNOWN, info);
 
 	default:
-		snprintf(smallname, sizeof(smallname), "small_%3x", type);
-		snprintf(largename, sizeof(largename), "file_%3x", type);
+		string_printf(smallname, FILEICON_SPRITE_NAME_LENGTH, "small_%3x", type);
+		string_printf(largename, FILEICON_SPRITE_NAME_LENGTH, "file_%3x", type);
 
 		fileicon_find_sprites(fileicon_types + type, smallname, largename, TRUE);
 		if (fileicon_types[type].status != FILEICON_NONE) {
@@ -344,11 +374,12 @@ static void fileicon_find_sprites(struct fileicon_icon *icon, char *small, char 
 
 		if (error == NULL) {
 			icon->status = FILEICON_SMALL;
+
 			if (allocate) {
 				icon->small = textdump_store(fileicon_text, small);
 			} else {
 				icon->small = fileicon_small_fixed_allocation;
-				strcpy(textdump_get_base(fileicon_text) + icon->small, small);
+				string_copy(textdump_get_base(fileicon_text) + icon->small, small, FILEICON_SPRITE_NAME_LENGTH);
 			}
 		}
 	}
@@ -359,11 +390,12 @@ static void fileicon_find_sprites(struct fileicon_icon *icon, char *small, char 
 		if (error == NULL) {
 			if (icon->status != FILEICON_SMALL)
 				icon->status = FILEICON_LARGE;
+
 			if (allocate) {
 				icon->large = textdump_store(fileicon_text, large);
 			} else {
 				icon->large = fileicon_large_fixed_allocation;
-				strcpy(textdump_get_base(fileicon_text) + icon->large, large);
+				string_copy(textdump_get_base(fileicon_text) + icon->large, large, FILEICON_SPRITE_NAME_LENGTH);
 			}
 		}
 	}

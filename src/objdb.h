@@ -177,11 +177,12 @@ unsigned objdb_get_filetype(struct objdb_block *handle, unsigned key);
  * \param *handle		The database to look in.
  * \param key			The key of the object to be returned, or OBJDB_NULL_KEY.
  * \param *info			A block to take the information, or NULL to get required size.
+ * \param size			The size of the block, or 0 to get the required size.
  * \param *additional		A block to return addition info, or NULL to get the required info size.
  * \return			The required block size.
  */
 
-size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info, struct objdb_info *additional);
+size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info, size_t size, struct objdb_info *additional);
 
 
 /**

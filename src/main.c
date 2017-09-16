@@ -85,6 +85,18 @@
 #include "search.h"
 #include "settime.h"
 
+/**
+ * The size of buffer allocated to resource filename processing.
+ */
+
+#define MAIN_FILENAME_BUFFER_LEN 1024
+
+/**
+ * The size of buffer allocated to the task name.
+ */
+
+#define MAIN_TASKNAME_BUFFER_LEN 64
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 static void	main_poll_loop(void);
@@ -177,19 +189,19 @@ static void main_poll_loop(void)
 
 static void main_initialise(void)
 {
-	static char			task_name[255];
-	char				resources[255], res_temp[255];
+	static char			task_name[MAIN_TASKNAME_BUFFER_LEN];
+	char				resources[MAIN_FILENAME_BUFFER_LEN], res_temp[MAIN_FILENAME_BUFFER_LEN];
 	osspriteop_area			*sprites;
 
 
 	hourglass_on();
 
-	strcpy(resources, "<Locate$Dir>.Resources");
-	resources_find_path(resources, sizeof(resources));
+	string_copy(resources, "<Locate$Dir>.Resources", MAIN_FILENAME_BUFFER_LEN);
+	resources_find_path(resources, MAIN_FILENAME_BUFFER_LEN);
 
 	/* Load the messages file. */
 
-	snprintf(res_temp, sizeof(res_temp), "%s.Messages", resources);
+	string_printf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Messages", resources);
 	msgs_initialise(res_temp);
 
 	/* Initialise the error message system. */
@@ -198,7 +210,7 @@ static void main_initialise(void)
 
 	/* Initialise with the Wimp. */
 
-	msgs_lookup("TaskName", task_name, sizeof (task_name));
+	msgs_lookup("TaskName", task_name, MAIN_TASKNAME_BUFFER_LEN);
 	main_task_handle = wimp_initialise(wimp_VERSION_RO3, task_name, NULL, NULL);
 
 	event_add_message_handler(message_QUIT, EVENT_MESSAGE_INCOMING, main_message_quit);
@@ -229,7 +241,7 @@ static void main_initialise(void)
 
 	/* Load the menu structure. */
 
-	snprintf(res_temp, sizeof(res_temp), "%s.Menus", resources);
+	string_printf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Menus", resources);
 	templates_load_menus(res_temp);
 
 	/* Load the window templates. */
@@ -240,7 +252,7 @@ static void main_initialise(void)
 
 	main_wimp_sprites = sprites;
 
-	snprintf(res_temp, sizeof(res_temp), "%s.Templates", resources);
+	string_printf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Templates", resources);
 	templates_open(res_temp);
 
 	/* Initialise the individual modules. */

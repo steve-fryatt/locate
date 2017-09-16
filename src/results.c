@@ -1,4 +1,4 @@
-/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -81,6 +81,9 @@
 
 #define STATUS_LENGTH 128							/**< The maximum size of the status bar text field.			*/
 #define TITLE_LENGTH 256							/**< The maximum size of the undefined title bar text field. 		*/
+#define ERROR_LENGTH 128							/**< The maximum size of the error message text.			*/
+#define NUM_BUF_LENGTH 20							/**< The size of a buffer used to render numbers.			*/
+#define VALIDATION_LEN 256							/**< The size of a buffer used to build validation strings.		*/
 
 #define RESULTS_TOOLBAR_HEIGHT 0						/**< The height of the toolbar in OS units.				*/
 #define RESULTS_LINE_HEIGHT 56							/**< The height of a results line, in OS units.				*/
@@ -648,7 +651,7 @@ osbool results_save_file(struct results_window *handle, struct discfile_block *o
  * Load results data from a file and create a results window from it.
  *
  * \param *file			The file block to which the window belongs.
- * \param *objects		The boject database from which file data should be taken.
+ * \param *objects		The object database from which file data should be taken.
  * \param *load			The discfile from which to load the details
  * \return			The results window handle, or NULL on failure.
  */
@@ -657,8 +660,8 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 {
 	struct results_window		*new;
 	struct results_file_block	data;
-	char				title[TITLE_LENGTH], status[256], errors[256], number[20];
-;
+	char				title[TITLE_LENGTH], status[STATUS_LENGTH], errors[ERROR_LENGTH], number[NUM_BUF_LENGTH];
+
 	int				i, size, position;
 	unsigned			lines, file_count, error_count;
 
@@ -776,12 +779,12 @@ struct results_window *results_load_file(struct file_block *file, struct objdb_b
 	if (error_count == 0) {
 		*errors = '\0';
 	} else {
-		snprintf(number, sizeof(number), "%d", error_count);
-		msgs_param_lookup("Errors", errors, sizeof(errors), number, NULL, NULL, NULL);
+		string_printf(number, NUM_BUF_LENGTH, "%d", error_count);
+		msgs_param_lookup("Errors", errors, ERROR_LENGTH, number, NULL, NULL, NULL);
 	}
 
-	snprintf(number, sizeof(number), "%d", file_count);
-	msgs_param_lookup("Found", status, sizeof(status), number, errors, NULL, NULL);
+	string_printf(number, NUM_BUF_LENGTH, "%d", file_count);
+	msgs_param_lookup("Found", status, STATUS_LENGTH, number, errors, NULL, NULL);
 
 	results_set_status(new, status);
 
@@ -1054,16 +1057,17 @@ static void results_redraw_handler(wimp_draw *redraw)
 	struct objdb_info	object;
 	osgbpb_info		*file;
 	wimp_icon		*icon;
-	char			validation[255];
+	char			validation[VALIDATION_LEN];
 	char			*truncation, *size, *attributes, *date;
-	size_t			truncation_len;
+	size_t			info_size, truncation_len;
 
 	handle = (struct results_window *) event_get_window_user_data(redraw->w);
 
 	if (handle == NULL)
 		return;
 
-	file = malloc(objdb_get_info(handle->objects, OBJDB_NULL_KEY, NULL, NULL));
+	info_size = objdb_get_info(handle->objects, OBJDB_NULL_KEY, NULL, 0, NULL);
+	file = malloc(info_size);
 
 	/* Identify the amount of buffer space required, by finding the largest of
 	 * all of the uses it will be put to.
@@ -1098,7 +1102,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 	/* Set up the truncation line. */
 
 	if (truncation != NULL)
-		strcpy(truncation, "...");
+		string_copy(truncation, "...", truncation_len);
 
 	/* Redraw the window. */
 
@@ -1131,17 +1135,17 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_FILE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_FILE].extent.y1 = LINE_Y1(y);
 
-				objdb_get_info(handle->objects, handle->redraw[i].file, file, &object);
+				objdb_get_info(handle->objects, handle->redraw[i].file, file, info_size, &object);
 				fileicon_get_object_icon(file, &typeinfo);
 
 				if (typeinfo.small != TEXTDUMP_NULL) {
-					strcpy(validation + 1, fileicon_get_base() + typeinfo.small);
+					string_copy(validation + 1, fileicon_get_base() + typeinfo.small, VALIDATION_LEN - 1);
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 				} else if (typeinfo.large != TEXTDUMP_NULL) {
-					strcpy(validation + 1, fileicon_get_base() + typeinfo.large);
+					string_copy(validation + 1, fileicon_get_base() + typeinfo.large, VALIDATION_LEN - 1);
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
 				} else {
-					strcpy(validation + 1, "small_xxx");
+					string_copy(validation + 1, "small_xxx", VALIDATION_LEN - 1);
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 				}
 
@@ -1181,7 +1185,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 				icon[RESULTS_ICON_TYPE].extent.y0 = LINE_Y0(y);
 				icon[RESULTS_ICON_TYPE].extent.y1 = LINE_Y1(y);
 
-				objdb_get_info(handle->objects, handle->redraw[i].file, file, &object);
+				objdb_get_info(handle->objects, handle->redraw[i].file, file, info_size, &object);
 				fileicon_get_object_icon(file, &typeinfo);
 
 				if (typeinfo.name != TEXTDUMP_NULL) {
@@ -1246,7 +1250,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 				 */
 
 				if (truncation != NULL && handle->redraw[i].truncate > 0) {
-					strcpy(truncation + 3, textdump_get_base(handle->text) + handle->redraw[i].text + handle->redraw[i].truncate);
+					string_copy(truncation + 3, textdump_get_base(handle->text) + handle->redraw[i].text + handle->redraw[i].truncate, truncation_len - 3);
 					icon[RESULTS_ICON_SIZE].data.indirected_text.text = truncation;
 				} else {
 					icon[RESULTS_ICON_SIZE].data.indirected_text.text = textdump_get_base(handle->text) + handle->redraw[i].text;
@@ -1272,13 +1276,13 @@ static void results_redraw_handler(wimp_draw *redraw)
 				fileicon_get_special_icon(handle->redraw[i].sprite, &typeinfo);
 
 				if (typeinfo.small != TEXTDUMP_NULL) {
-					strcpy(validation + 1, fileicon_get_base() + typeinfo.small);
+					string_copy(validation + 1, fileicon_get_base() + typeinfo.small, VALIDATION_LEN - 1);
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 				} else if (typeinfo.large != TEXTDUMP_NULL) {
-					strcpy(validation + 1, fileicon_get_base() + typeinfo.large);
+					string_copy(validation + 1, fileicon_get_base() + typeinfo.large, VALIDATION_LEN - 1);
 					icon[RESULTS_ICON_FILE].flags |= wimp_ICON_HALF_SIZE;
 				} else {
-					strcpy(validation + 1, "small_xxx");
+					string_copy(validation + 1, "small_xxx", VALIDATION_LEN - 1);
 					icon[RESULTS_ICON_FILE].flags &= ~wimp_ICON_HALF_SIZE;
 				}
 
@@ -1287,7 +1291,7 @@ static void results_redraw_handler(wimp_draw *redraw)
 				 */
 
 				if (truncation != NULL && handle->redraw[i].truncate > 0) {
-					strcpy(truncation + 3, textdump_get_base(handle->text) + handle->redraw[i].text + handle->redraw[i].truncate);
+					string_copy(truncation + 3, textdump_get_base(handle->text) + handle->redraw[i].text + handle->redraw[i].truncate, truncation_len - 3);
 					icon[RESULTS_ICON_FILE].data.indirected_text.text = truncation;
 				} else {
 					icon[RESULTS_ICON_FILE].data.indirected_text.text = textdump_get_base(handle->text) + handle->redraw[i].text;
@@ -1450,15 +1454,15 @@ void results_set_status_template(struct results_window *handle, char *token, cha
 	i = (strlen(text) + 1) - STATUS_LENGTH;
 
 	if (i <= 0) {
-		strncpy(truncate, text, sizeof(truncate));
+		string_copy(truncate, text, STATUS_LENGTH);
 	} else {
 		i += 3;
 
 		while (i-- > 0 && *text != '\0')
 			text++;
 
-		strncpy(truncate, "...", sizeof(truncate));
-		strncpy(truncate + 3, text, sizeof(truncate) - 3);
+		string_copy(truncate, "...", STATUS_LENGTH);
+		string_copy(truncate + 3, text, STATUS_LENGTH - 3);
 	}
 
 	icon.w = handle->status;
@@ -1723,7 +1727,7 @@ static osbool results_reformat_line(struct results_window *handle, unsigned line
 	if (handle->redraw[line].format_width == handle->format_width)
 		return FALSE;
 
-	strcpy(truncate, "...");
+	string_copy(truncate, "...", truncate_len);
 
 	text = textdump_get_base(handle->text);
 
@@ -1762,7 +1766,7 @@ static osbool results_reformat_line(struct results_window *handle, unsigned line
 		if (handle->redraw[line].truncate == 0 && wimptextop_string_width(text + handle->redraw[line].text, 0) <= width)
 			break;
 
-		strcpy(truncate + 3, text + handle->redraw[line].text);
+		string_copy(truncate + 3, text + handle->redraw[line].text, truncate_len - 3);
 		length = strlen(truncate + 3);
 		pos = 0;
 
@@ -2018,11 +2022,13 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 	wimp_auto_scroll_info	scroll;
 	osgbpb_info		*file;
 	char			*sprite = NULL;
+	size_t			info_size;
 
 	if (handle == NULL || pointer == NULL || state == NULL)
 		return;
 
-	file = malloc(objdb_get_info(handle->objects, handle->redraw[row].file, NULL, NULL));
+	info_size = objdb_get_info(handle->objects, handle->redraw[row].file, NULL, 0, NULL);
+	file = malloc(info_size);
 	if (file == NULL)
 		return;
 
@@ -2037,7 +2043,7 @@ static void results_drag_select(struct results_window *handle, unsigned row, wim
 		extent.y1 = LINE_Y1(row);
 
 		if (handle->selection_count == 1 && handle->selection_row == row) {
-			objdb_get_info(handle->objects, handle->redraw[handle->redraw[row].index].file, file, NULL);
+			objdb_get_info(handle->objects, handle->redraw[handle->redraw[row].index].file, file, info_size, NULL);
 			fileicon_get_object_icon(file, &icon);
 
 			if (icon.large != TEXTDUMP_NULL)
@@ -2102,14 +2108,15 @@ static void results_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 	osgbpb_info		*info;
 	struct objdb_info	object;
 	unsigned		row;
-	size_t			pathname_len;
+	size_t			info_size, pathname_len;
 	char			*pathname;
 
 
 	if (handle == NULL)
 		return;
 
-	info = malloc(objdb_get_info(handle->objects, OBJDB_NULL_KEY, NULL, NULL));
+	info_size = objdb_get_info(handle->objects, OBJDB_NULL_KEY, NULL, 0, NULL);
+	info = malloc(info_size);
 	if (info == NULL)
 		return;
 
@@ -2126,7 +2133,7 @@ static void results_xfer_drag_end_handler(wimp_pointer *pointer, void *data)
 			continue;
 
 		objdb_get_name(handle->objects, handle->redraw[handle->redraw[row].index].file, pathname, pathname_len);
-		objdb_get_info(handle->objects, handle->redraw[handle->redraw[row].index].file, info, &object);
+		objdb_get_info(handle->objects, handle->redraw[handle->redraw[row].index].file, info, info_size, &object);
 
 		dataxfer_start_load(pointer, pathname, info->size, object.filetype, 0);
 	}
@@ -2415,7 +2422,7 @@ static void results_select_none(struct results_window *handle)
 static void results_run_object(struct results_window *handle, unsigned row)
 {
 	char			*buffer, *filename, *command = "Filer_Run ";
-	size_t			buffer_length;
+	size_t			buffer_length, command_length;
 	enum objdb_status	status;
 
 	if (handle == NULL || row >= handle->display_lines)
@@ -2434,17 +2441,16 @@ static void results_run_object(struct results_window *handle, unsigned row)
 	}
 
 	buffer_length = objdb_get_name_length(handle->objects, handle->redraw[row].file);
-	buffer = malloc(buffer_length + strlen(command));
+	command_length = buffer_length + strlen(command);
+	buffer = malloc(command_length);
 	if (buffer == NULL)
 		return;
 
-	strcpy(buffer, command);
+	string_copy(buffer, command, command_length);
 	filename = buffer + strlen(command);
 
-	if (!objdb_get_name(handle->objects, handle->redraw[row].file, filename, buffer_length))
-		return;
-
-	xos_cli(buffer);
+	if (objdb_get_name(handle->objects, handle->redraw[row].file, filename, buffer_length))
+		xos_cli(buffer);
 
 	free(buffer);
 }
@@ -2460,7 +2466,7 @@ static void results_run_object(struct results_window *handle, unsigned row)
 static void results_open_parent(struct results_window *handle, unsigned row)
 {
 	char			*buffer, *filename, *command = "Filer_OpenDir ";
-	size_t			buffer_length;
+	size_t			buffer_length, command_length;
 	unsigned		key;
 	enum objdb_status	status;
 
@@ -2485,17 +2491,16 @@ static void results_open_parent(struct results_window *handle, unsigned row)
 	}
 
 	buffer_length = objdb_get_name_length(handle->objects, key);
-	buffer = malloc(buffer_length + strlen(command));
+	command_length = buffer_length + strlen(command);
+	buffer = malloc(command_length);
 	if (buffer == NULL)
 		return;
 
-	strcpy(buffer, command);
+	string_copy(buffer, command, command_length);
 	filename = buffer + strlen(command);
 
-	if (!objdb_get_name(handle->objects, key, filename, buffer_length))
-		return;
-
-	xos_cli(buffer);
+	if (objdb_get_name(handle->objects, key, filename, buffer_length))
+		xos_cli(buffer);
 
 	free(buffer);
 }
@@ -2514,6 +2519,7 @@ static void results_object_info_prepare(struct results_window *handle)
 	osgbpb_info		*file;
 	struct fileicon_info	info;
 	struct objdb_info	object;
+	size_t			info_size;
 
 
 	if (handle == NULL || handle->selection_count != 1 || handle->selection_row >= handle->display_lines)
@@ -2526,11 +2532,12 @@ static void results_object_info_prepare(struct results_window *handle)
 
 	/* Get the data. */
 
-	file = malloc(objdb_get_info(handle->objects, handle->redraw[row].file, NULL, NULL));
+	info_size = objdb_get_info(handle->objects, handle->redraw[row].file, NULL, 0, NULL);
+	file = malloc(info_size);
 	if (file == NULL)
 		return;
 
-	objdb_get_info(handle->objects, handle->redraw[row].file, file, &object);
+	objdb_get_info(handle->objects, handle->redraw[row].file, file, info_size, &object);
 	fileicon_get_object_icon(file, &info);
 
 	base = fileicon_get_base();
@@ -2578,7 +2585,7 @@ static void results_object_info_prepare(struct results_window *handle)
 
 static char *results_create_attributes_string(fileswitch_attr attributes, char *buffer, size_t length)
 {
-	snprintf(buffer, length, "%s%s%s%s/%s%s%s%s",
+	string_printf(buffer, length, "%s%s%s%s/%s%s%s%s",
 			(attributes & fileswitch_ATTR_OWNER_WRITE) ? "W" : "",
 			(attributes & fileswitch_ATTR_OWNER_READ) ? "R" : "",
 			(attributes & fileswitch_ATTR_OWNER_LOCKED) ? "L" : "",
@@ -2616,7 +2623,7 @@ static char *results_create_address_string(unsigned load_addr, unsigned exec_add
 		else
 			*buffer = '\0';
 	} else {
-		snprintf(buffer, length, "%08X %08X", load_addr, exec_addr);
+		string_printf(buffer, length, "%08X %08X", load_addr, exec_addr);
 	}
 
 	return buffer;

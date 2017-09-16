@@ -1,4 +1,4 @@
-/* Copyright 2013-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2013-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -1439,7 +1439,7 @@ static osbool hotlist_read_add_window(void)
 	}
 
 	if (hotlist_add_dialogue_handle == NULL && hotlist_add_entry >= 0 && hotlist_add_entry < hotlist_entries) {
-		strncpy(hotlist[hotlist_add_entry].name, new_name, HOTLIST_NAME_LENGTH);
+		string_copy(hotlist[hotlist_add_entry].name, new_name, HOTLIST_NAME_LENGTH);
 
 		window.w = hotlist_window;
 		if (xwimp_get_window_state(&window) == NULL) {
@@ -1477,7 +1477,7 @@ static osbool hotlist_add_new_entry(char *name, enum hotlist_block_flags flags, 
 		return FALSE;
 	}
 
-	strncpy(hotlist[hotlist_entries].name, name, HOTLIST_NAME_LENGTH);
+	string_copy(hotlist[hotlist_entries].name, name, HOTLIST_NAME_LENGTH);
 	hotlist[hotlist_entries].dialogue = dialogue;
 	hotlist[hotlist_entries].flags = flags | HOTLIST_FLAG_SELECTABLE;
 
@@ -1550,7 +1550,7 @@ static int hotlist_move_entry(int entry, int insert_before)
 
 	/* Copy the block to be moved. */
 
-	strncpy(temp.name, hotlist[entry].name, HOTLIST_NAME_LENGTH);
+	string_copy(temp.name, hotlist[entry].name, HOTLIST_NAME_LENGTH);
 	temp.dialogue = hotlist[entry].dialogue;
 	temp.flags = hotlist[entry].flags;
 
@@ -1571,7 +1571,7 @@ static int hotlist_move_entry(int entry, int insert_before)
 
 	/* Put the copy back into the hotlist. */
 
-	strncpy(hotlist[insert_at].name, temp.name, HOTLIST_NAME_LENGTH);
+	string_copy(hotlist[insert_at].name, temp.name, HOTLIST_NAME_LENGTH);
 	hotlist[insert_at].dialogue = temp.dialogue;
 	hotlist[insert_at].flags = temp.flags;
 

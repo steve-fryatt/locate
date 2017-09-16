@@ -1,4 +1,4 @@
-/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -526,11 +526,12 @@ unsigned objdb_get_filetype(struct objdb_block *handle, unsigned key)
  * \param *handle		The database to look in.
  * \param key			The key of the object to be returned, or OBJDB_NULL_KEY.
  * \param *info			A block to take the information, or NULL to get required size.
+ * \param size			The size of the block, or 0 to get the required size.
  * \param *additional		A block to return addition info, or NULL to get the required info size.
  * \return			The required block size.
  */
 
-size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info, struct objdb_info *additional)
+size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *info, size_t size, struct objdb_info *additional)
 {
 	char		*base;
 	unsigned	index;
@@ -554,7 +555,7 @@ size_t objdb_get_info(struct objdb_block *handle, unsigned key, osgbpb_info *inf
 		info->size = handle->list[index].size;
 		info->attr = handle->list[index].attributes;
 		info->obj_type = handle->list[index].type;
-		strcpy(info->name, base + handle->list[index].name);
+		string_copy(info->name, base + handle->list[index].name, size - 20);
 	}
 
 	if (additional != NULL) {

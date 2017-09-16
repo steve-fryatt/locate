@@ -1,4 +1,4 @@
-/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -191,6 +191,8 @@
 #define DIALOGUE_MENU_ADD_TO_HOTLIST 1
 
 #define DIALOGUE_MAX_FILE_LINE 1024
+
+#define DIALOGUE_TYPE_NAME_BUFFER_LENGTH 9
 
 #define MAX_BUFFER(current, size) (((size) > (current)) ? (size) : (current))
 
@@ -564,6 +566,7 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *filename, 
 	struct dialogue_block	*new;
 	osbool			mem_ok = TRUE;
 	int			i;
+	size_t			path_len, filename_len, contents_len;
 
 	if (filename == NULL && template == NULL)
 		filename = "";
@@ -573,6 +576,10 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *filename, 
 
 	if (path == NULL && template == NULL)
 		return NULL;
+
+	path_len = strlen((path == NULL) ? template->path : path) + 1;
+	filename_len = strlen((template != NULL) ? template->filename : filename) + 1;
+	contents_len = strlen((template != NULL) ? template->contents_text : "") + 1;
 
 	/* Count the number of filetypes that are in the block, then
 	 * allocate all of the memory that we require.
@@ -596,16 +603,16 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *filename, 
 		new->type_types = NULL;
 		new->contents_text = NULL;
 
-		if (flex_alloc((flex_ptr) &(new->path), strlen((path == NULL) ? template->path : path) + 1) == 0)
+		if (flex_alloc((flex_ptr) &(new->path), path_len) == 0)
 			mem_ok = FALSE;
 
-		if (flex_alloc((flex_ptr) &(new->filename), strlen((template != NULL) ? template->filename : filename) + 1) == 0)
+		if (flex_alloc((flex_ptr) &(new->filename), filename_len) == 0)
 			mem_ok = FALSE;
 
 		if (flex_alloc((flex_ptr) &(new->type_types), i * sizeof(unsigned)) == 0)
 			mem_ok = FALSE;
 
-		if (flex_alloc((flex_ptr) &(new->contents_text), strlen((template != NULL) ? template->contents_text : "") + 1) == 0)
+		if (flex_alloc((flex_ptr) &(new->contents_text), contents_len) == 0)
 			mem_ok = FALSE;
 
 	}
@@ -621,12 +628,12 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *filename, 
 
 	new->pane = (template != NULL) ? template->pane : DIALOGUE_PANE_SIZE;
 
-	strcpy(new->path, (path == NULL) ? template->path : path);
+	string_copy(new->path, (path == NULL) ? template->path : path, path_len);
 
 	/* Filename Details */
 
 	new->name_mode = (template != NULL) ? template->name_mode : DIALOGUE_NAME_EQUAL_TO;
-	strcpy(new->filename, (filename == NULL) ? template->filename : filename);
+	string_copy(new->filename, (filename == NULL) ? template->filename : filename, filename_len);
 	new->ignore_case = (template != NULL) ? template->ignore_case : TRUE;
 
 	/* Size Details */
@@ -683,7 +690,7 @@ struct dialogue_block *dialogue_create(struct file_block *file, char *filename, 
 	/* Contents Details. */
 
 	new->contents_mode = (template != NULL) ? template->contents_mode : DIALOGUE_CONTENTS_ARE_NOT_IMPORTANT;
-	strcpy(new->contents_text, (template != NULL) ? template->contents_text : "");
+	string_copy(new->contents_text, (template != NULL) ? template->contents_text : "", contents_len);
 	new->contents_ignore_case = (template != NULL) ? template->contents_ignore_case : TRUE;
 	new->contents_ctrl_chars = (template != NULL) ? template->contents_ctrl_chars : FALSE;
 
@@ -1523,7 +1530,7 @@ static void dialogue_shade_contents_pane(void)
 
 static void dialogue_write_filetype_list(char *buffer, size_t length, unsigned types[])
 {
-	char	*insert, *end, name[9];
+	char	*insert, *end, name[DIALOGUE_TYPE_NAME_BUFFER_LENGTH];
 	int	i, j;
 
 	insert = buffer;
@@ -1532,16 +1539,19 @@ static void dialogue_write_filetype_list(char *buffer, size_t length, unsigned t
 
 	for (i = 0; types[i] != 0xffffffffu; i++) {
 		if (types[i] == 0x1000u)
-			strncpy(name, "Untyped", sizeof(name));
+			string_copy(name, "Untyped", DIALOGUE_TYPE_NAME_BUFFER_LENGTH);
 		else if (xosfscontrol_read_file_type(types[i], (bits *) &name[0], (bits *) &name[4]) != NULL)
 			continue;
 
 		if (insert != buffer && insert < end)
 			*insert++ = ',';
 
-		for (j = 0; j < 8 && !isspace(name[j]); j++)
+		for (j = 0; insert < end && j < 8 && !isspace(name[j]); j++)
 			*insert++ = name[j];
 	}
+
+	if (insert > end)
+		insert = end;
 
 	*insert = '\0';
 }
@@ -2165,7 +2175,7 @@ static osbool dialogue_xfer_save_handler(char *filename, void *data)
 {
 	char				*insert, *end, path[256], *p;
 
-	strcpy(path, filename);
+	string_copy(path, filename, 256);
 
 	string_find_pathname(path);
 
@@ -2220,7 +2230,7 @@ static osbool dialogue_icon_drop_handler(wimp_message *message)
 
 	/* It's our window and the correct icon, so start by copying the filename. */
 
-	strcpy(path, datasave->file_name);
+	string_copy(path, datasave->file_name, 212);
 
 	/* If it's a folder, take just the pathname. */
 
@@ -2298,7 +2308,7 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 
 	/* Create the search and give up if this fails. */
 
-	strncpy(buffer, dialogue->path, buffer_size);
+	string_copy(buffer, dialogue->path, buffer_size);
 
 	search = file_create_search(dialogue->file, buffer);
 
@@ -2315,7 +2325,7 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 	/* Set the filename search options. */
 
 	if (strcmp(dialogue->filename, "") != 0 && strcmp(dialogue->filename, "*") != 0 && dialogue->name_mode != DIALOGUE_NAME_NOT_IMPORTANT) {
-		strncpy(buffer, dialogue->filename, buffer_size);
+		string_copy(buffer, dialogue->filename, buffer_size);
 		search_set_filename(search, buffer, dialogue->ignore_case,
 				(dialogue->name_mode == DIALOGUE_NAME_NOT_EQUAL_TO || dialogue->name_mode == DIALOGUE_NAME_DOES_NOT_CONTAIN) ? TRUE : FALSE);
 	}
@@ -2498,7 +2508,7 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 	/* Set the contents search options. */
 
 	if (strcmp(dialogue->contents_text, "") != 0 && strcmp(dialogue->contents_text, "*") != 0 && dialogue->contents_mode != DIALOGUE_CONTENTS_ARE_NOT_IMPORTANT) {
-		strncpy(buffer, dialogue->contents_text, buffer_size);
+		string_copy(buffer, dialogue->contents_text, buffer_size);
 		search_set_contents(search, buffer, dialogue->contents_ignore_case, (dialogue->contents_mode == DIALOGUE_CONTENTS_DO_NOT_INCLUDE) ? TRUE : FALSE);
 	}
 
@@ -2724,7 +2734,7 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 	debug_printf("Type Mode: %d", dialogue->type_mode);
 
 	index = 0;
-	for (i = 0; dialogue->type_types[i] != 0xffffffffu; i++) {
+	for (i = 0; index >= 0 && dialogue->type_types[i] != 0xffffffffu; i++) {
 		index += snprintf(line + index, DIALOGUE_MAX_FILE_LINE - (index + 1), "%03x,", dialogue->type_types[i]);
 	}
 	if (index > 0)
