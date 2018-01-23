@@ -529,7 +529,7 @@ struct results_window *results_create(struct file_block *file, struct objdb_bloc
 	event_add_window_menu_close(new->status, results_menu_close);
 
 	windows_open(new->window);
-	windows_open_nested_as_footer(new->status, new->window, status_height);
+	windows_open_nested_as_footer(new->status, new->window, status_height, FALSE);
 
 	return new;
 }

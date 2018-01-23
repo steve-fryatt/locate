@@ -344,7 +344,7 @@ void hotlist_open(wimp_pointer *pointer)
 
 	hotlist_update_toolbar();
 	windows_open_centred_at_pointer(hotlist_window, pointer);
-	windows_open_nested_as_toolbar(hotlist_window_pane, hotlist_window, HOTLIST_TOOLBAR_HEIGHT);
+	windows_open_nested_as_toolbar(hotlist_window_pane, hotlist_window, HOTLIST_TOOLBAR_HEIGHT, FALSE);
 }
 
 
