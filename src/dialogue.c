@@ -367,7 +367,7 @@ static struct saveas_block	*dialogue_save_search = NULL;			/**< The Save Search 
 static struct	dialogue_block *dialogue_load_legacy_file(struct file_block *file, struct discfile_block *load);
 static void	dialogue_close_window(void);
 static void	dialogue_change_pane(unsigned pane);
-static void	dialogue_toggle_size(bool expand);
+static void	dialogue_toggle_size(osbool expand);
 static void	dialogue_set_window(struct dialogue_block *dialogue);
 static void	dialogue_shade_window(void);
 static void	dialogue_shade_size_pane(void);
@@ -1271,7 +1271,7 @@ static void dialogue_change_pane(unsigned pane)
  * \param expand		TRUE to expand the window; FALSE to contract.
  */
 
-static void dialogue_toggle_size(bool expand)
+static void dialogue_toggle_size(osbool expand)
 {
 	wimp_window_info	info;
 	int			height;
