@@ -39,6 +39,8 @@
 
 /* SFLib Header files. */
 
+#include "sflib/string.h"
+
 /* OSLib Header files. */
 
 #include "oslib/types.h"
@@ -58,15 +60,19 @@
 
 osbool flexutils_store_string(flex_ptr ptr, char *text)
 {
+	size_t length;
+
+	length = strlen(text) + 1;
+
 	if (*ptr == NULL) {
-		if (flex_alloc(ptr, strlen(text) + 1) == 0)
+		if (flex_alloc(ptr, length) == 0)
 			return FALSE;
 	} else {
-		if (flex_extend(ptr, strlen(text) + 1) == 0)
+		if (flex_extend(ptr, length) == 0)
 			return FALSE;
 	}
 
-	strcpy((char *) *ptr, text);
+	string_copy((char *) *ptr, text, length);
 
 	return TRUE;
 }

@@ -1,4 +1,4 @@
-/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -137,8 +137,7 @@ void file_create_dialogue_at(char *coords)
 	if (coords == NULL)
 		return;
 
-	strncpy(x, coords, 32);
-	x[31] = '\0';
+	string_copy(x, coords, 32);
 
 	y = strchr(x, 'x');
 	if (y == NULL)

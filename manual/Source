@@ -16,7 +16,7 @@ Version $$version$$ ($$date$$) 
 #Below
 #Line
 #Align Centre
-Locate is {f*:Open Source}: please read the <License>
+Locate is {f*:Open Source}: please read the <Licence>
 
 #Indent 2
 #Table Columns 4
@@ -98,7 +98,7 @@ Version $$version$$ ($$date$$)</p>
 
 
 
-<chapter title="License" file="License">
+<chapter title="Licence" file="Licence">
 
 <cite>Locate</cite> is licensed under the EUPL, Version&nbsp;1.1 only (the &ldquo;Licence&rdquo;); you may not use this work except in compliance with the Licence.
 
@@ -135,6 +135,8 @@ Unless it explicitly stated otherwise, references in this manual to &ldquo;Locat
 <chapter title="Installing Locate" file="Installation">
 
 <cite>Locate</cite> requires RISC&nbsp;OS&nbsp;4 or later; it might work with earlier versions, but requires the Nested Wimp and its use is unsupported.  It can be run off a hard disc or floppy disc.
+
+It is 26/32-bit neutral, and should therefore run on all hardware systems as long as the 32-bit Shared C Library is installed. If required, this can be found in the System Resources on RISC&nbsp;OS Open Ltd&rsquo;s website at <link ref="https://www.riscosopen.org/content/downloads/common">https://www.riscosopen.org/content/downloads/common</link>.
 
 To install <cite>Locate</cite> on a hard disc, copy the <file>!Locate</file> application to a suitable directory. If you have installed <cite>Locate</cite> using a package management system, then please refer to the instructions which came with that.
 
@@ -813,6 +815,16 @@ Update to second stable release.
 
 <list>
 <li>Stop stray debug output from being sent to Reporter (tickets&nbsp;#580 &amp; #586).
+</list>
+
+
+<subhead title="Test Build">
+
+Alpha release for feedback and comment.
+
+<list>
+<li>Remove all unbounded string operations from source code.
+<li>Correctly ensure that a C99-friendly version of the Shared C Library is present (ticket&nbsp;#634).
 </list>
 
 </chapter>

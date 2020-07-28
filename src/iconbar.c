@@ -1,4 +1,4 @@
-/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -281,7 +281,7 @@ static osbool iconbar_icon_drop_handler(wimp_message *message)
 
 	wimp_get_pointer_info(&pointer);
 
-	strcpy(path, datasave->file_name);
+	string_copy(path, datasave->file_name, 256);
 
 	/* If it's a folder, take just the pathname. */
 

@@ -70,6 +70,10 @@
 #define SEARCH_MAX_FILENAME 256							/**< The maximum length of a file (object) name.			*/
 #define SEARCH_BLOCK_SIZE 4096							/**< The amount of memory to allocate to OS_GBPB.			*/
 
+#define STATUS_LENGTH 128							/**< The maximum size of the status bar text field.			*/
+#define ERROR_LENGTH 128							/**< The maximum size of the error message text.			*/
+#define NUM_BUF_LENGTH 20							/**< The size of a buffer used to render numbers.			*/
+
 #define SEARCH_NULL 0xffffffff							/**< 'NULL' value for use with the unsigned flex block offsets.		*/
 
 /* A data structure to hold the search stack. */
@@ -593,7 +597,7 @@ void search_start(struct search_block *search)
 	if ((stack = search_add_stack(search)) == SEARCH_NULL)
 		return;
 
-	strncpy(search->stack[stack].filename, search->path[--search->path_count], SEARCH_MAX_FILENAME);
+	string_copy(search->stack[stack].filename, search->path[--search->path_count], SEARCH_MAX_FILENAME);
 	object_key = objdb_add_root(search->objects, search->stack[stack].filename);
 	search->stack[stack].parent = object_key;
 
@@ -623,7 +627,7 @@ void search_start(struct search_block *search)
 void search_stop(struct search_block *search)
 {
 	struct search_block	*active;
-	char			status[256], errors[256], number[20];
+	char			status[STATUS_LENGTH], errors[ERROR_LENGTH], number[NUM_BUF_LENGTH];
 
 
 	if (search == NULL || search->active == FALSE)
@@ -654,12 +658,12 @@ void search_stop(struct search_block *search)
 	if (search->error_count == 0) {
 		*errors = '\0';
 	} else {
-		snprintf(number, sizeof(number), "%d", search->error_count);
-		msgs_param_lookup("Errors", errors, sizeof(errors), number, NULL, NULL, NULL);
+		string_printf(number, NUM_BUF_LENGTH, "%d", search->error_count);
+		msgs_param_lookup("Errors", errors, ERROR_LENGTH, number, NULL, NULL, NULL);
 	}
 
-	snprintf(number, sizeof(number), "%d", search->file_count);
-	msgs_param_lookup("Found", status, sizeof(status), number, errors, NULL, NULL);
+	string_printf(number, NUM_BUF_LENGTH, "%d", search->file_count);
+	msgs_param_lookup("Found", status, STATUS_LENGTH, number, errors, NULL, NULL);
 
 	results_set_status(search->results, status);
 
@@ -930,11 +934,11 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 				if (file_data->obj_type == fileswitch_IS_DIR || (search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE)) {
 					/* Take a copy of the name before we shift the flex heap. */
 
-					strncpy(leafname, file_data->name, SEARCH_MAX_FILENAME);
+					string_copy(leafname, file_data->name, SEARCH_MAX_FILENAME);
 
 					stack = search_add_stack(search);
 
-					strncpy(search->stack[stack].filename, leafname, SEARCH_MAX_FILENAME);
+					string_copy(search->stack[stack].filename, leafname, SEARCH_MAX_FILENAME);
 					search->stack[stack].parent = search->stack[stack - 1].key;
 
 					continue;
@@ -971,7 +975,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 		if ((search->path_count > 0) && ((stack = search_add_stack(search)) != SEARCH_NULL)) {
 			/* Re-allocate a search stack and set up the first search folder. */
 
-			strncpy(search->stack[stack].filename, search->path[--search->path_count], SEARCH_MAX_FILENAME);
+			string_copy(search->stack[stack].filename, search->path[--search->path_count], SEARCH_MAX_FILENAME);
 
 			object_key = objdb_add_root(search->objects, search->stack[stack].filename);
 			search->stack[stack].parent = object_key;
@@ -1102,7 +1106,7 @@ osbool search_validate_paths(char *paths, osbool report)
 			} else if (type == fileswitch_NOT_FOUND || type == fileswitch_IS_FILE) {
 				if (report) {
 					if (strlen(path) > 200)
-						strcpy(path + 197, "...");
+						strcpy(path + 197, "..."); /* There's no bounds check, but we know that the buffer is longer than 200. */
 					msgs_param_lookup("BadPath", errbuf, sizeof(errbuf), path, NULL, NULL, NULL);
 					error_report_info(errbuf);
 				}

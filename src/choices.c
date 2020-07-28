@@ -1,4 +1,4 @@
-/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -75,6 +75,10 @@
 #define CHOICE_ICON_PLUGIN_WINDOW 14
 #define CHOICE_ICON_AUTOSCROLL 15
 #define CHOICE_ICON_VALIDATE_PATHS 16
+
+/* Maximum file & pathname length. */
+
+#define CHOICES_MAXIMUM_PATH_LENGTH 256
 
 
 /* Global variables */
@@ -181,7 +185,7 @@ static osbool choices_read_window(void)
 	if (!search_validate_paths(icons_get_indirected_text_addr(choices_window, CHOICE_ICON_SEARCH_PATH), FALSE)) {
 		selection = error_msgs_report_question("BadConfigPaths", "BadConfigPathsB");
 
-		if (selection == 1)
+		if (selection == 3)
 			return FALSE;
 	}
 
@@ -303,7 +307,7 @@ static osbool handle_choices_icon_drop(wimp_message *message)
 {
 	wimp_full_message_data_xfer	*datasave = (wimp_full_message_data_xfer *) message;
 
-	char				*insert, *end, path[256], *p;
+	char				*insert, *end, path[CHOICES_MAXIMUM_PATH_LENGTH], *p;
 
 	/* If it isn't our window, don't claim the message as someone else
 	 * might want it.
@@ -321,9 +325,9 @@ static osbool handle_choices_icon_drop(wimp_message *message)
 
 	/* It's our window and the correct icon, so start by copying the filename. */
 
-	strcpy(path, datasave->file_name);
+	string_copy(path, datasave->file_name, CHOICES_MAXIMUM_PATH_LENGTH);
 
-	/* If it's a folder, take just the pathname. */
+	/* If it's a file, take just the pathname for the parent folder. */
 
 	if (datasave->file_type <= 0xfff)
 		string_find_pathname(path);

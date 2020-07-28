@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2017, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -121,8 +121,7 @@ wimp_menu *typemenu_build(void)
 		validation = "small_xxx";
 		typemenu_types[typemenu_entries].small = FALSE;
 	}
-	strncpy(typemenu_types[typemenu_entries].validation + 1, validation, TYPEMENU_VALIDATION_LENGTH - 1);
-	typemenu_types[typemenu_entries].validation[TYPEMENU_VALIDATION_LENGTH - 1] = '\0';
+	string_copy(typemenu_types[typemenu_entries].validation + 1, validation, TYPEMENU_VALIDATION_LENGTH - 1);
 
 	typemenu_types[typemenu_entries].type = 0x1000u;
 
@@ -152,8 +151,7 @@ wimp_menu *typemenu_build(void)
 
 			/* Get the type name. */
 
-			strncpy(typemenu_types[typemenu_entries].name, buffer, TYPEMENU_NAME_LENGTH);
-			typemenu_types[typemenu_entries].name[TYPEMENU_NAME_LENGTH - 1] = '\0';
+			string_copy(typemenu_types[typemenu_entries].name, buffer, TYPEMENU_NAME_LENGTH);
 
 			/* Get the iconsprite name. */
 
@@ -169,8 +167,7 @@ wimp_menu *typemenu_build(void)
 				validation = "small_xxx";
 				typemenu_types[typemenu_entries].small = FALSE;
 			}
-			strncpy(typemenu_types[typemenu_entries].validation + 1, validation, TYPEMENU_VALIDATION_LENGTH - 1);
-			typemenu_types[typemenu_entries].validation[TYPEMENU_VALIDATION_LENGTH - 1] = '\0';
+			string_copy(typemenu_types[typemenu_entries].validation + 1, validation, TYPEMENU_VALIDATION_LENGTH - 1);
 
 			typemenu_entries++;
 		}

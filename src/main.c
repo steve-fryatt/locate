@@ -1,4 +1,4 @@
-/* Copyright 2012-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2020, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -42,6 +42,7 @@
 #include "oslib/wimp.h"
 #include "oslib/os.h"
 #include "oslib/osbyte.h"
+#include "oslib/osfile.h"
 #include "oslib/osspriteop.h"
 #include "oslib/uri.h"
 #include "oslib/hourglass.h"
@@ -84,6 +85,18 @@
 #include "results.h"
 #include "search.h"
 #include "settime.h"
+
+/**
+ * The size of buffer allocated to resource filename processing.
+ */
+
+#define MAIN_FILENAME_BUFFER_LEN 1024
+
+/**
+ * The size of buffer allocated to the task name.
+ */
+
+#define MAIN_TASKNAME_BUFFER_LEN 64
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -152,7 +165,7 @@ static void main_poll_loop(void)
 		 * via Event Lib.
 		 */
 
-		if (!event_process_event(reason, &blk, 0)) {
+		if (!event_process_event(reason, &blk, 0, NULL)) {
 			switch (reason) {
 			case wimp_NULL_REASON_CODE:
 				search_poll_all();
@@ -164,6 +177,10 @@ static void main_poll_loop(void)
 
 			case wimp_CLOSE_WINDOW_REQUEST:
 				wimp_close_window(blk.close.w);
+				break;
+
+			case wimp_KEY_PRESSED:
+				wimp_process_key(blk.key.c);
 				break;
 			}
 		}
@@ -177,19 +194,24 @@ static void main_poll_loop(void)
 
 static void main_initialise(void)
 {
-	static char			task_name[255];
-	char				resources[255], res_temp[255];
+	static char			task_name[MAIN_TASKNAME_BUFFER_LEN];
+	char				resources[MAIN_FILENAME_BUFFER_LEN], res_temp[MAIN_FILENAME_BUFFER_LEN];
 	osspriteop_area			*sprites;
 
 
 	hourglass_on();
 
-	strcpy(resources, "<Locate$Dir>.Resources");
-	resources_find_path(resources, sizeof(resources));
+	/* Initialise the resources. */
+
+	string_copy(resources, "<Locate$Dir>.Resources", MAIN_FILENAME_BUFFER_LEN);
+	if (!resources_initialise_paths(resources, MAIN_FILENAME_BUFFER_LEN, "Locate$Language", "UK"))
+		error_report_fatal("Failed to initialise resources.");
 
 	/* Load the messages file. */
 
-	snprintf(res_temp, sizeof(res_temp), "%s.Messages", resources);
+	if (!resources_find_file(resources, res_temp, MAIN_FILENAME_BUFFER_LEN, "Messages", osfile_TYPE_TEXT))
+		error_report_fatal("Failed to locate suitable Messages file.");
+
 	msgs_initialise(res_temp);
 
 	/* Initialise the error message system. */
@@ -198,7 +220,7 @@ static void main_initialise(void)
 
 	/* Initialise with the Wimp. */
 
-	msgs_lookup("TaskName", task_name, sizeof (task_name));
+	msgs_lookup("TaskName", task_name, MAIN_TASKNAME_BUFFER_LEN);
 	main_task_handle = wimp_initialise(wimp_VERSION_RO3, task_name, NULL, NULL);
 
 	event_add_message_handler(message_QUIT, EVENT_MESSAGE_INCOMING, main_message_quit);
@@ -229,16 +251,22 @@ static void main_initialise(void)
 
 	/* Load the menu structure. */
 
-	snprintf(res_temp, sizeof(res_temp), "%s.Menus", resources);
+	if (!resources_find_file(resources, res_temp, MAIN_FILENAME_BUFFER_LEN, "Menus", osfile_TYPE_DATA))
+		error_msgs_param_report_fatal("BadResource", "Menus", NULL, NULL, NULL);
+
 	templates_load_menus(res_temp);
 
 	/* Load the window templates. */
 
 	sprites = resources_load_user_sprite_area("<Locate$Sprites>.Sprites");
+	if (sprites == NULL)
+		error_msgs_report_fatal("NoSprites");
 
 	main_wimp_sprites = sprites;
 
-	snprintf(res_temp, sizeof(res_temp), "%s.Templates", resources);
+	if (!resources_find_file(resources, res_temp, MAIN_FILENAME_BUFFER_LEN, "Templates", osfile_TYPE_TEMPLATE))
+		error_msgs_param_report_fatal("BadResource", "Templates", NULL, NULL, NULL);
+
 	templates_open(res_temp);
 
 	/* Initialise the individual modules. */
@@ -283,7 +311,7 @@ static void main_post_initialise(void)
 
 	if (config_opt_read("ValidatePaths") && !search_validate_paths(config_str_read("SearchPath"), FALSE)) {
 		selection = error_msgs_report_question("BadLoadPaths", "BadLoadPathsB");
-		if (selection == 1) {
+		if (selection == 3) {
 			wimp_get_pointer_info(&pointer);
 			choices_open_window(&pointer);
 		}

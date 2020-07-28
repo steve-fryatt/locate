@@ -42,10 +42,10 @@ IconSprites <Locate$Sprites>.!Sprites
 
 RMEnsure WindowManager 3.98 Error Locate requires the Nested Window Manager.
 
-| Ensure that the Castle Shared C Library is present.
+| Ensure that the Castle Shared C Library is present, with C99 support.
 
 RMEnsure SharedCLibrary 5.17 RMLoad System:Modules.CLib
-RMEnsure SharedCLibrary 5.34 Error Locate requires version 5.34 or later of the Shared C Library.
+RMEnsure SharedCLibrary 5.43 Error Locate requires version 5.43 or later of the Shared C Library.
 
 WimpSlot -min 512k -max 512k
 
