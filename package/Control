@@ -19,3 +19,4 @@ Description: Locate is a flexible, multitasking file search utility
  parameters can be re-used.
 Homepage: http://www.stevefryatt.org.uk/software/locate/
 Components: Apps.File.!Locate (Movable)
+Recommends: StrongHelp
