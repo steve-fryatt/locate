@@ -38,6 +38,9 @@ STARTLOCATE := StartLocate,ffb
 BASDIR := bas
 EXTRASRC := $(BASDIR)
 
+PACKAGE := Locate
+PACKAGELOC := File
+
 # We need to set OUTDIR here so that EXTRAPREREQ can be set before including the master file.
 
 OUTDIR := build

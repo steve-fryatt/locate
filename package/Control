@@ -1,11 +1,12 @@
 Package: Locate
-Version: 2.11-1
+Version: 2.12-1
 Section: File
 Priority: Optional
 Maintainer: Stephen Fryatt <info@stevefryatt.org.uk>
-Standards-Version: 0.4.0
+Standards-Version: 0.6.0
+Environment: arm
 Licence: Free
-Description: Locate is a flexible, multitasking file search utility.
+Description: Locate is a flexible, multitasking file search utility
  Locate is a file search utility that allows objects to be found based on a
  flexible set of criteria. Filenames can include wildcards and matches can
  depend on file size, modification date, file type, file attributes or file
@@ -16,5 +17,5 @@ Description: Locate is a flexible, multitasking file search utility.
  view the files by opening their parent directories. The results of a search
  can be saved out to disc for future reference or so that the search
  parameters can be re-used.
+Homepage: http://www.stevefryatt.org.uk/software/locate/
 Components: Apps.File.!Locate (Movable)
-Recommends: StrongHelp (>= 2.87-1)
