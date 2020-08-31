@@ -760,7 +760,7 @@ DEF PROCinitialise
 :
 REM Initialise the program, including the WIMP.
 :
-LOCAL wimp_version%,wimp_needed%,loop%,resource_path$,flags%
+LOCAL wimp_version%,wimp_needed%,loop%,resources$,flags%
 :
 REM Set up the global data blocks and the parameters needed for WIMP registration.  Find the correct territory
 REM resources and load the Messages file.
@@ -770,12 +770,19 @@ DIM b% 4000, q% 255, a% 255
 $b%="TASK"
 TASK=!b%
 :
-resource_path$=FNresources_find_territory_folder("<Locate$Dir>.Resources")
+REM Locate the application resources.
+:
+PROCresources_initialise_paths("<Locate$Dir>.Resources", "UK", "Locate$Language")
+:
+REM Load the messages file.
+:
+resources$ = FNresources_find_file("Messages", &FFF)
+IF resources$ = "" THEN ERROR 255, "Unable to find Messages file"
 :
 DIM message_block% 16
-SYS "MessageTrans_FileInfo",,resource_path$+"Messages" TO flags%,,message_size%
+SYS "MessageTrans_FileInfo",,resources$ TO flags%,,message_size%
 DIM message_buffer% message_size%
-SYS "MessageTrans_OpenFile",message_block%,resource_path$+"Messages",message_buffer%
+SYS "MessageTrans_OpenFile",message_block%,resources$,message_buffer%
 :
 task_name$=FNmessage_lookup("TaskName")
 task_sprite$=FNmessage_lookup("TaskSpr")
@@ -886,7 +893,10 @@ DIM results_window_def% 400, results_pane_def% 200
 DIM search_panes%(4)
 search_pane%=0
 :
-PROCtemplate_open(resource_path$+"Templates")
+resources$ = FNresources_find_file("Templates", &FEC)
+IF resources$ = "" THEN ERROR 255, "Unable to find Templates file"
+:
+PROCtemplate_open(resources$)
 PROCtemplate_load("Search",b%,ind_data%,ind_data_size%,-1)
 b%!748=FNclaim_block(heap_handle%,FNconfig_read_integer("PathBufSize"))
 b%!756=FNconfig_read_integer("PathBufSize")
@@ -934,6 +944,9 @@ $FNicon_indirection(info_window%,6)=FNmessage_lookup("Version")
 :
 REM Load the menu definitions.
 :
+resources$ = FNresources_find_file("Menus", &FFD)
+IF resources$ = "" THEN ERROR 255, "Unable to find Menus file"
+:
 PROCmenu_initialise
 !b%=info_window%
 b%!4=1000 : REM A dummy value that will never be used.
@@ -942,7 +955,7 @@ b%!12=object_info_window%
 b%!16=save_window% : REM Save results
 b%!20=save_window% : REM Save pathnames
 b%!24=save_window% : REM Save search
-PROCmenu_load_templates(resource_path$+"Menus",b%)
+PROCmenu_load_templates(resources$,b%)
 icon_bar_menu%=!b%
 search_window_menu%=b%!4
 results_window_menu%=b%!8
