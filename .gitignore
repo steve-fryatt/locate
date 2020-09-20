@@ -1,0 +1,13 @@
+.vscode
+build/Licence,fff
+build/manual.html
+build/ReadMe,fff
+build/!Locate/!Help,ffb
+build/!Locate/!RunImage,ff8
+build/!Locate/FindSprs,ffb
+build/!Locate/Resources/UK/HelpText,fff
+build/!Locate/Resources/UK/Locate,3d6
+build/!Locate/Resources/UK/Menus,ffd
+build/Extras/StartLocate,ffb
+build/package
+obj
