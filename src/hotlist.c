@@ -1,4 +1,4 @@
-/* Copyright 2013-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2013-2020, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -1419,11 +1419,13 @@ static void hotlist_redraw_add_window(void)
 static osbool hotlist_read_add_window(void)
 {
 	char			*new_name;
+	size_t			name_length;
 	wimp_window_state	window;
 	int			i;
 
 	new_name = icons_get_indirected_text_addr(hotlist_add_window, HOTLIST_ADD_ICON_NAME);
-	string_ctrl_zero_terminate(new_name);
+	name_length = icons_get_indirected_text_length(hotlist_add_window, HOTLIST_ADD_ICON_NAME);
+	string_ctrl_zero_terminate(new_name, name_length);
 
 	if (new_name == NULL || strlen(new_name) == 0) {
 		error_msgs_report_info("HotlistNoName");
