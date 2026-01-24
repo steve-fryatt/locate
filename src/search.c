@@ -166,6 +166,19 @@ struct search_block {
 	struct search_block	*next;						/**< The next active search in the active search list.			*/
 };
 
+/**
+ * Test for a filetype within a filetype bitmask array.
+ *
+ * Types *must* be in the range 0x000 to 0xfff: no range tests are done, and
+ * a value outside of this will result in reading out of bounds.
+ *
+ * \param filetype	The filetype to test for.
+ * \param bitmask	The bitmask array.
+ * \return		Non-zero if the type's flag bit was set.
+ */
+
+#define search_test_filetype_in_mask(filetype, mask) (((mask)[(filetype) / (8 * sizeof(bits))] & (1 << ((filetype) % (8 * sizeof(bits))))) != 0)
+
 
 /* Global variables. */
 
@@ -174,9 +187,10 @@ static int			search_searches_active = 0;			/**< A count of active searches.					
 
 /* Local function prototypes. */
 
-static osbool		search_poll(struct search_block *search, os_t end_time);
-static unsigned		search_add_stack(struct search_block *search);
-static unsigned		search_drop_stack(struct search_block *search);
+static osbool search_set_filetypes(bits filetypes[], unsigned type_list[], osbool invert);
+static osbool search_poll(struct search_block *search, os_t end_time);
+static unsigned search_add_stack(struct search_block *search);
+static unsigned search_drop_stack(struct search_block *search);
 
 
 /**
@@ -478,37 +492,11 @@ void search_set_date(struct search_block *search, osbool in_limits, os_date_and_
 
 void search_set_types(struct search_block *search, unsigned type_list[], osbool invert)
 {
-	int	i;
-
-
 	if (search == NULL || type_list == NULL)
 		return;
 
 	search->test_filetype = TRUE;
-
-	/* Set the bitmask to the default state. */
-
-	for (i = 0; i < 4096 / (8 * sizeof(bits)); i++)
-		search->filetypes[i] = (invert) ? 0xffffffffu : 0x0u;
-
-	search->include_untyped = invert;
-
-	/* Set or clear individual bits to suit the type list passed in. */
-
-	i = 0;
-
-	while (type_list[i] != 0xffffffffu) {
-		if (type_list[i] == 0x1000u) {
-			search->include_untyped = !invert;
-		} else if ((type_list[i] >= 0x000u) && (type_list[i] <= 0xfffu)) {
-			if (invert)
-				search->filetypes[type_list[i] / (8 * sizeof(bits))] &= ~(1 << (type_list[i] % (8 * sizeof(bits))));
-			else
-				search->filetypes[type_list[i] / (8 * sizeof(bits))] |= (1 << (type_list[i] % (8 * sizeof(bits))));
-		}
-
-		i++;
-	}
+	search->include_untyped = search_set_filetypes(search->filetypes, type_list, invert);
 }
 
 
@@ -547,6 +535,53 @@ void search_set_contents(struct search_block *search, char *contents, osbool any
 
 	search->test_contents = TRUE;
 	search->contents_engine = contents_create(search->objects, search->results, contents, any_case, invert);
+}
+
+
+/**
+ * Fill out a filetype bitmask.
+ *
+ * Type matching is done via a bitmask, with one bit in an array of 32-bit words
+ * for each filetype. Bit 0 of the first word is for 0x000; Bit 31 of the 128th
+ * word is for 0xfff.  Bits are *always* set to allow a type, so the invert
+ * option starts by setting all the bits and then clearing those that are excluded.
+ *
+ * \param filetype[]		The bitmask to fill out.
+ * \param type_list[]		An 0xffffffffu terminated list of filetypes.
+ *				0x1000u is used to signify "untyped".
+ * \param invert		TRUE to exclude listed types; FALSE to include.
+ * \return			True if untypes files should be included.
+ */
+
+static osbool search_set_filetypes(bits filetypes[], unsigned type_list[], osbool invert)
+{
+	if (filetypes == NULL || type_list == NULL)
+		return FALSE;
+
+	/* Set the bitmask to the default state. */
+
+	for (int i = 0; i < 4096 / (8 * sizeof(bits)); i++)
+		filetypes[i] = (invert) ? 0xffffffffu : 0x0u;
+
+	/* Set or clear individual bits to suit the type list passed in. */
+
+	int i = 0;
+	osbool include_untyped = invert;
+
+	while (type_list[i] != 0xffffffffu) {
+		if (type_list[i] == 0x1000u) {
+			include_untyped = !invert;
+		} else if ((type_list[i] >= 0x000u) && (type_list[i] <= 0xfffu)) {
+			if (invert)
+				filetypes[type_list[i] / (8 * sizeof(bits))] &= ~(1 << (type_list[i] % (8 * sizeof(bits))));
+			else
+				filetypes[type_list[i] / (8 * sizeof(bits))] |= (1 << (type_list[i] % (8 * sizeof(bits))));
+		}
+
+		i++;
+	}
+
+	return include_untyped;
 }
 
 
@@ -776,7 +811,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 	while (stack != SEARCH_NULL && (os_read_monotonic_time() < end_time)) {
 		/* **** Bracket here to skip search if directory is on ignore??? **** */
-		
+
 		if (search->stack[stack].contents_active == FALSE) {
 			/* If there are no outstanding entries in the current buffer, call
 			 * OS_GBPB 10 to get another set of file details.
@@ -898,8 +933,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 						/* If we're testing filetype and the type falls between 0x000 and 0xfff, is it set in the bitmask? */
 
 						(!search->test_filetype || ((search->stack[stack].filetype >= 0x000) && (search->stack[stack].filetype <= 0xfff) &&
-								((search->filetypes[search->stack[stack].filetype /
-										(8 * sizeof(bits))] & (1 << (search->stack[stack].filetype % (8 * sizeof(bits))))) != 0)) ||
+										search_test_filetype_in_mask(search->stack[stack].filetype, search->filetypes)) ||
 								((search->stack[stack].filetype == osfile_TYPE_UNTYPED) && search->include_untyped) ||
 								(search->stack[stack].filetype == osfile_TYPE_APPLICATION) || (search->stack[stack].filetype == osfile_TYPE_DIR)) &&
 
@@ -1143,4 +1177,3 @@ osbool search_validate_paths(char *paths, osbool report)
 
 	return success;
 }
-
