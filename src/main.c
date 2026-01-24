@@ -232,7 +232,7 @@ static void main_initialise(void)
 
 	/* Initialise the configuration. */
 
-	config_initialise(task_name, "Locate", "<Locate$Dir>");
+	config_initialise(task_name, "Locate", "<Locate$Dir>", NULL);
 
 	config_str_init("SearchPath", "ADFS::4.$");				/**< The default search path.					*/
 	config_int_init("PathBufSize", 4095);					/**< The path buffer size, in bytes.				*/
@@ -353,4 +353,3 @@ static osbool main_message_quit(wimp_message *message)
 
 	return TRUE;
 }
-

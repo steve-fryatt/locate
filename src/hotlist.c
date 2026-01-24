@@ -260,8 +260,8 @@ void hotlist_initialise(osspriteop_area *sprites)
 	ihelp_add_menu(hotlist_window_menu, "HotlistMenu");
 	hotlist_window_menu_item = templates_get_menu("HotlistItemMenu");
 
-	hotlist_saveas_search = saveas_create_dialogue(FALSE, "file_1a1", hotlist_saveas_save_search);
-	hotlist_saveas_hotlist = saveas_create_dialogue(TRUE, "file_1a1", hotlist_save_hotlist);
+	hotlist_saveas_search = saveas_create_dialogue(FALSE, "file_1a1", dataxfer_TYPE_LOCATE, hotlist_saveas_save_search);
+	hotlist_saveas_hotlist = saveas_create_dialogue(TRUE, "file_1a1", dataxfer_TYPE_LOCATE, hotlist_save_hotlist);
 
 
 	/* Allocate some memory for the initial hotlist entries. */
@@ -1141,7 +1141,7 @@ static void hotlist_update_toolbar(void)
 	icons_set_shaded(hotlist_window_pane, HOTLIST_TOOLBAR_ICON_DELETE, hotlist_selection_count == 0);
 	icons_set_shaded(hotlist_window_pane, HOTLIST_TOOLBAR_ICON_RUN, hotlist_selection_count != 1);
 	icons_set_shaded(hotlist_window_pane, HOTLIST_TOOLBAR_ICON_DEFAULT, hotlist_selection_count != 1);
-	
+
 	icons_set_selected(hotlist_window_pane, HOTLIST_TOOLBAR_ICON_DEFAULT,
 			(hotlist_selection_count == 1 && hotlist_selection_row == hotlist_find_default_entry()));
 }
@@ -2063,4 +2063,3 @@ struct dialogue_block *hotlist_get_default_dialogue(void)
 
 	return hotlist[entry].dialogue;
 }
-

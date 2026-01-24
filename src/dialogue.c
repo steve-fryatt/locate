@@ -433,7 +433,7 @@ void dialogue_initialise(void)
 	dialogue_contents_mode_menu = templates_get_menu("ContentLogicMenu");
 	ihelp_add_menu(dialogue_contents_mode_menu, "ContentModeMenu");
 
-	dialogue_save_search = saveas_create_dialogue(FALSE, "file_1a1", dialogue_save_settings);
+	dialogue_save_search = saveas_create_dialogue(FALSE, "file_1a1", dataxfer_TYPE_LOCATE, dialogue_save_settings);
 
 	/* Initialise the main window. */
 
@@ -2776,5 +2776,3 @@ static void dialogue_dump_settings(struct dialogue_block *dialogue)
 	debug_printf("Display Full Info: %s", config_return_opt_string(dialogue->full_info));
 }
 #endif
-
-

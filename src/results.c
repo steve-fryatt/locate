@@ -377,9 +377,9 @@ void results_initialise(osspriteop_area *sprites)
 
 	results_sprite_area = sprites;
 
-	results_save_results = saveas_create_dialogue(FALSE, "file_1a1", results_save_result_data);
-	results_save_paths = saveas_create_dialogue(TRUE, "file_fff", results_save_filenames);
-	results_save_options = saveas_create_dialogue(FALSE, "file_1a1", results_save_dialogue_data);
+	results_save_results = saveas_create_dialogue(FALSE, "file_1a1", dataxfer_TYPE_LOCATE, results_save_result_data);
+	results_save_paths = saveas_create_dialogue(TRUE, "file_fff", osfile_TYPE_TEXT, results_save_filenames);
+	results_save_options = saveas_create_dialogue(FALSE, "file_1a1", dataxfer_TYPE_LOCATE, results_save_dialogue_data);
 
 	results_clipboard = textdump_create(RESULTS_ALLOC_CLIPBOARD, 0, '\n');
 }
@@ -2792,4 +2792,3 @@ static void results_clipboard_release(void *data)
 {
 	textdump_clear(results_clipboard);
 }
-
