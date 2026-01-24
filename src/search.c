@@ -77,6 +77,8 @@
 
 #define SEARCH_NULL 0xffffffff							/**< 'NULL' value for use with the unsigned flex block offsets.		*/
 
+#define SEARCH_FILETYPE_BITFIELD_SIZE (4096 / (8 * sizeof(bits)))		/**< The size of a filetype bitfield array.				*/
+
 /* A data structure to hold the search stack. */
 
 struct search_stack {
@@ -107,6 +109,8 @@ struct search_block {
 	osbool			active;						/**< TRUE if the search is active; else FALSE.				*/
 
 	osbool			include_imagefs;				/**< TRUE to search inside Image Filing Systems; else FALSE.		*/
+	bits			imagefs_types[SEARCH_FILETYPE_BITFIELD_SIZE];	/**< Bitmask for testing the Image Filing Systems to search.		*/
+
 	osbool			store_all;					/**< TRUE to save all objects in the database; FALSE for matches.	*/
 
 	int			path_count;					/**< The number of search paths remaining to use.			*/
@@ -147,7 +151,7 @@ struct search_block {
 	osbool			date_as_age;					/**< TRUE if the date is expressed as age, for the title flags.		*/
 
 	osbool			test_filetype;					/**< TRUE to test the filetype; FALSE to ignore.			*/
-	bits			filetypes[4096 / (8 * sizeof(bits))];		/**< Bitmask for the filetype matching.					*/
+	bits			filetypes[SEARCH_FILETYPE_BITFIELD_SIZE];	/**< Bitmask for the filetype matching.					*/
 	osbool			include_untyped;				/**< TRUE if untyped files should match the type test.			*/
 
 	osbool			test_attributes;				/**< TRUE to test the file attributes; FALSE to ignore.			*/
@@ -389,15 +393,19 @@ void search_destroy(struct search_block *search)
  * \param include_files		TRUE to include files; FALSE to exclude.
  * \param include_directories	TRUE to include directories; FALSE to exclude.
  * \param include_applications	TRUE to include applications; FALSE to exclude.
+ * \param imagefs_list[]	An array of image filing systems to be searched,
+ *				or NULL to search all systems.
  */
 
 void search_set_options(struct search_block *search, osbool search_imagefs, osbool store_all, osbool full_info,
-		osbool include_files, osbool include_directories, osbool include_applications)
+		osbool include_files, osbool include_directories, osbool include_applications, unsigned imagefs_list[])
 {
 	if (search == NULL)
 		return;
 
 	search->include_imagefs = search_imagefs;
+	search_set_filetypes(search->imagefs_types, imagefs_list, (imagefs_list == NULL) ? TRUE : FALSE);
+
 	search->store_all = store_all;
 
 	search->include_files = include_files;
@@ -546,6 +554,9 @@ void search_set_contents(struct search_block *search, char *contents, osbool any
  * word is for 0xfff.  Bits are *always* set to allow a type, so the invert
  * option starts by setting all the bits and then clearing those that are excluded.
  *
+ * If type_list is NULL, filetypes will be initialised to all set or all unset
+ * if invert is TRUE or FALSE respectively.
+ *
  * \param filetype[]		The bitmask to fill out.
  * \param type_list[]		An 0xffffffffu terminated list of filetypes.
  *				0x1000u is used to signify "untyped".
@@ -555,13 +566,16 @@ void search_set_contents(struct search_block *search, char *contents, osbool any
 
 static osbool search_set_filetypes(bits filetypes[], unsigned type_list[], osbool invert)
 {
-	if (filetypes == NULL || type_list == NULL)
+	if (filetypes == NULL)
 		return FALSE;
 
 	/* Set the bitmask to the default state. */
 
 	for (int i = 0; i < 4096 / (8 * sizeof(bits)); i++)
 		filetypes[i] = (invert) ? 0xffffffffu : 0x0u;
+
+	if (type_list == NULL)
+		return invert;
 
 	/* Set or clear individual bits to suit the type list passed in. */
 
@@ -979,9 +993,12 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 			}
 
 			if (search->stack[stack].contents_active == FALSE) {
+				unsigned int filetype = (file_data->load_addr & osfile_FILE_TYPE) >> osfile_FILE_TYPE_SHIFT;
+
 				/* If the object is a folder, recurse down into it. */
 
-				if (file_data->obj_type == fileswitch_IS_DIR || (search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE)) {
+				if (file_data->obj_type == fileswitch_IS_DIR || (search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE &&
+						search_test_filetype_in_mask(filetype, search->imagefs_types))) {
 					/* Take a copy of the name before we shift the flex heap. */
 
 					string_copy(leafname, file_data->name, SEARCH_MAX_FILENAME);

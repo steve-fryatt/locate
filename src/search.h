@@ -71,10 +71,12 @@ void search_destroy(struct search_block *search);
  * \param include_files		TRUE to include files; FALSE to exclude.
  * \param include_directories	TRUE to include directories; FALSE to exclude.
  * \param include_applications	TRUE to include applications; FALSE to exclude.
+ * \param imagefs_list[]	An array of image filing systems to be searched,
+ *				or NULL to search all systems.
  */
 
 void search_set_options(struct search_block *search, osbool search_imagefs, osbool store_all, osbool full_info,
-		osbool include_files, osbool include_directories, osbool include_applications);
+		osbool include_files, osbool include_directories, osbool include_applications, unsigned imagefs_list[]);
 
 
 /**
@@ -207,4 +209,3 @@ void search_poll_all(void);
 osbool search_validate_paths(char *paths, osbool report);
 
 #endif
-
