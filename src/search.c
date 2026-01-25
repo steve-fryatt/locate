@@ -1,4 +1,4 @@
-/* Copyright 2012-2015, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2026, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -657,6 +657,7 @@ void search_start(struct search_block *search)
 		return;
 
 	string_copy(search->stack[stack].filename, search->path[--search->path_count], SEARCH_MAX_FILENAME);
+	ignore_push_path(search->ignore_list, search->stack[stack].filename);
 	object_key = objdb_add_root(search->objects, search->stack[stack].filename);
 	search->stack[stack].parent = object_key;
 
@@ -997,11 +998,18 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 				/* If the object is a folder, recurse down into it. */
 
-				if (file_data->obj_type == fileswitch_IS_DIR || (search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE &&
-						search_test_filetype_in_mask(filetype, search->imagefs_types))) {
+				if ((file_data->obj_type == fileswitch_IS_DIR || (search->include_imagefs && file_data->obj_type == fileswitch_IS_IMAGE &&
+						search_test_filetype_in_mask(filetype, search->imagefs_types))) &&
+						ignore_search_content(search->ignore_list, file_data->name)) {
 					/* Take a copy of the name before we shift the flex heap. */
 
 					string_copy(leafname, file_data->name, SEARCH_MAX_FILENAME);
+
+					/* Push the folder into the ignore data. */
+
+					ignore_push_object(search->ignore_list, leafname);
+
+					/* Drop into the new folder. */
 
 					stack = search_add_stack(search);
 
@@ -1024,6 +1032,8 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 		if ((search->stack[stack].contents_active == FALSE) && (search->stack[stack].next >= search->stack[stack].read) &&
 				(search->stack[stack].context == -1)) {
+			ignore_pop_object(search->ignore_list);
+
 			stack = search_drop_stack(search);
 
 			if (stack != SEARCH_NULL && search->stack[stack].file_active && !search->store_all) {
@@ -1041,10 +1051,14 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 	 */
 
 	if (stack == SEARCH_NULL) {
+		ignore_search_complete(search->ignore_list);
+
 		if ((search->path_count > 0) && ((stack = search_add_stack(search)) != SEARCH_NULL)) {
 			/* Re-allocate a search stack and set up the first search folder. */
 
 			string_copy(search->stack[stack].filename, search->path[--search->path_count], SEARCH_MAX_FILENAME);
+
+			ignore_push_path(search->ignore_list, search->stack[stack].filename);
 
 			object_key = objdb_add_root(search->objects, search->stack[stack].filename);
 			search->stack[stack].parent = object_key;

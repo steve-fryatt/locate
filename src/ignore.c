@@ -1,4 +1,4 @@
-/* Copyright 2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2016-2026, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -45,6 +45,11 @@ struct ignore_block {
 	int dummy;
 };
 
+struct ignore_block *ignore_create(void)
+{
+	return NULL;
+}
+
 void ignore_destroy(struct ignore_block *handle)
 {
 	if (handle == NULL)
@@ -53,13 +58,51 @@ void ignore_destroy(struct ignore_block *handle)
 	heap_free(handle);
 }
 
+
+void ignore_push_path(struct ignore_block *handle, char *name)
+{
+//	if (handle == NULL)
+//		return;
+
+	debug_printf("Push path: %s", name);
+}
+
+void ignore_push_object(struct ignore_block *handle, char *name)
+{
+//	if (handle == NULL)
+//		return;
+
+	debug_printf("Push object: %s", name);
+}
+
+void ignore_pop_object(struct ignore_block *handle)
+{
+//	if (handle == NULL)
+//		return;
+
+	debug_printf("Pop object");
+}
+
+void ignore_search_complete(struct ignore_block *handle)
+{
+//	if (handle == NULL)
+//		return;
+
+	debug_printf("The ignore stack should be reset here!");
+}
+
 osbool ignore_match_object(struct ignore_block *handle, char *name)
 {
+//	if (handle == NULL)
+//		return TRUE;
+
 	return TRUE;
 }
 
 osbool ignore_search_content(struct ignore_block *handle, char *name)
 {
+//	if (handle == NULL)
+//		return TRUE;
+
 	return TRUE;
 }
-

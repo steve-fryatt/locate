@@ -1,4 +1,4 @@
-/* Copyright 2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2016-2026, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -32,7 +32,17 @@
 
 struct ignore_block;
 
+struct ignore_block *ignore_create(void);
+
 void ignore_destroy(struct ignore_block *handle);
+
+void ignore_push_path(struct ignore_block *handle, char *name);
+
+void ignore_push_object(struct ignore_block *handle, char *name);
+
+void ignore_pop_object(struct ignore_block *handle);
+
+void ignore_search_complete(struct ignore_block *handle);
 
 osbool ignore_match_object(struct ignore_block *handle, char *name);
 
