@@ -216,6 +216,26 @@ size_t textdump_get_size(struct textdump_block *handle)
 	return (size_t) handle->free;
 }
 
+#ifdef UNIT_TESTING
+
+/**
+ * Return the extent of the text block. The returned value covers all of the
+ * allocated memory in the flex block, but not other memory such as that used
+ * for storing hash tables.
+ *
+ * \param handle		The block handle.
+ * \return			The total memory size, or 0 on error.
+ */
+
+size_t textdump_get_extent(struct textdump_block *handle)
+{
+	if (handle == NULL)
+		return 0;
+
+	return (size_t) handle->size;
+}
+
+#endif
 
 /**
  * Store a text string in the text dump, allocating new memory if required,
@@ -303,6 +323,9 @@ static int textdump_make_hash(struct textdump_block *handle, char *text)
 	return hash % handle->hashes;
 }
 
+#ifndef UNIT_TESTING
+
+/* Keep things simple by not unit testing the file load and save. */
 
 /**
  * Load text from a file chunk into a text dump.
@@ -373,3 +396,4 @@ void textdump_save_file(struct textdump_block *handle, struct discfile_block *fi
 	discfile_end_chunk(file);
 }
 
+#endif

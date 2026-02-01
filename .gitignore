@@ -10,3 +10,4 @@ build/!Locate/Resources/UK/Menus,ffd
 build/Extras/StartLocate,ffb
 build/package
 obj
+test/absolute
