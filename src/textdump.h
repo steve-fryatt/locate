@@ -152,8 +152,6 @@ size_t textdump_get_extent(struct textdump_block *handle);
 
 unsigned textdump_store(struct textdump_block *handle, char *text);
 
-#ifndef UNIT_TESTING
-
 /* Keep things simple by not unit testing the file load and save. */
 
 /**
@@ -177,7 +175,5 @@ osbool textdump_load_file(struct textdump_block *handle, struct discfile_block *
  */
 
 void textdump_save_file(struct textdump_block *handle, struct discfile_block *file);
-
-#endif
 
 #endif

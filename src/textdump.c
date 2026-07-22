@@ -323,8 +323,6 @@ static int textdump_make_hash(struct textdump_block *handle, char *text)
 	return hash % handle->hashes;
 }
 
-#ifndef UNIT_TESTING
-
 /* Keep things simple by not unit testing the file load and save. */
 
 /**
@@ -395,5 +393,3 @@ void textdump_save_file(struct textdump_block *handle, struct discfile_block *fi
 
 	discfile_end_chunk(file);
 }
-
-#endif

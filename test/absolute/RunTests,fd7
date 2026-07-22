@@ -1,0 +1,6 @@
+Set Locate$TestDir <Obey$Dir>
+
+Run <Locate$TestDir>.test_ignore
+Run <Locate$TestDir>.test_textdump
+
+Unset Locate$TestDir
