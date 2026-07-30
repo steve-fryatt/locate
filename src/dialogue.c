@@ -1,4 +1,4 @@
-/* Copyright 2012-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2026, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -1578,7 +1578,7 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 			DIALOGUE_ICON_SIZE, DIALOGUE_ICON_DATE, DIALOGUE_ICON_TYPE,
 			DIALOGUE_ICON_ATTRIBUTES, DIALOGUE_ICON_CONTENTS);
 
-	if (!flexutils_store_string((flex_ptr) &(dialogue->path), icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_SEARCH_PATH))) {
+	if (!flexutils_store_string((flex_ptr) &(dialogue->path), icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_SEARCH_PATH), NULL)) {
 		if (success)
 			error_msgs_report_error("NoMemStoreParams");
 
@@ -1589,7 +1589,7 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 		success = FALSE;
 	}
 
-	if (!flexutils_store_string((flex_ptr) &(dialogue->filename), icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_FILENAME))) {
+	if (!flexutils_store_string((flex_ptr) &(dialogue->filename), icons_get_indirected_text_addr(dialogue_window, DIALOGUE_ICON_FILENAME), NULL)) {
 		if (success)
 			error_msgs_report_error("NoMemStoreParams");
 
@@ -1660,7 +1660,7 @@ static osbool dialogue_read_window(struct dialogue_block *dialogue)
 	/* Set the Contents pane. */
 
 	dialogue->contents_mode = event_get_window_icon_popup_selection(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_MODE_MENU);
-	if (!flexutils_store_string((flex_ptr) &(dialogue->contents_text), icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT))) {
+	if (!flexutils_store_string((flex_ptr) &(dialogue->contents_text), icons_get_indirected_text_addr(dialogue_panes[DIALOGUE_PANE_CONTENTS], DIALOGUE_CONTENTS_ICON_TEXT), NULL)) {
 		if (success)
 			error_msgs_report_error("NoMemStoreParams");
 
@@ -2327,7 +2327,8 @@ static void dialogue_start_search(struct dialogue_block *dialogue)
 	if (strcmp(dialogue->filename, "") != 0 && strcmp(dialogue->filename, "*") != 0 && dialogue->name_mode != DIALOGUE_NAME_NOT_IMPORTANT) {
 		string_copy(buffer, dialogue->filename, buffer_size);
 		search_set_filename(search, buffer, dialogue->ignore_case,
-				(dialogue->name_mode == DIALOGUE_NAME_NOT_EQUAL_TO || dialogue->name_mode == DIALOGUE_NAME_DOES_NOT_CONTAIN) ? TRUE : FALSE);
+				(dialogue->name_mode == DIALOGUE_NAME_NOT_EQUAL_TO || dialogue->name_mode == DIALOGUE_NAME_DOES_NOT_CONTAIN) ? TRUE : FALSE,
+				(dialogue->name_mode == DIALOGUE_NAME_CONTAINS || dialogue->name_mode == DIALOGUE_NAME_DOES_NOT_CONTAIN) ? TRUE : FALSE);
 	}
 
 	/* Set the size search options. */

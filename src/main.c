@@ -236,7 +236,7 @@ static void main_initialise(void)
 
 	config_initialise(task_name, "Locate", "<Locate$Dir>", NULL);
 
-	config_str_init("SearchPath", "ADFS::4.$");				/**< The default search path.					*/
+	config_str_init("SearchPath", "Boot:^");				/**< The default search path.					*/
 	config_int_init("PathBufSize", 4095);					/**< The path buffer size, in bytes.				*/
 	config_opt_init("StoreAllFiles", FALSE);				/**< TRUE if all file details will be stored; else FALSE.	*/
 	config_opt_init("ImageFS", FALSE);					/**< TRUE to search ImageFS contents; else FALSE.		*/

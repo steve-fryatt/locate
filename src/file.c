@@ -212,7 +212,7 @@ void file_create_immediate_search(char *filename, char *path, struct dialogue_bl
 		return;
 	}
 
-	search_set_filename(search, filename, TRUE, FALSE);
+	search_set_filename(search, filename, TRUE, FALSE, FALSE);
 	iconbar_set_last_search_dialogue(file->dialogue);
 	search_start(search);
 }
@@ -507,4 +507,3 @@ void file_stop_search(struct file_block *file)
 	if (file != NULL && file->search != NULL)
 		search_stop(file->search);
 }
-

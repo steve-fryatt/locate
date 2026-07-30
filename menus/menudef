@@ -1,4 +1,4 @@
-/* Copyright 2001-2016, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2001-2026, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -29,7 +29,7 @@ menu(IconBarMenu, "Locate") {
 	item("Info") {
 		d_box(ProgInfo);
 	}
-	item("Help") {
+	item("Help...") {
 		dotted;
 	}
 	item("Hotlist...") {
@@ -150,10 +150,8 @@ menu(NameLogicMenu, "Name") {
 	item("Is not important");
 	item("Is equal to");
 	item("Is not equal to");
-/*
 	item("Contains");
 	item("Does not contain");
-*/
 }
 
 menu(SizeLogicMenu, "Size") {

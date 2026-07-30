@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2026, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -55,14 +55,24 @@
  *
  * \param ptr		The flex block to use.
  * \param *text		The text to store.
+ * \param *wrapper	Additional text in which to wrap the entry, or NULL
+ *			to simply store the entry itself.
  * \return		TRUE if successful; else FALSE.
  */
 
-osbool flexutils_store_string(flex_ptr ptr, char *text)
+osbool flexutils_store_string(flex_ptr ptr, char *text, char *wrapper)
 {
-	size_t length;
+	if (text == NULL)
+		return FALSE;
 
-	length = strlen(text) + 1;
+	/* Work out the lengths of the strings and required buffer. */
+
+	size_t text_length = strlen(text);
+	size_t wrapper_length = (wrapper == NULL) ? 0 : strlen(wrapper);
+
+	size_t length = text_length + (2 * wrapper_length) + 1;
+
+	/* Resize the flex block. */
 
 	if (*ptr == NULL) {
 		if (flex_alloc(ptr, length) == 0)
@@ -72,8 +82,31 @@ osbool flexutils_store_string(flex_ptr ptr, char *text)
 			return FALSE;
 	}
 
-	string_copy((char *) *ptr, text, length);
+	/* Copy the strings over. */
+
+	char *p = (char *) *ptr;
+
+	if (length > 0 && wrapper != NULL) {
+		string_copy(p, wrapper, length);
+		length -= wrapper_length;
+		p += wrapper_length;
+	}
+
+	if (length > 0) {
+		string_copy(p, text, length);
+		length -= text_length;
+		p += text_length;
+	}
+
+	if (length > 0 && wrapper != NULL) {
+		string_copy(p, wrapper, length);
+		length -= wrapper_length;
+	}
+
+	if (length <= 0) {
+		*((char * ) ptr) = '\0';
+		return FALSE;
+	}
 
 	return TRUE;
 }
-

@@ -423,16 +423,17 @@ void search_set_options(struct search_block *search, osbool search_imagefs, osbo
  * \param *filename		Pointer to the filename to match.
  * \param any_case		TRUE to match case insensitively; else FALSE.
  * \param invert		TRUE to match files whose names don't match; else FALSE.
+ * \param substr		TRUE to match substrings of the name; else FALSE.
  */
 
-void search_set_filename(struct search_block *search, char *filename, osbool any_case, osbool invert)
+void search_set_filename(struct search_block *search, char *filename, osbool any_case, osbool invert, osbool substr)
 {
 	if (search == NULL)
 		return;
 
 	search->test_filename = TRUE;
 	search->filename_logic = !invert;
-	flexutils_store_string((flex_ptr) &(search->filename), filename);
+	flexutils_store_string((flex_ptr) &(search->filename), filename, (substr == TRUE) ? "*" : NULL);
 	search->filename_any_case = any_case;
 }
 
