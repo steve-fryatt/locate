@@ -151,7 +151,7 @@ Under RISC&nbsp;OS <cite>Select</cite>, <cite>Locate</cite> will act as a <cite>
 
 To use <cite>Locate</cite>, start it in the usual way by double-clicking on its icon in a directory window (or via your preferred application launcher).  When the <cite>Locate</cite> icon appears on the iconbar, click <mouse>select</mouse> on it to open the <window>search</window> dialogue.
 
-By default, <cite>Locate</cite> will validate the default search paths configured in the <icon>Search directories</icon> field of the <window>choices</window> dialogue when it loads. If any are invalid on the current machine (for example if the system only has USB-connected drives and therefore no ADFS, then the default path of <file>ADFS::4.$</file> will not exist), then it will warn of the problem and offer the option to edit the settings. Accepting this will open the <link ref="Configuration">choices dialogue</link>; otherwise the problem can be ignored and the paths left as they are &ndash; but they will need to be corrected in the <window>search</window> dialogue before a search can be carried out. This validation can be disabled from the <window>choices</window> dialogue if not required.
+By default, <cite>Locate</cite> will validate the default search paths configured in the <icon>Search directories</icon> field of the <window>choices</window> dialogue when it loads. If any are invalid on the current machine (for example if a path on ADFS was configured but the system only has USB-connected drives and therefore no ADFS), then it will warn of the problem and offer the option to edit the settings. Accepting this will open the <link ref="Configuration">choices dialogue</link>; otherwise the problem can be ignored and the paths left as they are &ndash; but they will need to be corrected in the <window>search</window> dialogue before a search can be carried out. This validation can be disabled from the <window>choices</window> dialogue if not required.
 
 <subhead title="RISC OS Select Filer plugin">
 
@@ -836,6 +836,7 @@ A test build for feedback and comment.
 
 <list>
 <li>Add <menu>Contains</menu> and <menu>Does not contain</menu> options to the file name search.
+<li>Change default search path to <file>Boot:^</file> so that it will do something sensible on most modern systems (this will not take effect if a different path has been saved in Choices).
 </list>
 </chapter>
 
