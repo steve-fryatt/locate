@@ -401,16 +401,17 @@ void search_set_options(struct search_block *search, osbool search_imagefs, osbo
  * \param *filename		Pointer to the filename to match.
  * \param any_case		TRUE to match case insensitively; else FALSE.
  * \param invert		TRUE to match files whose names don't match; else FALSE.
+ * \param substr		TRUE to match substrings of the name; else FALSE.
  */
 
-void search_set_filename(struct search_block *search, char *filename, osbool any_case, osbool invert)
+void search_set_filename(struct search_block *search, char *filename, osbool any_case, osbool invert, osbool substr)
 {
 	if (search == NULL)
 		return;
 
 	search->test_filename = TRUE;
 	search->filename_logic = !invert;
-	flexutils_store_string((flex_ptr) &(search->filename), filename);
+	flexutils_store_string((flex_ptr) &(search->filename), filename, (substr == TRUE) ? "*" : NULL);
 	search->filename_any_case = any_case;
 }
 
@@ -776,7 +777,7 @@ static osbool search_poll(struct search_block *search, os_t end_time)
 
 	while (stack != SEARCH_NULL && (os_read_monotonic_time() < end_time)) {
 		/* **** Bracket here to skip search if directory is on ignore??? **** */
-		
+
 		if (search->stack[stack].contents_active == FALSE) {
 			/* If there are no outstanding entries in the current buffer, call
 			 * OS_GBPB 10 to get another set of file details.
@@ -1143,4 +1144,3 @@ osbool search_validate_paths(char *paths, osbool report)
 
 	return success;
 }
-

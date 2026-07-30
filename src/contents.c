@@ -161,7 +161,7 @@ struct contents_block *contents_create(struct objdb_block *objects, struct resul
 	while (*text == '#' || *text == '*')
 		text++;
 
-	if (flexutils_store_string((flex_ptr) &(new->text), text)) {
+	if (flexutils_store_string((flex_ptr) &(new->text), text, NULL)) {
 		text = new->text + strlen(new->text) - 1;
 
 		while (text >= new->text && (*text == '#' || *text == '*'))
@@ -683,4 +683,3 @@ static osbool contents_get_context(struct contents_block *handle, int start, int
 
 	return TRUE;
 }
-

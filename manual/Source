@@ -41,7 +41,7 @@ If you have any comments about Locate, or would like to report any bugs that you
 Updates to Locate and more programs for RISC OS computers can be found on my website at <http://www.stevefryatt.org.uk/software/=>#url>.
 
 #Align Centre
-© Stephen Fryatt, 2001-2020 (<info@stevefryatt.org.uk=>#url mailto:info@stevefryatt.org.uk>)
+© Stephen Fryatt, 2001-2026 (<info@stevefryatt.org.uk=>#url mailto:info@stevefryatt.org.uk>)
 Filetype Menu code based on a concept by Harriet Bazley
 
 A plain text version of this manual is available <here=>*Filer_Run <Locate$HelpText\>>.
@@ -55,7 +55,7 @@ A plain text version of this manual is available <here=>*Filer_Run <Locate$HelpT
 =============================================================================
 Locate - Flexible file search for RISC OS                        Version $$version$$
 
-(C) Stephen Fryatt, 2001-2016                  $$date$$
+(C) Stephen Fryatt, 2001-2026                  $$date$$
 =============================================================================
 </literal>
 
@@ -89,7 +89,7 @@ Locate - Flexible file search for RISC OS                        Version $$versi
 
 <img src="images/locate.gif" alt="" width=34 height=34 class="list-image">
 
-<p><b>Flexible file search for RISC&nbsp;OS</b> &ndash; &copy; Stephen Fryatt, 2001-2020<br>
+<p><b>Flexible file search for RISC&nbsp;OS</b> &ndash; &copy; Stephen Fryatt, 2001-2026<br>
 Version $$version$$ ($$date$$)</p>
 
 </literal>
@@ -319,9 +319,11 @@ It is possible to match objects based on their names. This was briefly discussed
 
 By default, names are matched exactly to whatever is entered into the field to the right of <icon>Object name</icon> in the search window. Unlike other sections of the search options, where the default critera is <menu>is not important</menu>, the default critera for the object name is <menu>is equal to</menu> so as to give some compatibility with the behaviour of <cite>Locate&nbsp;1</cite>.
 
-The requirement for an exact match means that <code>Report</code> would match <code>report</code> but not <code>Reporter</code>.  For more flexibility, wildcards are allowed.  <code>#</code> will match any single character, so <code>Reporte#</code> would match <code>Reporter</code> and <code>Reported</code> but not <code>Reporters</code>.  <code>*</code> will match any zero or more characters, so <code>Report*</code> would match <code>Report</code>, <code>Reported</code> etc.  Wildcards can appear anywhere in the name.  To search for a substring (in the same way that the Filer&rsquo;s search option does), put an asterisk at each end of the name (for example <code>*SubStr*</code>).
+The requirement for an exact match means that <code>Report</code> would match <code>report</code> but not <code>Reporter</code>.  For more flexibility, wildcards are allowed.  <code>#</code> will match any single character, so <code>Reporte#</code> would match <code>Reporter</code> and <code>Reported</code> but not <code>Reporters</code>.  <code>*</code> will match any zero or more characters, so <code>Report*</code> would match <code>Report</code>, <code>Reported</code> etc.  Wildcards can appear anywhere in the name.  To search for a substring (in the same way that the Filer&rsquo;s search option does), use the criteria <menu>contains</menu> as described below.
 
 By selecting a criteria of <menu>is not equal to</menu>, objects can be made to match if their names do <em>not</em> match based on the rules given above. For compatibility with <cite>Locate&nbsp;1</cite>, leaving the <icon>Object name</icon> field blank or entering a single <code>*</code> will mean that the name is not tested; this can also be achieved by setting the critera to <menu>is not important</menu>.
+
+The criteria of <menu>contains</menu> and <menu>does not contain</menu> are similar to <menu>is equal</menu> and <menu>is not equal</menu>, but will match if the supplied text appears anywhere within the filename (including the whole name). Using <menu>contains</menu>, searching for <code>Help</code> would not only find files called <code>Help</code> but also <code>!Help</code>, <code>HelpText</code>, <code>NotHelping</code> and many more.
 
 By default the case of the name is ignored; un-tick the <icon>Ignore case</icon> switch to cause the case to matter (but remember that all RISC&nbsp;OS Filecore filing systems are case insensitive anyway).
 
@@ -828,6 +830,13 @@ Update to second stable release.
 <li>Use ResConf-style system variables to identify resources.
 </list>
 
+</subhead title="Test Build">
+
+A test build for feedback and comment.
+
+<list>
+<li>Add <menu>Contains</menu> and <menu>Does not contain</menu> options to the file name search.
+</list>
 </chapter>
 
 

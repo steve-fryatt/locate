@@ -1,4 +1,4 @@
-/* Copyright 2012, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2012-2026, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Locate:
  *
@@ -39,10 +39,11 @@
  *
  * \param ptr		The flex block to use.
  * \param *text		The text to store.
+ * \param *wrapper	Additional text in which to wrap the entry, or NULL
+ *			to simply store the entry itself.
  * \return		TRUE if successful; else FALSE.
  */
 
-osbool flexutils_store_string(flex_ptr ptr, char *text);
+osbool flexutils_store_string(flex_ptr ptr, char *text, char *wrapper);
 
 #endif
-
