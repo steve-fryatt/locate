@@ -62,7 +62,7 @@
 
 osbool flexutils_store_string(flex_ptr ptr, char *text, char *wrapper)
 {
-	if (text == NULL)
+	if (ptr == NULL || text == NULL)
 		return FALSE;
 
 	/* Work out the lengths of the strings and required buffer. */
