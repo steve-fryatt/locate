@@ -954,6 +954,5 @@ int main(void) {
 	RUN_TEST(test_textdump_add_hashed_up_to_allocation);
 	RUN_TEST(test_textdump_add_hashed_to_one_over_allocation);
 	RUN_TEST(test_textdump_add_hashed_to_and_then_over_allocation);
-
 	return UNITY_END();
 }

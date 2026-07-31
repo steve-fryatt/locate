@@ -51,7 +51,8 @@
  * Unit Test setup.
  */
 
-void setUp(void) {
+void setUp(void)
+{
 	flex_init("Unit Tests", 0, 0);
 	heap_initialise();
 }
@@ -60,13 +61,13 @@ void setUp(void) {
  * Unit Test teardown.
  */
 
-void tearDown(void) {
-
-}
-
+void tearDown(void)
+{ }
 
 
-void test_match_leaf_to_leaf_empty_ci(void) {
+
+void test_match_leaf_to_leaf_empty_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -74,7 +75,8 @@ void test_match_leaf_to_leaf_empty_ci(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, ""));
 }
 
-void test_match_leaf_to_leaf_short1_ci(void) {
+void test_match_leaf_to_leaf_short1_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -82,7 +84,8 @@ void test_match_leaf_to_leaf_short1_ci(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "f"));
 }
 
-void test_match_leaf_to_leaf_short2_ci(void) {
+void test_match_leaf_to_leaf_short2_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -90,7 +93,8 @@ void test_match_leaf_to_leaf_short2_ci(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "fo"));
 }
 
-void test_match_leaf_to_leaf_ci(void) {
+void test_match_leaf_to_leaf_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -98,7 +102,8 @@ void test_match_leaf_to_leaf_ci(void) {
 	TEST_ASSERT_TRUE(ignore_compare_string_for_test(test, "foo"));
 }
 
-void test_match_leaf_to_leaf_long_ci(void) {
+void test_match_leaf_to_leaf_long_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -106,7 +111,8 @@ void test_match_leaf_to_leaf_long_ci(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "fooo"));
 }
 
-void test_match_leaf_to_path1_ci(void) {
+void test_match_leaf_to_path1_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -114,7 +120,8 @@ void test_match_leaf_to_path1_ci(void) {
 	TEST_ASSERT_TRUE(ignore_compare_string_for_test(test, "foo."));
 }
 
-void test_match_leaf_to_path2_ci(void) {
+void test_match_leaf_to_path2_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -122,7 +129,8 @@ void test_match_leaf_to_path2_ci(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "bar."));
 }
 
-void test_match_leaf_to_path3_ci(void) {
+void test_match_leaf_to_path3_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -130,7 +138,8 @@ void test_match_leaf_to_path3_ci(void) {
 	TEST_ASSERT_TRUE(ignore_compare_string_for_test(test, "foo.bar"));
 }
 
-void test_match_leaf_to_leaf_empty_case_ci(void) {
+void test_match_leaf_to_leaf_empty_case_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -138,7 +147,8 @@ void test_match_leaf_to_leaf_empty_case_ci(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, ""));
 }
 
-void test_match_leaf_to_leaf_short1_case_ci(void) {
+void test_match_leaf_to_leaf_short1_case_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -146,7 +156,8 @@ void test_match_leaf_to_leaf_short1_case_ci(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "F"));
 }
 
-void test_match_leaf_to_leaf_short2_case_ci(void) {
+void test_match_leaf_to_leaf_short2_case_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -154,7 +165,8 @@ void test_match_leaf_to_leaf_short2_case_ci(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "Fo"));
 }
 
-void test_match_leaf_to_leaf_case_ci(void) {
+void test_match_leaf_to_leaf_case_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -162,7 +174,8 @@ void test_match_leaf_to_leaf_case_ci(void) {
 	TEST_ASSERT_TRUE(ignore_compare_string_for_test(test, "Foo"));
 }
 
-void test_match_leaf_to_leaf_long_case_ci(void) {
+void test_match_leaf_to_leaf_long_case_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -170,7 +183,8 @@ void test_match_leaf_to_leaf_long_case_ci(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "Fooo"));
 }
 
-void test_match_leaf_to_path1_case_ci(void) {
+void test_match_leaf_to_path1_case_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -178,7 +192,8 @@ void test_match_leaf_to_path1_case_ci(void) {
 	TEST_ASSERT_TRUE(ignore_compare_string_for_test(test, "Foo."));
 }
 
-void test_match_leaf_to_path2_case_ci(void) {
+void test_match_leaf_to_path2_case_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -186,7 +201,8 @@ void test_match_leaf_to_path2_case_ci(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "Bar."));
 }
 
-void test_match_leaf_to_path3_case_ci(void) {
+void test_match_leaf_to_path3_case_ci(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", FALSE));
@@ -194,7 +210,8 @@ void test_match_leaf_to_path3_case_ci(void) {
 	TEST_ASSERT_TRUE(ignore_compare_string_for_test(test, "Foo.Bar"));
 }
 
-void test_match_leaf_to_leaf_empty_cs(void) {
+void test_match_leaf_to_leaf_empty_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -202,7 +219,8 @@ void test_match_leaf_to_leaf_empty_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, ""));
 }
 
-void test_match_leaf_to_leaf_short1_cs(void) {
+void test_match_leaf_to_leaf_short1_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -210,7 +228,8 @@ void test_match_leaf_to_leaf_short1_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "f"));
 }
 
-void test_match_leaf_to_leaf_short2_cs(void) {
+void test_match_leaf_to_leaf_short2_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -218,7 +237,8 @@ void test_match_leaf_to_leaf_short2_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "fo"));
 }
 
-void test_match_leaf_to_leaf_cs(void) {
+void test_match_leaf_to_leaf_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -226,7 +246,8 @@ void test_match_leaf_to_leaf_cs(void) {
 	TEST_ASSERT_TRUE(ignore_compare_string_for_test(test, "foo"));
 }
 
-void test_match_leaf_to_leaf_long_cs(void) {
+void test_match_leaf_to_leaf_long_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -234,7 +255,8 @@ void test_match_leaf_to_leaf_long_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "fooo"));
 }
 
-void test_match_leaf_to_path1_cs(void) {
+void test_match_leaf_to_path1_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -242,7 +264,8 @@ void test_match_leaf_to_path1_cs(void) {
 	TEST_ASSERT_TRUE(ignore_compare_string_for_test(test, "foo."));
 }
 
-void test_match_leaf_to_path2_cs(void) {
+void test_match_leaf_to_path2_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -250,7 +273,8 @@ void test_match_leaf_to_path2_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "bar."));
 }
 
-void test_match_leaf_to_path3_cs(void) {
+void test_match_leaf_to_path3_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -258,7 +282,8 @@ void test_match_leaf_to_path3_cs(void) {
 	TEST_ASSERT_TRUE(ignore_compare_string_for_test(test, "foo.bar"));
 }
 
-void test_match_leaf_to_leaf_empty_case_cs(void) {
+void test_match_leaf_to_leaf_empty_case_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -266,7 +291,8 @@ void test_match_leaf_to_leaf_empty_case_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, ""));
 }
 
-void test_match_leaf_to_leaf_short1_case_cs(void) {
+void test_match_leaf_to_leaf_short1_case_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -274,7 +300,8 @@ void test_match_leaf_to_leaf_short1_case_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "F"));
 }
 
-void test_match_leaf_to_leaf_short2_case_cs(void) {
+void test_match_leaf_to_leaf_short2_case_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -282,7 +309,8 @@ void test_match_leaf_to_leaf_short2_case_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "Fo"));
 }
 
-void test_match_leaf_to_leaf_case_cs(void) {
+void test_match_leaf_to_leaf_case_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -290,7 +318,8 @@ void test_match_leaf_to_leaf_case_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "Foo"));
 }
 
-void test_match_leaf_to_leaf_long_case_cs(void) {
+void test_match_leaf_to_leaf_long_case_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -298,7 +327,8 @@ void test_match_leaf_to_leaf_long_case_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "Fooo"));
 }
 
-void test_match_leaf_to_path1_case_cs(void) {
+void test_match_leaf_to_path1_case_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -306,7 +336,8 @@ void test_match_leaf_to_path1_case_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "Foo."));
 }
 
-void test_match_leaf_to_path2_case_cs(void) {
+void test_match_leaf_to_path2_case_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -314,7 +345,8 @@ void test_match_leaf_to_path2_case_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "Bar."));
 }
 
-void test_match_leaf_to_path3_case_cs(void) {
+void test_match_leaf_to_path3_case_cs(void)
+{
 	struct ignore_block *test = ignore_create();
 	TEST_ASSERT_NOT_NULL(test);
 	TEST_ASSERT_TRUE(ignore_add_node_for_test(test, "foo", TRUE));
@@ -322,7 +354,12 @@ void test_match_leaf_to_path3_case_cs(void) {
 	TEST_ASSERT_FALSE(ignore_compare_string_for_test(test, "Foo.Bar"));
 }
 
-int main(void) {
+/**
+ * The main test runner.
+ */
+
+int main(void)
+{
 	UNITY_BEGIN();
 	RUN_TEST(test_match_leaf_to_leaf_empty_ci);
 	RUN_TEST(test_match_leaf_to_leaf_short1_ci);
