@@ -115,6 +115,7 @@ wimp_t			main_task_handle;
 osbool			main_quit_flag = FALSE;
 osspriteop_area		*main_wimp_sprites;
 
+#ifndef UNIT_TESTING
 
 /**
  * Main code entry point.
@@ -140,6 +141,7 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+#endif
 
 /**
  * Wimp Poll loop.

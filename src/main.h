@@ -39,6 +39,8 @@ extern wimp_t			main_task_handle;
 extern osbool			main_quit_flag;
 extern osspriteop_area		*main_wimp_sprites;
 
+#ifndef UNIT_TESTING
+
 /**
  * Main code entry point.
  */
@@ -47,3 +49,4 @@ int main(int argc, char *argv[]);
 
 #endif
 
+#endif
