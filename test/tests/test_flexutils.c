@@ -43,7 +43,7 @@
 
 /* Locate Application header file. */
 
-#include "../src/flexutils.h"
+#include "flexutils.h"
 
 /**
  * Unit Test setup.
