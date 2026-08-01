@@ -45,7 +45,7 @@
 
 /* Locate Application header file. */
 
-#include "../src/ignore.h"
+#include "ignore.h"
 
 /**
  * Unit Test setup.

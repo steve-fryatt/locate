@@ -45,7 +45,7 @@
 
 /* Locate Application header file. */
 
-#include "../src/textdump.h"
+#include "textdump.h"
 
 /**
  * The default allocation block size.
